@@ -38,7 +38,7 @@ const ConnectionPanel = ({
   onConnectionChange,
   onLog,
 }: ConnectionPanelProps): React.ReactElement => {
-  const [apiUrl, setApiUrl] = useState("http://localhost:5397");
+  const [apiUrl, setApiUrl] = useState("http://localhost:6397");
   const [pollRate, setPollRate] = useState(200);
   const [isEditing, setIsEditing] = useState(false);
 

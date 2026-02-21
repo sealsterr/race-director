@@ -1,3 +1,5 @@
+// src/main/api/lmuApi.ts
+
 import type {
   AppState,
   SessionInfo,
@@ -9,142 +11,209 @@ import type {
   DriverStatus,
   ConnectionStatus,
   SectorTime,
+  Penalty,
 } from "../../shared/types";
 
 // -- raw API shapes --
 // -- these match what the LMU REST API actually returns --
 
 interface RawSessionInfo {
-  session: number;          // 0 = Practice, 1 = Qualifying, 5 = Race, etc.
+  session: string;           // "PRACTICE1", "QUALIFY1", "RACE1", etc.
   trackName: string;
-  currentLap: number;
-  maxLaps: number;
-  endET: number;            // session end elapsed time
-  currentET: number;        // current elapsed time
-  gamePhase: number;        // flag / phase state
+  currentEventTime: number;  // elapsed time in seconds
+  endEventTime: number;      // session end time in seconds
+  maxTime: number;           // max session time in seconds
+  maximumLaps: number;       // 4294967295 means no lap limit
+  gamePhase: number;         // numeric phase (not used for flag)
+  yellowFlagState: string;   // "NONE", "PENDING", "RESUME", "FULLCOURSE"
   inRealtime: boolean;
+  numberOfVehicles: number;
+  sectorFlag: string[];      // per-sector flag states
 }
 
-interface RawVehicleInfo {
-  place: number;
-  vehicleClass: string;
-  vehicleNum: string;
+interface RawVehicleStanding {
+  position: number;
+  carClass: string;          // "Hyper", "LMP2", "LMP3", "GT3", etc.
+  carNumber: string;         // often empty string!
+  slotID: number;            // reliable unique identifier
   driverName: string;
-  teamName: string;
-  vehicleName: string;
-  lastLapTime: number;      // -1 if no lap set
-  bestLapTime: number;      // -1 if no lap set
+  fullTeamName: string;
+  vehicleName: string;       // "Aston Martin THOR Team 2025 #007:EC"
+  vehicleFilename: string;   // "007_25_THOEAFB145B"
+  lastLapTime: number;       // 0.0 if no lap set
+  bestLapTime: number;       // -1.0 if no lap set
   timeBehindLeader: number;
   timeBehindNext: number;
   lapsCompleted: number;
   lapsBehindLeader: number;
-  pit: boolean;
-  inPits: boolean;
-  numPitStops: number;
-  finish: boolean;
-  dnf: boolean;
-  dq: boolean;
-  isPlayer: boolean;
-  sector1LastLap: number;
-  sector2LastLap: number;
-  sector3LastLap: number;
+  lapsBehindNext: number;
+  pitting: boolean;
+  inGarageStall: boolean;
+  pitstops: number;
+  finishStatus: string;      // "FSTAT_NONE", "FSTAT_FINISHED", "FSTAT_DNF", "FSTAT_DQ"
+  penalties: number;         // count of pending penalties
+  fuelFraction: number;      // 0.0 - 1.0
+  flag: string;              // per-car flag: "GREEN", "YELLOW", etc.
+  gamePhase: string;         // per-car game phase string
+  sector: string;            // "SECTOR1", "SECTOR2", "SECTOR3"
+  player: boolean;
+  focus: boolean;
+  hasFocus: boolean;
+  currentSectorTime1: number;
+  currentSectorTime2: number;
+  lastSectorTime1: number;
+  lastSectorTime2: number;
+  bestLapSectorTime1: number;
+  bestLapSectorTime2: number;
+  bestSectorTime1: number;
+  bestSectorTime2: number;
+  qualification: number;     // grid position
 }
 
 // -- mapping helpers --
 
-const mapSessionType = (session: number): SessionType => {
-  const map: Record<number, SessionType> = {
-    0: "PRACTICE",
-    1: "PRACTICE",
-    2: "PRACTICE",
-    3: "QUALIFYING",
-    4: "QUALIFYING",
-    5: "WARMUP",
-    6: "RACE",
-    7: "RACE",
+const mapSessionType = (session: string): SessionType => {
+  const upper = session.toUpperCase();
+  const map: Record<string, SessionType> = {
+    PRACTICE1: "PRACTICE",
+    PRACTICE2: "PRACTICE",
+    PRACTICE3: "PRACTICE",
+    QUALIFY1: "QUALIFYING",
+    QUALIFY2: "QUALIFYING",
+    QUALIFY3: "QUALIFYING",
+    WARMUP: "WARMUP",
+    RACE1: "RACE",
+    RACE2: "RACE",
+    RACE3: "RACE",
   };
-  return map[session] ?? "UNKNOWN";
+  return map[upper] ?? "UNKNOWN";
 };
 
-const mapFlagState = (gamePhase: number): FlagState => {
-  const map: Record<number, FlagState> = {
-    0: "NONE",
-    1: "GREEN",
-    2: "FULL_COURSE_YELLOW",
-    3: "YELLOW",
-    4: "SAFETY_CAR",
-    5: "RED",
-    9: "CHEQUERED",
+const mapFlagState = (yellowFlagState: string, sectorFlags: string[]): FlagState => {
+  // -- check for full course yellow / safety car first --
+  const upper = yellowFlagState.toUpperCase();
+  const map: Record<string, FlagState> = {
+    NONE: "GREEN",
+    PENDING: "YELLOW",
+    RESUME: "YELLOW",
+    FULLCOURSE: "FULL_COURSE_YELLOW",
+    SAFETYCAR: "SAFETY_CAR",
   };
-  return map[gamePhase] ?? "NONE";
+
+  // -- check sector flags for any yellows --
+  const hasYellow = sectorFlags.some((f) =>
+    f.toUpperCase().includes("YELLOW")
+  );
+  if (hasYellow && upper === "NONE") return "YELLOW";
+
+  return map[upper] ?? "NONE";
 };
 
 const mapCarClass = (vehicleClass: string): CarClass => {
   const upper = vehicleClass.toUpperCase();
-  if (upper.includes("HYPERCAR") || upper.includes("LMH")) return "HYPERCAR";
-  if (upper.includes("LMP2")) return "LMP2";
-  if (upper.includes("LMP3")) return "LMP3";
-  if (upper.includes("LMGT3") || upper.includes("GT3")) return "LMGT3";
-  if (upper.includes("GTE")) return "GTE";
-  return "UNKNOWN";
+  const map: Record<string, CarClass> = {
+    HYPER: "HYPERCAR",
+    HYPERCAR: "HYPERCAR",
+    LMH: "HYPERCAR",
+    LMP2: "LMP2",
+    LMP3: "LMP3",
+    GT3: "LMGT3",
+    LMGT3: "LMGT3",
+    GTE: "GTE",
+  };
+  return map[upper] ?? "UNKNOWN";
 };
 
-// -- LMU doesn't expose tyre compound directly in the REST API yet --
-// -- we default to UNKNOWN and will enrich this via shared memory later --
+// -- tyre compound not available via REST yet --
 const mapTyreCompound = (): TyreCompound => "UNKNOWN";
 
-const mapDriverStatus = (vehicle: RawVehicleInfo): DriverStatus => {
-  if (vehicle.dq) return "DISQUALIFIED";
-  if (vehicle.dnf) return "RETIRED";
-  if (vehicle.finish) return "FINISHED";
-  if (vehicle.inPits || vehicle.pit) return "PITTING";
+const mapDriverStatus = (v: RawVehicleStanding): DriverStatus => {
+  const finish = v.finishStatus.toUpperCase();
+  if (finish === "FSTAT_DQ") return "DISQUALIFIED";
+  if (finish === "FSTAT_DNF") return "RETIRED";
+  if (finish === "FSTAT_FINISHED") return "FINISHED";
+  if (v.inGarageStall) return "RETIRED";
+  if (v.pitting) return "PITTING";
   return "RACING";
 };
 
-const mapSectorTime = (s1: number, s2: number, s3: number): SectorTime => ({
+// -- extract car number from vehicleName or vehicleFilename as fallback --
+// -- vehicleName format: "Make Model #007:EC" --
+const extractCarNumber = (v: RawVehicleStanding): string => {
+  if (v.carNumber && v.carNumber.trim() !== "") return v.carNumber;
+
+  // -- try to extract from vehicleName: "... #007:EC" → "007" --
+  const nameMatch = v.vehicleName.match(/#(\w+)/);
+  if (nameMatch) return nameMatch[1];
+
+  // -- fallback to slotID --
+  return String(v.slotID);
+};
+
+// -- clean up vehicle name for display --
+// -- "Aston Martin THOR Team 2025 #007:EC" → "Aston Martin THOR" --
+const cleanCarName = (vehicleName: string): string => {
+  // -- strip the "#xxx:XX" suffix --
+  return vehicleName.replace(/#\w+.*$/, "").trim();
+};
+
+const mapSectorTime = (s1: number, s2: number): SectorTime => ({
   sector1: s1 > 0 ? s1 : null,
   sector2: s2 > 0 ? s2 : null,
-  sector3: s3 > 0 ? s3 : null,
+  sector3: null, // -- not available via REST --
 });
+
+// -- build penalty array from count --
+// -- REST only gives us a count, detail comes later via shared memory --
+const mapPenalties = (count: number): Penalty[] =>
+  Array.from({ length: count }, () => ({
+    type: "TIME_PENALTY" as const,
+    time: 0,
+    reason: "Pending penalty",
+  }));
 
 // -- transform functions --
 
-const transformSession = (raw: RawSessionInfo): SessionInfo => ({
-  sessionType: mapSessionType(raw.session),
-  trackName: raw.trackName || "Unknown Track",
-  currentLap: raw.currentLap,
-  totalLaps: raw.maxLaps,
-  timeRemaining: Math.max(0, raw.endET - raw.currentET),
-  sessionTime: raw.currentET,
-  flagState: mapFlagState(raw.gamePhase),
-  isActive: raw.inRealtime,
-});
+const transformSession = (
+  raw: RawSessionInfo,
+  vehicleCount: number
+): SessionInfo => {
+  const timeRemaining = Math.max(0, raw.endEventTime - raw.currentEventTime);
+  const noLapLimit = raw.maximumLaps >= 4294967295;
 
-const transformVehicle = (raw: RawVehicleInfo): DriverStanding => ({
-  position: raw.place,
-  carNumber: raw.vehicleNum,
+  return {
+    sessionType: mapSessionType(raw.session),
+    trackName: raw.trackName || "Unknown Track",
+    currentLap: 0,        // -- not a single value in multi-car session --
+    totalLaps: noLapLimit ? 0 : raw.maximumLaps,
+    timeRemaining,
+    sessionTime: raw.currentEventTime,
+    flagState: mapFlagState(raw.yellowFlagState, raw.sectorFlag),
+    isActive: raw.inRealtime || vehicleCount > 0,
+  };
+};
+
+const transformVehicle = (raw: RawVehicleStanding): DriverStanding => ({
+  position: raw.position,
+  carNumber: extractCarNumber(raw),
   driverName: raw.driverName,
-  teamName: raw.teamName,
-  carClass: mapCarClass(raw.vehicleClass),
-  carName: raw.vehicleName,
+  teamName: raw.fullTeamName,
+  carClass: mapCarClass(raw.carClass),
+  carName: cleanCarName(raw.vehicleName),
   lastLapTime: raw.lastLapTime > 0 ? raw.lastLapTime : null,
   bestLapTime: raw.bestLapTime > 0 ? raw.bestLapTime : null,
-  currentSectors: { sector1: null, sector2: null, sector3: null },
-  bestSectors: mapSectorTime(
-    raw.sector1LastLap,
-    raw.sector2LastLap,
-    raw.sector3LastLap
-  ),
+  currentSectors: mapSectorTime(raw.currentSectorTime1, raw.currentSectorTime2),
+  bestSectors: mapSectorTime(raw.bestSectorTime1, raw.bestSectorTime2),
   gapToLeader: raw.timeBehindLeader > 0 ? raw.timeBehindLeader : null,
   intervalToAhead: raw.timeBehindNext > 0 ? raw.timeBehindNext : null,
   lapsCompleted: raw.lapsCompleted,
   lapsDown: raw.lapsBehindLeader,
-  fuel: null,
+  fuel: raw.fuelFraction * 100,  // -- convert to percentage --
   tyreCompound: mapTyreCompound(),
-  pitStopCount: raw.numPitStops,
-  penalties: [],
+  pitStopCount: raw.pitstops,
+  penalties: mapPenalties(raw.penalties),
   status: mapDriverStatus(raw),
-  isPlayer: raw.isPlayer,
+  isPlayer: raw.player || raw.hasFocus,
 });
 
 // -- LmuApiClient --
@@ -153,7 +222,7 @@ type StateUpdateCallback = (state: AppState) => void;
 type ConnectionCallback = (status: ConnectionStatus) => void;
 
 export class LmuApiClient {
-  private baseUrl: string = "http://localhost:5397";
+  private baseUrl: string = "http://localhost:6397";
   private pollRate: number = 200;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private currentState: AppState = {
@@ -187,16 +256,12 @@ export class LmuApiClient {
 
   public async connect(): Promise<void> {
     this.emitConnection("CONNECTING");
-
-    // -- test connection with a single fetch before starting poll loop --
     const alive = await this.ping();
     if (!alive) {
       this.emitConnection("ERROR");
-      // -- auto-reset to DISCONNECTED after error --
       setTimeout(() => this.emitConnection("DISCONNECTED"), 3000);
       return;
     }
-
     this.emitConnection("CONNECTED");
     this.startPolling();
   }
@@ -217,7 +282,7 @@ export class LmuApiClient {
   private async ping(): Promise<boolean> {
     try {
       const res = await fetch(`${this.baseUrl}/rest/watch/sessionInfo`, {
-        signal: AbortSignal.timeout(3000), // 3s timeout
+        signal: AbortSignal.timeout(3000),
       });
       return res.ok;
     } catch {
@@ -226,7 +291,7 @@ export class LmuApiClient {
   }
 
   private startPolling(): void {
-    this.stopPolling(); // Clear any existing timer first
+    this.stopPolling();
     this.pollTimer = setInterval(() => {
       void this.poll();
     }, this.pollRate);
@@ -241,22 +306,22 @@ export class LmuApiClient {
 
   private async poll(): Promise<void> {
     try {
-      const [sessionRes, vehiclesRes] = await Promise.all([
+      const [sessionRes, standingsRes] = await Promise.all([
         fetch(`${this.baseUrl}/rest/watch/sessionInfo`),
-        fetch(`${this.baseUrl}/rest/watch/vehicleInfo`),
+        fetch(`${this.baseUrl}/rest/watch/standings`),
       ]);
 
-      if (!sessionRes.ok || !vehiclesRes.ok) {
+      if (!sessionRes.ok || !standingsRes.ok) {
         this.handlePollError();
         return;
       }
 
       const rawSession = (await sessionRes.json()) as RawSessionInfo;
-      const rawVehicles = (await vehiclesRes.json()) as RawVehicleInfo[];
+      const rawVehicles = (await standingsRes.json()) as RawVehicleStanding[];
 
       const newState: AppState = {
         connection: "CONNECTED",
-        session: transformSession(rawSession),
+        session: transformSession(rawSession, rawVehicles.length),
         standings: rawVehicles.map(transformVehicle),
         lastUpdated: Date.now(),
       };
