@@ -100,8 +100,8 @@ export interface Penalty {
 
 export type ConnectionStatus =
     | "CONNECTED"
-    | "DISCONNECTED"
     | "CONNECTING"
+    | "DISCONNECTED"
     | "ERROR";
 
 // -- app-level state --

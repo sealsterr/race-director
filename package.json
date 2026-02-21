@@ -25,6 +25,7 @@
     "@electron-toolkit/utils": "^4.0.0",
     "electron-updater": "^6.3.9",
     "framer-motion": "^12.34.3",
+    "lucide-react": "^0.575.0",
     "zustand": "^5.0.11"
   },
   "devDependencies": {

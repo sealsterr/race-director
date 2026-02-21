@@ -7,5 +7,7 @@
   },
   "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
-  }
+  },
+  "css.customData": [],
+  "css.lint.unknownAtRules": "ignore"
 }

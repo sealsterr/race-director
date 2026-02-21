@@ -1,13 +1,8 @@
 import { JSX } from "react";
+import Dashboard from "./windows/dashboard";
 
 const App = (): JSX.Element => {
-    return (
-        <div className="flex h-screen w-screen items-center justify-center bg-neutral-900">
-            <p className="text-white text-xl font-mono">
-                Race Director Test
-            </p>
-        </div>
-    );
+    return <Dashboard />;
 };
 
 export default App;
