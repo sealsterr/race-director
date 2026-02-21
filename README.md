@@ -57,7 +57,7 @@ TV broadcasts, it gives streamers and commentators a full suite of tools to deli
 ### Installation
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/race-director.git
+git clone https://github.com/sealsterr/race-director.git
 cd race-director
 npm install
 npm run dev
@@ -71,4 +71,4 @@ npm run dev
 
 ## 📄 License
 
-[MIT](LICENSE) © YOUR_NAME
+[MIT](LICENSE) © sealsterr
