@@ -1,7 +1,7 @@
-import { JSX } from "react";
+import React from "react";
 import Dashboard from "./windows/dashboard";
 
-const App = (): JSX.Element => {
+const App = (): React.ReactElement => {
     return <Dashboard />;
 };
 

@@ -19,6 +19,20 @@
   --font-mono: "JetBrains Mono", monospace;
 }
 
+@keyframes rd-flash {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.animate-rd-flash {
+  animation: rd-flash 0.8s ease-in-out infinite;
+}
+
 * {
   box-sizing: border-box;
 }

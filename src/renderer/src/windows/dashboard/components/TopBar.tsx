@@ -74,7 +74,7 @@ const TopBar = ({ connection }: TopBarProps): React.ReactElement => {
 
       {/* -- center: LMU session status -- */}
       <div className="flex items-center gap-2">
-        <div className="rounded border border-rd-border bg-rd-elevatedpx-4 py-1.5 text-center">
+        <div className="rounded border border-rd-border bg-rd-elevated px-4 py-1.5 text-center">
           <p className="font-mono text-xs text-rd-subtle">NO ACTIVE SESSION</p>
         </div>
       </div>

@@ -10,7 +10,6 @@ interface ConnectionPanelProps {
   onLog: (message: string, type?: LogType) => void;
 }
 
-// -- helpers --
 const getStatusValue = (connection: ConnectionStatus): string => {
   if (connection === "CONNECTED") return "Active";
   if (connection === "CONNECTING") return "Connecting...";
@@ -34,7 +33,6 @@ const getButtonLabel = (connection: ConnectionStatus): string => {
   return "Connect to LMU";
 };
 
-// -- component --
 const ConnectionPanel = ({
   connection,
   onConnectionChange,
@@ -44,24 +42,18 @@ const ConnectionPanel = ({
   const [pollRate, setPollRate] = useState(200);
   const [isEditing, setIsEditing] = useState(false);
 
-  const handleConnect = () => {
+  const handleConnect = async (): Promise<void> => {
     if (connection === "CONNECTED") {
+      await globalThis.api.disconnect();
+      onLog("Disconnected from LMU API.", "WARNING");
       onConnectionChange("DISCONNECTED");
-      onLog("Disconnected from LMU API!", "WARNING");
       return;
     }
 
-    onConnectionChange("CONNECTING");
     onLog(`Attempting connection to ${apiUrl}...`, "INFO");
-
-    // -- simulated connection, real polling replaces this --
-    setTimeout(() => {
-      onConnectionChange("DISCONNECTED");
-      onLog(
-        "Connection failed, make sure Le Mans Ultimate is running!",
-        "ERROR"
-      );
-    }, 2000);
+    // -- real status updates will arrive via onConnectionChange --
+    // -- listener set up in dashboard/index.tsx, we just fire call here
+    await globalThis.api.connect(apiUrl, pollRate);
   };
 
   const statusRows = [
@@ -77,7 +69,6 @@ const ConnectionPanel = ({
 
   return (
     <div className="flex flex-col rounded border border-rd-border bg-rd-surface">
-      {/* -- panel header -- */}
       <div className="flex items-center justify-between border-b border-rd-border px-4 py-3">
         <div className="flex items-center gap-2">
           {connection === "CONNECTED" ? (
@@ -97,7 +88,6 @@ const ConnectionPanel = ({
         </button>
       </div>
 
-      {/* -- status rows -- */}
       <div className="flex flex-col gap-px p-1">
         {statusRows.map((row) => (
           <div
@@ -114,7 +104,6 @@ const ConnectionPanel = ({
         ))}
       </div>
 
-      {/* -- collapsable configuration editor -- */}
       <motion.div
         initial={false}
         animate={{
@@ -125,12 +114,8 @@ const ConnectionPanel = ({
         className="overflow-hidden"
       >
         <div className="flex flex-col gap-3 border-t border-rd-border px-4 py-3">
-          {/* API URL input */}
           <div className="flex flex-col gap-1">
-            <label
-              htmlFor="api-url"
-              className="text-xs text-rd-subtle"
-            >
+            <label htmlFor="api-url" className="text-xs text-rd-subtle">
               API URL
             </label>
             <input
@@ -145,13 +130,8 @@ const ConnectionPanel = ({
               "
             />
           </div>
-
-          {/* -- poll rate input -- */}
           <div className="flex flex-col gap-1">
-            <label
-              htmlFor="poll-rate"
-              className="text-xs text-rd-subtle"
-            >
+            <label htmlFor="poll-rate" className="text-xs text-rd-subtle">
               Poll Rate (ms)
             </label>
             <input
@@ -172,11 +152,10 @@ const ConnectionPanel = ({
         </div>
       </motion.div>
 
-      {/* -- connect button -- */}
       <div className="border-t border-rd-border p-3">
         <motion.button
           whileTap={{ scale: 0.97 }}
-          onClick={handleConnect}
+          onClick={() => void handleConnect()}
           disabled={connection === "CONNECTING"}
           className={`
             flex w-full items-center justify-center gap-2 rounded

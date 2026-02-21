@@ -102,7 +102,7 @@ const SessionPanel = ({ session }: SessionPanelProps): React.ReactElement => {
         )}
       </div>
     </div>
-  );
+    );
 };
 
 export default SessionPanel;

@@ -1,13 +1,17 @@
-import { useState, useCallback, JSX } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import TopBar from "./components/TopBar";
 import Sidebar, { WINDOW_DEFINITIONS } from "./components/Sidebar";
 import ConnectionPanel from "./components/ConnectionPanel";
 import SessionPanel from "./components/SessionPanel";
 import ActivityLog from "./components/ActivityLog";
 import { useRaceStore } from "../../store/raceStore";
-import type { LogEntry, LogType, WindowId, WindowItem } from "../../types/dashboard";
-
-// -- helpers --
+import type {
+  LogEntry,
+  LogType,
+  WindowId,
+  WindowItem,
+} from "../../types/dashboard";
+import type { AppState } from "../../types/lmu";
 
 const createLogEntry = (
   message: string,
@@ -19,10 +23,9 @@ const createLogEntry = (
   message,
 });
 
-// -- component --
-
-const Dashboard = (): JSX.Element => {
-  const { connection, session, setConnection } = useRaceStore();
+const Dashboard = (): React.ReactElement => {
+  const { connection, session, setConnection, setSession, setStandings } =
+    useRaceStore();
 
   const [log, setLog] = useState<LogEntry[]>([
     createLogEntry("Race Director initialized.", "SYSTEM"),
@@ -33,7 +36,6 @@ const Dashboard = (): JSX.Element => {
     WINDOW_DEFINITIONS.map((def) => ({ ...def, isOpen: false }))
   );
 
-  // -- logger --
   const addLog = useCallback(
     (message: string, type: LogType = "INFO") => {
       setLog((prev) => [...prev, createLogEntry(message, type)]);
@@ -41,59 +43,78 @@ const Dashboard = (): JSX.Element => {
     []
   );
 
-  // -- window launcher (electron ipc later) --
+  // -- subscribe to IPC events from main process --
+  useEffect(() => {
+    // -- hydrate with whatever state main process already has --
+    globalThis.api.getState().then((state: AppState) => {
+      setConnection(state.connection);
+      if (state.session) setSession(state.session);
+      if (state.standings.length > 0) setStandings(state.standings);
+    });
+
+    // -- live state updates from poll loop --
+    const unsubState = globalThis.api.onStateUpdate((state: AppState) => {
+      setSession(state.session);
+      setStandings(state.standings);
+    });
+
+    // -- connection status changes --
+    const unsubConn = globalThis.api.onConnectionChange((status) => {
+      setConnection(status);
+
+      const messages: Record<typeof status, [string, LogType]> = {
+        CONNECTED: ["Connected to LMU API successfully!", "SUCCESS"],
+        CONNECTING: ["Connecting to LMU API...", "INFO"],
+        DISCONNECTED: ["Disconnected from LMU API.", "WARNING"],
+        ERROR: [
+          "Connection failed — make sure Le Mans Ultimate is running.",
+          "ERROR",
+        ],
+      };
+      const [msg, type] = messages[status];
+      addLog(msg, type);
+    });
+
+    // -- remove listeners when component unmounts --
+    return () => {
+      unsubState();
+      unsubConn();
+    };
+  }, [setConnection, setSession, setStandings, addLog]);
+
   const handleLaunch = useCallback(
     (id: WindowId) => {
       setWindows((prev) =>
-        prev.map((w) =>
-          w.id === id ? { ...w, isOpen: !w.isOpen } : w
-        )
+        prev.map((w) => (w.id === id ? { ...w, isOpen: !w.isOpen } : w))
       );
       const win = windows.find((w) => w.id === id);
       if (win) {
-        const isCurrentlyOpen = win.isOpen;
         addLog(
-          isCurrentlyOpen
-            ? `Closed: ${win.label}`
-            : `Launched: ${win.label}`,
-          isCurrentlyOpen ? "WARNING" : "SUCCESS"
+          win.isOpen ? `Closed: ${win.label}` : `Launched: ${win.label}`,
+          win.isOpen ? "WARNING" : "SUCCESS"
         );
       }
     },
     [windows, addLog]
   );
 
-  // -- connection handler --
-  const handleConnectionChange = useCallback(
-    (status: Parameters<typeof setConnection>[0]) => {
-      setConnection(status);
-    },
-    [setConnection]
-  );
-
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-rd-bg">
-      {/* -- top bar -- */}
       <TopBar connection={connection} />
 
-      {/* -- body -- */}
       <div className="flex min-h-0 flex-1">
-        {/* -- sidebar -- */}
         <Sidebar windows={windows} onLaunch={handleLaunch} />
 
-        {/* -- main content -- */}
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-4">
-          {/* -- top row: connection + session panels -- */}
           <div className="grid grid-cols-2 gap-3">
             <ConnectionPanel
               connection={connection}
-              onConnectionChange={handleConnectionChange}
+              onConnectionChange={setConnection}
               onLog={addLog}
             />
             <SessionPanel session={session} />
           </div>
 
-          {/* -- bottom: activity log, takes all remaining height -- */}
           <ActivityLog entries={log} />
         </div>
       </div>
