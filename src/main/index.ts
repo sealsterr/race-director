@@ -13,8 +13,14 @@ const createMainWindow = (): BrowserWindow => {
     minWidth: 900,
     minHeight: 600,
     show: false, // don't flash an empty window, wait for content
-    frame: false, // custom titlebar later
+    titleBarStyle: "hidden",
+    titleBarOverlay: {
+      color: "#0f1117",
+      symbolColor: "#f1f5f9",
+      height: 56,
+    },
     backgroundColor: "#08090c", // match rd-bg to prevent white flash
+    icon: join(__dirname, "../../resources/rd-icon-2.ico"),
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
       sandbox: false,

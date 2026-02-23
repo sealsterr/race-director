@@ -1,5 +1,5 @@
-@import "tailwindcss";
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+@import "tailwindcss";
 
 @theme {
   --color-rd-bg: #08090c;
@@ -14,6 +14,8 @@
   --color-rd-text: #f1f5f9;
   --color-rd-muted: #94a3b8;
   --color-rd-subtle: #475569;
+  --color-rd-logo-primary: #eb7b27;
+  --color-rd-logo-secondary: #14537e;
 
   --font-ui: "Inter", sans-serif;
   --font-mono: "JetBrains Mono", monospace;

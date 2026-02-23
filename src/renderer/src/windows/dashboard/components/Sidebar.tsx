@@ -116,7 +116,7 @@ const WindowButton = ({ item, onLaunch }: WindowButtonProps): React.ReactElement
         <p className={`text-xs font-semibold tracking-wide ${getLabelClass(item)}`}>
           {item.label}
         </p>
-        <p className="truncate text-xs text-rd-subtle">{item.description}</p>
+        <p className="text-xs leading-snug text-rd-subtle whitespace-normal break-words">{item.description}</p>
       </div>
 
       {/* -- right indicator -- */}
@@ -131,14 +131,14 @@ const Sidebar = ({ windows, onLaunch }: SidebarProps): React.ReactElement => {
   return (
     <div
       className="
-        flex w-56 shrink-0 flex-col border-r border-rd-border
+        flex w-64 shrink-0 flex-col border-r border-rd-border
         bg-rd-surface
       "
     >
       {/* -- section header -- */}
       <div className="px-4 pb-2 pt-5">
         <p className="text-xs font-semibold uppercase tracking-[0.15em] text-rd-subtle">
-          Windows
+          Options
         </p>
       </div>
 
@@ -151,8 +151,8 @@ const Sidebar = ({ windows, onLaunch }: SidebarProps): React.ReactElement => {
 
       {/* -- bottom spacer / future items here -- */}
       <div className="mt-auto border-t border-rd-border p-4">
-        <p className="text-center font-mono text-xs text-rd-subtle">
-          RaceDirector Dev
+        <p className="text-center font-mono text-xs text-rd-accent">
+          RaceDirector DevBuild
         </p>
       </div>
     </div>
