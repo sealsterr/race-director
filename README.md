@@ -18,7 +18,7 @@
 
 **Race Director** is an open-source broadcast overlay
 for **Le Mans Ultimate**. Inspired by real-life
-TV broadcasts, it gives streamers and commentators a full suite of tools to deliver a stunning, data-rich viewing experience.
+TV broadcasts, it gives streamers and commentators tools to deliver a stunning viewing experience.
 
 Join the ![Discord server](https://discord.gg/ncqVwZtQED) for more info & support!
 
@@ -27,25 +27,10 @@ Join the ![Discord server](https://discord.gg/ncqVwZtQED) for more info & suppor
 ## ✨ Planning Board
 
 - 🖥️ **Main Dashboard** — Central control hub for the entire application
-- 📋 **Info Window** — Raw live timing data
-- 🎬 **Overlay Dashboard** — Control what appears on the stream
-- 🏎️ **Live Overlays** — Standings, sectors, gaps, tyres, pit stops and more
-- 🚩 **Flag & Penalty System** — Manual FCY, SC, and penalty management
-- 🎙️ **Teleprompter** — AI-assisted live commentary suggestions *(coming soon)*
-
----
-
-## 🛠️ Tech Stack
-
-| Tool | Purpose |
-|---|---|
-| [Electron](https://www.electronjs.org/) | Desktop app framework |
-| [React 18](https://react.dev/) | Component-based UI |
-| [TypeScript](https://www.typescriptlang.org/) | Type-safe development |
-| [Vite](https://vitejs.dev/) | Fast build tool |
-| [Tailwind CSS](https://tailwindcss.com/) | Utility-first styling |
-| [Framer Motion](https://www.framer.com/motion/) | Broadcast animations |
-| [Zustand](https://zustand-demo.pmnd.rs/) | Global state management |
+- 📋 **Info Window** — Live data *
+- 🎬 **Overlay Dashboard** — Control what appears on stream *
+- 🚩 **Flag & Penalty System** — Manual FCY, SC, and penalty management *
+- 🎙️ **Teleprompter** — Live commentary suggestions *
 
 ---
 
