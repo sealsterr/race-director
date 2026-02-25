@@ -39,13 +39,13 @@ const ConnectionPanel = ({
   onLog,
 }: ConnectionPanelProps): React.ReactElement => {
   const [apiUrl, setApiUrl] = useState("http://localhost:6397");
-  const [pollRate, setPollRate] = useState(200);
+  const [pollRate, setPollRate] = useState(1000);
   const [isEditing, setIsEditing] = useState(false);
 
   const handleConnect = async (): Promise<void> => {
     if (connection === "CONNECTED") {
       await globalThis.api.disconnect();
-      onLog("Disconnected from LMU API.", "WARNING");
+      onLog("Disconnected from LMU API", "WARNING");
       onConnectionChange("DISCONNECTED");
       return;
     }
@@ -60,11 +60,6 @@ const ConnectionPanel = ({
     { label: "API Endpoint", value: apiUrl, mono: true },
     { label: "Poll Rate", value: `${pollRate}ms`, mono: true },
     { label: "Status", value: getStatusValue(connection), mono: false },
-    {
-      label: "Last Ping",
-      value: connection === "CONNECTED" ? "—" : "N/A",
-      mono: true,
-    },
   ];
 
   return (
@@ -77,7 +72,7 @@ const ConnectionPanel = ({
             <WifiOff size={14} className="text-rd-muted" />
           )}
           <span className="text-xs font-semibold uppercase tracking-wider text-rd-text">
-            LMU Connection
+            Connection
           </span>
         </div>
         <button
@@ -143,6 +138,7 @@ const ConnectionPanel = ({
               step={50}
               onChange={(e) => setPollRate(Number(e.target.value))}
               className="
+                [color-scheme:dark]
                 w-full rounded border border-rd-border bg-rd-elevated
                 px-3 py-1.5 font-mono text-xs text-rd-text
                 outline-none focus:border-rd-accent/60

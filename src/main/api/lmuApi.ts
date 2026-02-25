@@ -23,12 +23,14 @@ interface RawSessionInfo {
   currentEventTime: number;  // elapsed time in seconds
   endEventTime: number;      // session end time in seconds
   maxTime: number;           // max session time in seconds
+  timeRemainingInGamePhase: number;      // in s
   maximumLaps: number;       // 4294967295 means no lap limit
   gamePhase: number;         // numeric phase (not used for flag)
   yellowFlagState: string;   // "NONE", "PENDING", "RESUME", "FULLCOURSE"
   inRealtime: boolean;
   numberOfVehicles: number;
   sectorFlag: string[];      // per-sector flag states
+  
 }
 
 interface RawVehicleStanding {
@@ -74,19 +76,12 @@ interface RawVehicleStanding {
 
 const mapSessionType = (session: string): SessionType => {
   const upper = session.toUpperCase();
-  const map: Record<string, SessionType> = {
-    PRACTICE1: "PRACTICE",
-    PRACTICE2: "PRACTICE",
-    PRACTICE3: "PRACTICE",
-    QUALIFY1: "QUALIFYING",
-    QUALIFY2: "QUALIFYING",
-    QUALIFY3: "QUALIFYING",
-    WARMUP: "WARMUP",
-    RACE1: "RACE",
-    RACE2: "RACE",
-    RACE3: "RACE",
-  };
-  return map[upper] ?? "UNKNOWN";
+  
+  if (upper.startsWith("PRACTICE")) return "PRACTICE";
+  if (upper.startsWith("QUALIFY")) return "QUALIFYING";
+  if (upper.startsWith("RACE")) return "RACE";
+
+  return "UNKNOWN";
 };
 
 const mapFlagState = (yellowFlagState: string, sectorFlags: string[]): FlagState => {
@@ -143,7 +138,7 @@ const extractCarNumber = (v: RawVehicleStanding): string => {
   if (v.carNumber && v.carNumber.trim() !== "") return v.carNumber;
 
   // -- try to extract from vehicleName: "... #007:EC" → "007" --
-  const nameMatch = v.vehicleName.match(/#(\w+)/);
+  const nameMatch = /#(\w+)/.exec(v.vehicleName);
   if (nameMatch) return nameMatch[1];
 
   // -- fallback to slotID --
@@ -176,20 +171,57 @@ const mapPenalties = (count: number): Penalty[] =>
 
 const transformSession = (
   raw: RawSessionInfo,
-  vehicleCount: number
+  vehicles: RawVehicleStanding[],
 ): SessionInfo => {
-  const timeRemaining = Math.max(0, raw.endEventTime - raw.currentEventTime);
-  const noLapLimit = raw.maximumLaps >= 4294967295;
+  const vehicleCount = raw.numberOfVehicles > 0 ? raw.numberOfVehicles : vehicles.length;
+  const current = Number.isFinite(raw.currentEventTime) 
+    ? raw.currentEventTime 
+    : 0;
+  const remainingDirect = Number.isFinite(raw.timeRemainingInGamePhase) && raw.timeRemainingInGamePhase >= 0 
+    ? raw.timeRemainingInGamePhase
+    : null;
+  const remainingFromMax = Number.isFinite(raw.maxTime) && raw.maxTime > 0
+    ? Math.max(0, raw.maxTime - current)
+    : null;               
+  const timeRemaining = remainingDirect ?? remainingFromMax ?? 0;
+
+  // -- laps --
+  const noLapLimit = raw.maximumLaps >= 4294967295 || raw.maximumLaps === 0;
+
+  // use leader lapCompleted + 1
+  const leader = vehicles.length > 0 
+    ? vehicles.reduce<RawVehicleStanding>((best, v) => (v.position < best.position ? v : best), vehicles[0])
+    : null;
+
+  const currentLap = leader && Number.isFinite(leader.lapsCompleted)
+    ? Math.max(0, leader.lapsCompleted) + 1
+    : 0;
+
+  // -- on track --
+  const numCarsOnTrack = vehicles.filter((v) => {
+    const finish = (v.finishStatus ?? "").toUpperCase();
+    const inactiveFinish = 
+      finish === "FSTAT_DNF" ||
+      finish === "FSTAT_DQ" ||
+      finish === "FSTAT_FINISHED";
+    
+    if (inactiveFinish) return false;
+    if (v.inGarageStall) return false;
+
+    return true;
+  }).length;
 
   return {
     sessionType: mapSessionType(raw.session),
     trackName: raw.trackName || "Unknown Track",
-    currentLap: 0,        // -- not a single value in multi-car session --
+    currentLap,
     totalLaps: noLapLimit ? 0 : raw.maximumLaps,
     timeRemaining,
-    sessionTime: raw.currentEventTime,
+    sessionTime: current,
     flagState: mapFlagState(raw.yellowFlagState, raw.sectorFlag),
-    isActive: raw.inRealtime || vehicleCount > 0,
+    numCars: vehicleCount,
+    numCarsOnTrack,
+    isActive: vehicleCount > 0,
   };
 };
 
@@ -270,11 +302,13 @@ export class LmuApiClient {
     this.stopPolling();
     this.currentState = {
       ...this.currentState,
-      connection: "DISCONNECTED",
       session: null,
       standings: [],
+      lastUpdated: Date.now(),
     };
+
     this.emitConnection("DISCONNECTED");
+    this.onStateUpdate?.(this.currentState);
   }
 
   // -- private methods --
@@ -321,7 +355,7 @@ export class LmuApiClient {
 
       const newState: AppState = {
         connection: "CONNECTED",
-        session: transformSession(rawSession, rawVehicles.length),
+        session: transformSession(rawSession, rawVehicles),
         standings: rawVehicles.map(transformVehicle),
         lastUpdated: Date.now(),
       };

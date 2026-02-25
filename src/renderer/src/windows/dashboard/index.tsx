@@ -48,8 +48,8 @@ const Dashboard = (): React.ReactElement => {
     // -- hydrate with whatever state main process already has --
     globalThis.api.getState().then((state: AppState) => {
       setConnection(state.connection);
-      if (state.session) setSession(state.session);
-      if (state.standings.length > 0) setStandings(state.standings);
+      setSession(state.session);
+      setStandings(state.standings);
     });
 
     // -- live state updates from poll loop --
@@ -65,9 +65,9 @@ const Dashboard = (): React.ReactElement => {
       const messages: Record<typeof status, [string, LogType]> = {
         CONNECTED: ["Connected to LMU API successfully!", "SUCCESS"],
         CONNECTING: ["Connecting to LMU API...", "INFO"],
-        DISCONNECTED: ["Disconnected from LMU API.", "WARNING"],
+        DISCONNECTED: ["Disconnected from LMU API!", "WARNING"],
         ERROR: [
-          "Connection failed — make sure Le Mans Ultimate is running.",
+          "Connection failed! Make sure Le Mans Ultimate is running.",
           "ERROR",
         ],
       };
@@ -90,7 +90,7 @@ const Dashboard = (): React.ReactElement => {
       const win = windows.find((w) => w.id === id);
       if (win) {
         addLog(
-          win.isOpen ? `Closed: ${win.label}` : `Launched: ${win.label}`,
+          win.isOpen ? `Closed ${win.label}` : `Launched ${win.label}`,
           win.isOpen ? "WARNING" : "SUCCESS"
         );
       }
@@ -109,7 +109,14 @@ const Dashboard = (): React.ReactElement => {
           <div className="grid grid-cols-2 gap-3">
             <ConnectionPanel
               connection={connection}
-              onConnectionChange={setConnection}
+              onConnectionChange={(status) => {
+                setConnection(status)
+
+                if (status === "DISCONNECTED" || status === "ERROR") {
+                  setSession(null);
+                  setStandings([]);
+                }
+              }}
               onLog={addLog}
             />
             <SessionPanel session={session} />

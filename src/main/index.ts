@@ -58,22 +58,30 @@ app.on("window-all-closed", () => {
 });
 
 // -- app ready --
-app.whenReady().then(() => {
-  // -- sets app user model ID for windows taskbar grouping --
-  electronApp.setAppUserModelId("com.racedirector");
+const bootstrap = async (): Promise<void> => {
+  try {
+    await app.whenReady();
+    // -- sets app user model ID for windows taskbar grouping --
+    electronApp.setAppUserModelId("com.racedirector");
 
-  // -- optimise devtools shortcuts in dev, disable in prod --
-  app.on("browser-window-created", (_, window) => {
-    optimizer.watchWindowShortcuts(window);
-  });
+    // -- optimise devtools shortcuts in dev, disable in prod --
+    app.on("browser-window-created", (_, window) => {
+      optimizer.watchWindowShortcuts(window);
+    });
 
-  const mainWindow = createMainWindow();
-  registerIpcHandlers(mainWindow);
+    const mainWindow = createMainWindow();
+    registerIpcHandlers(mainWindow);
 
-  // -- macOS: re-create window when dock icon is clicked with no windows open --
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createMainWindow();
-    }
-  });
-});
+    // -- macOS: re-create window when dock icon is clicked with no windows open --
+    app.on("activate", () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createMainWindow();
+      }
+    });
+  } catch (err) {
+    console.error("Failed to bootstrap app:", err);
+    app.quit();
+  }
+};
+
+void bootstrap();

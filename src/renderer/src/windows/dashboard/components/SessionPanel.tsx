@@ -17,10 +17,16 @@ const flagConfig: Record<FlagState, { label: string; color: string }> = {
 };
 
 const formatTime = (seconds: number): string => {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  const safe = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
+
+  const h = Math.floor(safe / 3600);
+  const m = Math.floor((safe % 3600) / 60);
+  const s = Math.floor(safe % 60);
+
+  if (h > 0) {
+    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 };
 
@@ -54,7 +60,7 @@ const SessionPanel = ({ session }: SessionPanelProps): React.ReactElement => {
       <div className="flex items-center gap-2 border-b border-rd-border px-4 py-3">
         <Flag size={14} className="text-rd-muted" />
         <span className="text-xs font-semibold uppercase tracking-wider text-rd-text">
-          Session Info
+          Session
         </span>
         {flag && (
           <span
@@ -73,7 +79,10 @@ const SessionPanel = ({ session }: SessionPanelProps): React.ReactElement => {
             <DataRow label="Session" value={session.sessionType} />
             <DataRow
               label="Lap"
-              value={`${session.currentLap} / ${session.totalLaps}`}
+              value={session.totalLaps > 0
+                      ? `${session.currentLap} / ${session.totalLaps}`
+                      : `${session.currentLap} / —`
+              }
               mono
             />
             <DataRow
@@ -82,14 +91,8 @@ const SessionPanel = ({ session }: SessionPanelProps): React.ReactElement => {
               mono
             />
             <DataRow
-              label="Session Time"
-              value={formatTime(session.sessionTime)}
-              mono
-            />
-            <DataRow
-              label="Flag"
-              value={flag?.label ?? "—"}
-              valueClass={flag?.color ?? "text-rd-text"}
+              label="Cars"
+              value={`${session.numCars} total, ${session.numCarsOnTrack} on track`}
             />
           </>
         ) : (

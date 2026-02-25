@@ -34,7 +34,7 @@ const ActivityLog = ({ entries }: ActivityLogProps): React.ReactElement => {
       <div className="flex items-center gap-2 border-b border-rd-border px-4 py-3">
         <Terminal size={14} className="text-rd-muted" />
         <span className="text-xs font-semibold uppercase tracking-wider text-rd-text">
-          Activity Log
+          Activity
         </span>
         <span className="ml-auto font-mono text-xs text-rd-subtle">
           {entries.length} events

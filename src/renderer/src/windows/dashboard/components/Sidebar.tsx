@@ -29,14 +29,14 @@ const WINDOW_DEFINITIONS: Omit<WindowItem, "isOpen">[] = [
     label: "Overlay Dashboard",
     description: "Broadcast overlay control",
     icon: Monitor,
-    isAvailable: true,
+    isAvailable: false,
   },
   {
     id: "OVERLAYS",
     label: "Stream Overlays",
     description: "On-screen broadcast graphics",
     icon: Layers,
-    isAvailable: true,
+    isAvailable: false,
   },
   {
     id: "TELEPROMPTER",

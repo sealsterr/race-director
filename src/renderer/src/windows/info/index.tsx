@@ -12,7 +12,7 @@ const InfoWindow = (): React.ReactElement => {
       <div className="flex h-12 items-center justify-between border-b border-rd-border bg-rd-surface px-4">
         <div className="flex flex-col">
           <span className="text-xs font-semibold uppercase tracking-wider">
-            Info Window (WIP)
+            Info Window
           </span>
           <span className="font-mono text-xs text-rd-subtle">{title}</span>
         </div>

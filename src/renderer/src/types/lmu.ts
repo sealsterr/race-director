@@ -1,21 +1,21 @@
 // -- session --
 
 export type SessionType = 
-    | "WARMUP"
     | "PRACTICE"
     | "QUALIFYING"
     | "RACE"
     | "UNKNOWN";
 
 export type FlagState =
-    | "GREEN"
+    | "GREEN" // custom
     | "YELLOW"
-    | "FULL_COURSE_YELLOW"
-    | "SAFETY_CAR"
-    | "RED"
-    | "CHEQUERED"
+    | "FULL_COURSE_YELLOW" // custom
+    | "SAFETY_CAR" // custom
+    | "RED" // custom
+    | "CHEQUERED" 
     | "NONE";
 
+// -- for dashboard info panel --
 export interface SessionInfo {
     sessionType: SessionType;
     trackName: string;
@@ -24,6 +24,8 @@ export interface SessionInfo {
     timeRemaining: number; // in s
     sessionTime: number; // elapsed time in s
     flagState: FlagState;
+    numCars: number;
+    numCarsOnTrack: number;
     isActive: boolean;
 }
 
@@ -44,7 +46,8 @@ export type TyreCompound =
     | "WET"
     | "UNKNOWN";
 
-export type DriverStatus = 
+//  -- custom detect -- 
+export type DriverStatus =  
     | "RACING"
     | "PITTING"
     | "RETIRED"
@@ -57,8 +60,8 @@ export type DriverStatus =
 
 export interface SectorTime {
     sector1: number | null; // in s, null if not completed
-    sector2: number | null; // in s, null if not completed
-    sector3: number | null; // in s, null if not completed
+    sector2: number | null;
+    sector3: number | null;
 }
 
 export interface DriverStanding {
@@ -69,7 +72,7 @@ export interface DriverStanding {
     carClass: CarClass;
     carName: string;
     lastLapTime: number | null; // in s, null if not completed
-    bestLapTime: number | null; // in s, null if not completed
+    bestLapTime: number | null;
     currentSectors: SectorTime;
     bestSectors: SectorTime;
     gapToLeader: number | null; // in s, null if leader
