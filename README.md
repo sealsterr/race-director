@@ -20,7 +20,7 @@
 for **Le Mans Ultimate**. Inspired by real-life
 TV broadcasts, it gives streamers and commentators tools to deliver a stunning viewing experience.
 
-Join the ![Discord server](https://discord.gg/ncqVwZtQED) for more info & support!
+Join the [Discord server](https://discord.gg/ncqVwZtQED) for more info & support!
 
 ---
 
