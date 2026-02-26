@@ -1,10 +1,6 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { ConnectionStatus, AppState } from "../renderer/src/types/lmu";
 
-/*
-  the API is exposed to the renderer via window.api
-  only expose what the renderer actually needs!
-*/
 const api = {
   // -- connection --
   connect: (url: string, pollRate: number): Promise<void> =>
@@ -17,15 +13,17 @@ const api = {
   getState: (): Promise<AppState> =>
     ipcRenderer.invoke("lmu:getState"),
 
-  // -- event subscriptions (main -> renderer push) --
+  // -- event subscriptions --
   onStateUpdate: (
     callback: (state: AppState) => void
   ): (() => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, state: AppState): void => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      state: AppState
+    ): void => {
       callback(state);
     };
     ipcRenderer.on("lmu:stateUpdate", handler);
-    // -- returns an unsubscribe function to avoid memory leaks --
     return () => ipcRenderer.removeListener("lmu:stateUpdate", handler);
   },
 
@@ -41,9 +39,31 @@ const api = {
     ipcRenderer.on("lmu:connectionChange", handler);
     return () => ipcRenderer.removeListener("lmu:connectionChange", handler);
   },
+
+  // -- window management --
+  windows: {
+    open: (id: string): Promise<boolean> =>
+      ipcRenderer.invoke("window:open", id),
+
+    close: (id: string): Promise<void> =>
+      ipcRenderer.invoke("window:close", id),
+
+    getOpen: (): Promise<string[]> =>
+      ipcRenderer.invoke("window:getOpen"),
+
+    onClosed: (cb: (id: string) => void): (() => void) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        id: string
+      ): void => {
+        cb(id);
+      };
+      ipcRenderer.on("window:closed", handler);
+      return () => ipcRenderer.removeListener("window:closed", handler);
+    },
+  },
 };
 
 contextBridge.exposeInMainWorld("api", api);
 
-// -- export the type so the renderer gets full ts intellisense
 export type ElectronAPI = typeof api;

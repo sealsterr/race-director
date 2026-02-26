@@ -23,6 +23,21 @@ const createLogEntry = (
   message,
 });
 
+const updateWindowOpenStatus = (
+  windows: WindowItem[],
+  id: string,
+  isOpen: boolean
+): WindowItem[] =>
+  windows.map((w) => (w.id === id ? { ...w, isOpen } : w));
+
+const mapWindowWithOpenStatus = (w: WindowItem, openIds: string[]) => ({
+  ...w,
+  isOpen: openIds.includes(w.id),
+});
+
+const hydrateOpenWindows = (openIds: string[]) => (prev: WindowItem[]) =>
+  prev.map((w) => mapWindowWithOpenStatus(w, openIds));
+
 const Dashboard = (): React.ReactElement => {
   const { connection, session, setConnection, setSession, setStandings } =
     useRaceStore();
@@ -75,24 +90,39 @@ const Dashboard = (): React.ReactElement => {
       addLog(msg, type);
     });
 
+    // sync isOpen if user closes a child window via its own X button
+    const unsubWinClosed = globalThis.api.windows.onClosed((id: string) => {
+      setWindows((prev) => updateWindowOpenStatus(prev, id, false));
+      const closed = WINDOW_DEFINITIONS.find((w) => w.id === id);
+      if (closed) addLog(`${closed.label} was closed`, "WARNING");
+    });
+
+    // hydrate open windows on mount
+    globalThis.api.windows.getOpen().then((openIds: string[]) => {
+      setWindows(hydrateOpenWindows(openIds));
+    });
+
     // -- remove listeners when component unmounts --
     return () => {
       unsubState();
       unsubConn();
+      unsubWinClosed();
     };
   }, [setConnection, setSession, setStandings, addLog]);
 
   const handleLaunch = useCallback(
-    (id: WindowId) => {
-      setWindows((prev) =>
-        prev.map((w) => (w.id === id ? { ...w, isOpen: !w.isOpen } : w))
-      );
+    async (id: WindowId) => {
       const win = windows.find((w) => w.id === id);
-      if (win) {
-        addLog(
-          win.isOpen ? `Closed ${win.label}` : `Launched ${win.label}`,
-          win.isOpen ? "WARNING" : "SUCCESS"
-        );
+      if (!win) return;
+
+      if (win.isOpen) {
+        await globalThis.api.windows.close(id);
+        setWindows((prev) => updateWindowOpenStatus(prev, id, false));
+        addLog(`Closed ${win.label}`, "WARNING");
+      } else {
+        await globalThis.api.windows.open(id);
+        setWindows((prev) => updateWindowOpenStatus(prev, id, true));
+        addLog(`Launched ${win.label}`, "SUCCESS");
       }
     },
     [windows, addLog]
@@ -110,7 +140,7 @@ const Dashboard = (): React.ReactElement => {
             <ConnectionPanel
               connection={connection}
               onConnectionChange={(status) => {
-                setConnection(status)
+                setConnection(status);
 
                 if (status === "DISCONNECTED" || status === "ERROR") {
                   setSession(null);

@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import React from 'react';
 
 // -- activity log --
 export type LogType = 
@@ -27,7 +27,7 @@ export interface WindowItem {
     id: WindowId;
     label: string;
     description: string;
-    icon: LucideIcon;
+    icon: React.ComponentType<{ size?: number; className?: string }>;
     isOpen: boolean;
     isAvailable: boolean;
 }
