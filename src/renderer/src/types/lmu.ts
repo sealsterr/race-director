@@ -85,6 +85,7 @@ export interface DriverStanding {
     penalties: Penalty[];
     status: DriverStatus;
     isPlayer: boolean; // is this the spectated car?
+    slotId: number;
 }
 
 export type PenaltyType =

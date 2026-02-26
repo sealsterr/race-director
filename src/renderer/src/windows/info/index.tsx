@@ -6,6 +6,21 @@ import type {
   DriverStatus,
 } from "../../types/lmu";
 
+// -- camera types --
+// -- trackSideGroup lways 0 && shouldAdvance always false --
+export const CAMERA_TYPES = [
+  { label: "Cockpit",    value: 1,  description: "Driver eye, facing forward -> classic onboard"     },
+  { label: "Grille",     value: 2,  description: "Top of hood/grille, good for watching a chaser"    },
+  { label: "Chase",      value: 3,  description: "Third person, full car visible -> niche use"       },
+  { label: "Trackside",  value: 4,  description: "Cycles trackside groups -> best all-round camera"  },
+  { label: "Windshield", value: 6,  description: "Inside windshield offset right -> unique angle"    },
+  { label: "Hood Fwd",   value: 7,  description: "Hood visible at bottom, good for chase spectating" },
+  { label: "Cockpit Hi", value: 12, description: "Top-right cockpit interior -> cinematic onboard"   },
+  { label: "Rear Hi",    value: 11, description: "Rear-facing elevated -> recommended for battles"   },
+] as const;
+
+export type CameraTypeValue = (typeof CAMERA_TYPES)[number]["value"];
+
 // -- helpers --
 const formatTime = (s: number | null): string => {
   if (s === null || s <= 0) return "—";
@@ -278,11 +293,25 @@ interface RowProps {
   isEven: boolean;
 }
 
-const DriverRow = ({ driver, visibleCols, isLapped, isEven }: RowProps): React.ReactElement => {
+const DriverRow = ({
+  driver,
+  visibleCols,
+  isLapped,
+  isEven,
+  isFocused,
+  onClick,
+}: RowProps & {
+  isFocused: boolean;
+  onClick: (driver: DriverStanding) => void;
+}): React.ReactElement => {
   const isRetiredOrDQ = driver.status === "RETIRED" || driver.status === "DISQUALIFIED";
-  const rowBg = isEven ? "bg-rd-surface" : "bg-rd-bg";
+  const baseRowBg = isEven ? "bg-rd-surface" : "bg-rd-bg";
+  const rowBg = isFocused ? "bg-rd-gold/10" : baseRowBg;
   return (
-    <tr className={`border-b border-rd-border transition-colors hover:bg-rd-elevated ${rowBg} ${isLapped ? "opacity-60" : ""} ${isRetiredOrDQ ? "opacity-40" : ""}`}>
+    <tr
+      onClick={() => onClick(driver)}
+      className={`cursor-pointer border-b border-rd-border transition-colors hover:bg-rd-elevated ${rowBg} ${isLapped ? "opacity-60" : ""} ${isRetiredOrDQ ? "opacity-40" : ""}`}
+    >
       {COLUMNS.filter((col) => visibleCols.has(col.key)).map((col) =>
         CELL_MAP[col.key](driver)
       )}
@@ -317,6 +346,26 @@ const InfoWindow = (): React.ReactElement => {
       unsubConn();
     };
   }, [setConnection, setSession, setStandings]);
+
+  // camera
+  const [selectedCamera] = useState<CameraTypeValue>(4);
+  const [focusedSlotId, setFocusedSlotId] = useState<number | null>(null);
+  const activeCameraType = React.useRef<CameraTypeValue | null>(null);
+
+  const handleRowClick = async (driver: DriverStanding): Promise<void> => {
+    if (connection !== "CONNECTED") return;
+    // -- always switch focus to clicked car --
+    await globalThis.api.focusVehicle(driver.slotId);
+    // -- only send camera angle if differs from what's currently active --
+    // -- switching drivers does NOT change camera type, no setCameraAngle needed --
+    if (activeCameraType.current !== selectedCamera) {
+      await globalThis.api.setCameraAngle(selectedCamera, 0, false);
+      activeCameraType.current = selectedCamera;
+    }
+    setFocusedSlotId(driver.slotId);
+  };
+
+  // handleCameraChange grave, RIP
 
   // column visibility
   const [visibleCols, setVisibleCols] = useState<Set<ColumnKey>>(
@@ -422,6 +471,7 @@ const InfoWindow = (): React.ReactElement => {
 
       {/* -- toolbar -- */}
       <div className="flex shrink-0 items-center gap-2 border-b border-rd-border bg-rd-surface px-4 py-1.5">
+        {/* camera selector grave, RIP */}
         {/* -- class filters -- */}
         <div className="flex items-center gap-1.5">
           {ALL_CLASSES.filter((c) => c !== "UNKNOWN").map((cls) => (
@@ -514,6 +564,8 @@ const InfoWindow = (): React.ReactElement => {
                   visibleCols={visibleCols}
                   isLapped={driver.lapsDown > 0}
                   isEven={i % 2 === 0}
+                  isFocused={focusedSlotId === driver.slotId}
+                  onClick={(driver) => void handleRowClick(driver)}
                 />
               ))}
             </tbody>

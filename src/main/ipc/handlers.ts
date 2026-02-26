@@ -36,6 +36,27 @@ export const registerIpcHandlers = (_mainWindow: BrowserWindow): void => {
     }
   );
 
+  // -- lmu:focusVehicle --
+  ipcMain.handle(
+    "lmu:focusVehicle",
+    async (_event, slotId: number): Promise<void> => {
+      await lmuClient.focusVehicle(slotId);
+    }
+  );
+
+  // -- lmu:setCameraAngle --
+  ipcMain.handle(
+    "lmu:setCameraAngle",
+    async (
+      _event,
+      cameraType: number,
+      trackSideGroup: number,
+      shouldAdvance: boolean
+    ): Promise<void> => {
+      await lmuClient.setCameraAngle(cameraType, trackSideGroup, shouldAdvance);
+    }
+  );
+
   // -- lmu:disconnect --
   ipcMain.handle("lmu:disconnect", (): void => {
     lmuClient.disconnect();

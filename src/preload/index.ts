@@ -9,6 +9,16 @@ const api = {
   disconnect: (): Promise<void> =>
     ipcRenderer.invoke("lmu:disconnect"),
 
+  focusVehicle: (slotId: number): Promise<void> =>
+    ipcRenderer.invoke("lmu:focusVehicle", slotId),
+
+  setCameraAngle: (
+    cameraType: number,
+    trackSideGroup: number,
+    shouldAdvance: boolean
+  ): Promise<void> =>
+    ipcRenderer.invoke("lmu:setCameraAngle", cameraType, trackSideGroup, shouldAdvance),
+
   // -- state --
   getState: (): Promise<AppState> =>
     ipcRenderer.invoke("lmu:getState"),

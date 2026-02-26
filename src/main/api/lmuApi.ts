@@ -246,6 +246,7 @@ const transformVehicle = (raw: RawVehicleStanding): DriverStanding => ({
   penalties: mapPenalties(raw.penalties),
   status: mapDriverStatus(raw),
   isPlayer: raw.player || raw.hasFocus,
+  slotId: raw.slotID,
 });
 
 // -- LmuApiClient --
@@ -296,6 +297,23 @@ export class LmuApiClient {
     }
     this.emitConnection("CONNECTED");
     this.startPolling();
+  }
+
+  public async focusVehicle(slotId: number): Promise<void> {
+    await fetch(`${this.baseUrl}/rest/watch/focus/${slotId}`, {
+      method: "PUT",
+    });
+  }
+
+  public async setCameraAngle(
+    cameraType: number,
+    trackSideGroup: number,
+    shouldAdvance: boolean
+  ): Promise<void> {
+    await fetch(
+      `${this.baseUrl}/rest/watch/focus/${cameraType}/${trackSideGroup}/${shouldAdvance}`,
+      { method: "PUT" }
+    );
   }
 
   public disconnect(): void {
