@@ -100,21 +100,21 @@ interface ColumnDef {
 }
 
 const COLUMNS: ColumnDef[] = [
-  { key: "position",   label: "P",        defaultVisible: true  },
-  { key: "class",      label: "Class",    defaultVisible: true  },
-  { key: "carNumber",  label: "#",        defaultVisible: true  },
-  { key: "driver",     label: "Driver",   defaultVisible: true  },
-  { key: "team",       label: "Team",     defaultVisible: false },
-  { key: "lastLap",    label: "Last Lap", defaultVisible: true  },
-  { key: "bestLap",    label: "Best Lap", defaultVisible: true  },
-  { key: "gap",        label: "Gap",      defaultVisible: true  },
-  { key: "interval",   label: "Interval", defaultVisible: true  },
-  { key: "lapsDown",   label: "L Down",  defaultVisible: true  },
-  { key: "fuel",       label: "Fuel",     defaultVisible: true  },
-  { key: "tyres",      label: "Tyres",    defaultVisible: true  },
-  { key: "pits",       label: "Pits",     defaultVisible: true  },
-  { key: "penalties",  label: "Pen",      defaultVisible: true  },
-  { key: "status",     label: "Status",   defaultVisible: true  },
+  { key: "position",   label: "P",          defaultVisible: true  },
+  { key: "class",      label: "Class",      defaultVisible: true  },
+  { key: "carNumber",  label: "#",          defaultVisible: true  },
+  { key: "driver",     label: "Driver",     defaultVisible: true  },
+  { key: "team",       label: "Team",       defaultVisible: false },
+  { key: "lastLap",    label: "Last Lap",   defaultVisible: true  },
+  { key: "bestLap",    label: "Best Lap",   defaultVisible: true  },
+  { key: "gap",        label: "Gap",        defaultVisible: true  },
+  { key: "interval",   label: "Interval",   defaultVisible: true  },
+  { key: "lapsDown",   label: "Laps Down",  defaultVisible: true  },
+  { key: "fuel",       label: "Fuel",       defaultVisible: true  },
+  { key: "tyres",      label: "Tyres",      defaultVisible: true  },
+  { key: "pits",       label: "Pits",       defaultVisible: true  },
+  { key: "penalties",  label: "Pen",        defaultVisible: true  },
+  { key: "status",     label: "Status",     defaultVisible: true  },
 ];
 
 // -- class filter --
@@ -158,19 +158,19 @@ const CellDriver = ({ v }: { v: DriverStanding }) => (
 );
 
 const CellTeam = ({ v }: { v: DriverStanding }) => (
-  <td className="max-w-[140px] truncate px-2 py-1.5 text-xs text-rd-muted">
+  <td className="max-w-[140px] truncate border-r border-rd-border px-2 py-1.5 text-center text-xs text-rd-muted">
     {v.teamName || "—"}
   </td>
 );
 
 const CellLastLap = ({ v }: { v: DriverStanding }) => (
-  <td className="border-r border-rd-border px-2 py-1.5 text-center last:border-r-0 text-right font-mono text-xs text-rd-muted">
+  <td className="border-r border-rd-border px-2 py-1.5 text-center last:border-r-0 font-mono text-xs text-rd-muted">
     {formatTime(v.lastLapTime)}
   </td>
 );
 
 const CellBestLap = ({ v }: { v: DriverStanding }) => (
-  <td className="border-r border-rd-border px-2 py-1.5 text-center last:border-r-0 text-right font-mono text-xs text-rd-text">
+  <td className="border-r border-rd-border px-2 py-1.5 text-center last:border-r-0 font-mono text-xs text-rd-text">
     {formatTime(v.bestLapTime)}
   </td>
 );
@@ -178,7 +178,7 @@ const CellBestLap = ({ v }: { v: DriverStanding }) => (
 const CellGap = ({ v }: { v: DriverStanding }) => {
   const isLeader = v.position === 1;
   return (
-    <td className={`px-2 py-1.5 text-right font-mono text-xs ${isLeader ? "font-semibold text-rd-success" : "text-rd-muted"}`}>
+    <td className={`border-r border-rd-border px-2 py-1.5 text-center last:border-r-0 font-mono text-xs ${isLeader ? "font-semibold text-rd-success" : "text-rd-muted"}`}>
       {formatGap(v.gapToLeader, isLeader)}
     </td>
   );
@@ -187,14 +187,14 @@ const CellGap = ({ v }: { v: DriverStanding }) => {
 const CellInterval = ({ v }: { v: DriverStanding }) => {
   const isLeader = v.position === 1;
   return (
-    <td className="border-r border-rd-border px-2 py-1.5 text-center last:border-r-0 text-right font-mono text-xs text-rd-subtle">
+    <td className="border-r border-rd-border px-2 py-1.5 text-center last:border-r-0 font-mono text-xs text-rd-subtle">
       {isLeader ? "—" : formatGap(v.intervalToAhead, false)}
     </td>
   );
 };
 
 const CellLapsDown = ({ v }: { v: DriverStanding }) => (
-  <td className={`px-2 py-1.5 text-center font-mono text-xs ${v.lapsDown > 0 ? "text-rd-warning" : "text-rd-subtle"}`}>
+  <td className={`border-r border-rd-border px-2 py-1.5 text-center last:border-r-0 font-mono text-xs ${v.lapsDown > 0 ? "text-rd-warning" : "text-rd-subtle"}`}>
     {v.lapsDown > 0 ? `+${v.lapsDown}L` : "—"}
   </td>
 );
@@ -204,7 +204,7 @@ const CellFuel = ({ v }: { v: DriverStanding }) => {
   if (v.fuel !== null && v.fuel < 10) fuelColor = "text-rd-error";
   else if (v.fuel !== null && v.fuel < 25) fuelColor = "text-rd-warning";
   return (
-    <td className={`px-2 py-1.5 text-right font-mono text-xs ${fuelColor}`}>
+    <td className={`border-r border-rd-border px-2 py-1.5 text-center last:border-r-0 font-mono text-xs ${fuelColor}`}>
       {formatFuel(v.fuel)}
     </td>
   );
@@ -235,7 +235,7 @@ const CellPenalties = ({ v }: { v: DriverStanding }) => {
       <div className="flex flex-wrap justify-center gap-0.5">
         {v.penalties.map((p, i) => (
           <span
-            key={i}
+            key={`${p.type}-${i}`}
             className="rounded bg-rd-error/20 px-1 font-mono text-[10px] font-semibold text-rd-error"
           >
             {PENALTY_LABEL[p.type] ?? p.type}
@@ -330,6 +330,20 @@ const InfoWindow = (): React.ReactElement => {
 
   // show col settings panel
   const [showColMenu, setShowColMenu] = useState(false);
+  const colMenuRef = React.useRef<HTMLDivElement>(null);
+  const colBtnRef = React.useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!showColMenu) return;
+    const handleClickOutside = (e: MouseEvent): void => {
+      const target = e.target as Node;
+      const outsideMenu = !colMenuRef.current?.contains(target);
+      const outsideBtn  = !colBtnRef.current?.contains(target);
+      if (outsideMenu && outsideBtn) setShowColMenu(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showColMenu]);
 
   const toggleCol = (key: ColumnKey): void => {
     setVisibleCols((prev) => {
@@ -360,8 +374,9 @@ const InfoWindow = (): React.ReactElement => {
   const filteredStandings = standings.filter((d) => activeClasses.has(d.carClass)).sort((a, b) => a.position - b.position);
 
   const title = session ? session.trackName : "No active session";
-  const sessionLabel = session
-    ? `${session.sessionType} · ${session.numCarsOnTrack}/${session.numCars} on track`
+  const sessionType = session ? session.sessionType : null;
+  const sessionCars = session
+    ? `${session.numCarsOnTrack}/${session.numCars} on track`
     : null;
 
   let connectionDotColor = "bg-rd-subtle";
@@ -379,13 +394,21 @@ const InfoWindow = (): React.ReactElement => {
       >
         <div className="flex items-center gap-3">
           <span className="text-xs font-semibold uppercase tracking-wider text-rd-accent">
-              nfo Window
+            Info Window
           </span>
+          <div className="h-4 w-px bg-rd-border" />
           <span className="font-mono text-xs text-rd-subtle">{title}</span>
-          {sessionLabel && (
-            <span className="font-mono text-xs text-rd-subtle">
-              · {sessionLabel}
-            </span>
+          {sessionType && (
+            <>
+              <div className="h-4 w-px bg-rd-border" />
+              <span className="font-mono text-xs text-rd-subtle">{sessionType}</span>
+            </>
+          )}
+          {sessionCars && (
+            <>
+              <div className="h-4 w-px bg-rd-border" />
+              <span className="font-mono text-xs text-rd-subtle">{sessionCars}</span>
+            </>
           )}
         </div>
         <div
@@ -422,17 +445,18 @@ const InfoWindow = (): React.ReactElement => {
 
           {/* -- column toggle button --*/}
           <button
+            ref={colBtnRef}
             onClick={() => setShowColMenu((v) => !v)}
-            className="rounded border border-rd-border bg-rd-elevated px-2 py-0.5 text-[10px] text-rd-muted transition-colors hover:bg-rd-surface hover:text-rd-text"
+            className="rounded border border-rd-border uppercase bg-rd-elevated px-2 py-0.5 text-[10px] text-rd-muted transition-colors hover:bg-rd-surface hover:text-rd-text"
           >
-            Columns
+            Filter
           </button>
         </div>
       </div>
 
       {/* -- dropdown column menu -- */}
       {showColMenu && (
-        <div className="absolute right-4 top-[88px] z-50 flex flex-col gap-1 rounded border border-rd-border bg-rd-elevated p-3 shadow-lg">
+        <div ref={colMenuRef} className="absolute right-4 top-[88px] z-50 flex flex-col gap-1 rounded border border-rd-border bg-rd-elevated p-3 shadow-lg">
           <span className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-rd-subtle">
             Toggle Columns
           </span>

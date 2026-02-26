@@ -240,7 +240,7 @@ const transformVehicle = (raw: RawVehicleStanding): DriverStanding => ({
   intervalToAhead: raw.timeBehindNext > 0 ? raw.timeBehindNext : null,
   lapsCompleted: raw.lapsCompleted,
   lapsDown: raw.lapsBehindLeader,
-  fuel: raw.fuelFraction * 100,  // -- convert to percentage --
+  fuel: raw.fuelFraction * 100,
   tyreCompound: mapTyreCompound(),
   pitStopCount: raw.pitstops,
   penalties: mapPenalties(raw.penalties),
