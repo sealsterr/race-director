@@ -4,19 +4,21 @@ import type {
   CarClass,
   DriverStanding,
   DriverStatus,
+  Penalty,
+  PenaltyType,
 } from "../../types/lmu";
 
 // -- camera types --
-// -- trackSideGroup lways 0 && shouldAdvance always false --
+// -- trackSideGroup always 0 && shouldAdvance always false --
 export const CAMERA_TYPES = [
-  { label: "Cockpit",    value: 1,  description: "Driver eye, facing forward -> classic onboard"     },
-  { label: "Grille",     value: 2,  description: "Top of hood/grille, good for watching a chaser"    },
-  { label: "Chase",      value: 3,  description: "Third person, full car visible -> niche use"       },
-  { label: "Trackside",  value: 4,  description: "Cycles trackside groups -> best all-round camera"  },
-  { label: "Windshield", value: 6,  description: "Inside windshield offset right -> unique angle"    },
-  { label: "Hood Fwd",   value: 7,  description: "Hood visible at bottom, good for chase spectating" },
-  { label: "Cockpit Hi", value: 12, description: "Top-right cockpit interior -> cinematic onboard"   },
-  { label: "Rear Hi",    value: 11, description: "Rear-facing elevated -> recommended for battles"   },
+  { label: "Cockpit 1",    value: 1,  description: "Driver eye, facing forward -> classic onboard"       },
+  { label: "Grille",       value: 2,  description: "Top of hood/grille -> good for watching a chaser"    },
+  { label: "Chase",        value: 3,  description: "Third person, full car visible -> niche use"         },
+  { label: "Trackside",    value: 4,  description: "Cycles trackside groups -> best all-round camera"    },
+  { label: "Windshield",   value: 6,  description: "Inside windshield offset right -> unique angle"      },
+  { label: "Hood",         value: 7,  description: "Hood visible at bottom -> good for chase spectating" },
+  { label: "Cockpit 2",    value: 12, description: "Top-right cockpit interior -> cinematic onboard"     },
+  { label: "Rear",         value: 11, description: "Rear-facing elevated -> recommended for battles"     },
 ] as const;
 
 export type CameraTypeValue = (typeof CAMERA_TYPES)[number]["value"];
@@ -75,11 +77,22 @@ const STATUS_STYLES: Record<DriverStatus, string> = {
   UNKNOWN:      "bg-rd-elevated text-rd-subtle",
 };
 
-const PENALTY_LABEL: Record<string, string> = {
+const PENALTY_LABEL: Record<PenaltyType, string> = {
   DRIVE_THROUGH:    "DT",
   STOP_AND_GO:      "S&G",
-  TIME_PENALTY:     "+T",
+  TIME_PENALTY:     "PEN",
   DISQUALIFICATION: "DQ",
+};
+
+const formatPenaltyLabel = (p: Penalty): string => {
+  // -- user-added time penalty with known seconds --
+  if (p.type === "TIME_PENALTY" && p.time > 0) return `+${p.time}s`;
+  // -- api-sourced --
+  const countMatch = /^(\d+) pending$/.exec(p.reason);
+  if (countMatch && Number(countMatch[1]) > 1) {
+    return `PEN x${countMatch[1]}`;
+  }
+  return PENALTY_LABEL[p.type] ?? p.type;
 };
 
 const StatusBadge = ({ status }: { status: DriverStatus }): React.ReactElement => (
@@ -253,7 +266,7 @@ const CellPenalties = ({ v }: { v: DriverStanding }) => {
             key={`${p.type}-${i}`}
             className="rounded bg-rd-error/20 px-1 font-mono text-[10px] font-semibold text-rd-error"
           >
-            {PENALTY_LABEL[p.type] ?? p.type}
+            {formatPenaltyLabel(p)}
           </span>
         ))}
       </div>

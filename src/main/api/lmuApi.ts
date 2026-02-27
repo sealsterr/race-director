@@ -161,11 +161,9 @@ const mapSectorTime = (s1: number, s2: number): SectorTime => ({
 // -- build penalty array from count --
 // -- REST only gives us a count, detail comes later via shared memory --
 const mapPenalties = (count: number): Penalty[] =>
-  Array.from({ length: count }, () => ({
-    type: "TIME_PENALTY" as const,
-    time: 0,
-    reason: "Pending penalty",
-  }));
+  count <= 0
+    ? []
+    : [{ type: "TIME_PENALTY" as const, time: 0, reason: `${count} pending` }];
 
 // -- transform functions --
 
