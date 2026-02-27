@@ -148,13 +148,6 @@ const Sidebar = ({ windows, onLaunch }: SidebarProps): React.ReactElement => {
           <WindowButton key={item.id} item={item} onLaunch={onLaunch} />
         ))}
       </div>
-
-      {/* -- bottom spacer / future items here -- */}
-      <div className="mt-auto border-t border-rd-border p-4">
-        <p className="text-center font-mono text-xs text-rd-accent">
-          RaceDirector DevBuild
-        </p>
-      </div>
     </div>
   );
 };

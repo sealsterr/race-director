@@ -174,7 +174,7 @@ const TopBar = ({ connection }: TopBarProps): React.ReactElement => {
           </span>
         </div>
         <div className="h-4 w-px bg-rd-border" />
-        <span className="font-mono text-xs text-rd-subtle">v0.1.0-devbuild</span>
+        <span className="font-mono text-xs text-rd-subtle">v0.1.0-pre</span>
       </div>
 
       {/* -- right: clock + connection -- */}
