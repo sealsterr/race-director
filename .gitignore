@@ -1,6 +1,25 @@
-node_modules
-dist
-out
-.DS_Store
 .eslintcache
+
+# dependencies
+node_modules/
+
+# build outputs
+dist/
+dist-electron/
+out/
+release/
+
+# env / secrets
+.env
+.env.local
+
+# editor
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# logs
 *.log*
