@@ -84,6 +84,9 @@ const createChildWindow = (
   });
 
   win.once("ready-to-show", () => win.show());
+  win.webContents.on("did-finish-load", () => {
+    if (options.title) win.setTitle(options.title);
+  });
 
   // -- load same renderer with hash route --
   if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
@@ -114,7 +117,7 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
       createChildWindow(
         "INFO",
         "info",
-        { width: 1400, height: 800, minWidth: 900, minHeight: 400 },
+        { width: 1400, height: 800, minWidth: 900, minHeight: 400, title: "RaceDirector | Info Window" },
         mainWindow
       );
       return true;

@@ -20,7 +20,6 @@ export interface LogEntry {
 export type WindowId = 
     | "INFO"
     | "OVERLAY-CONTROL"
-    | "OVERLAYS"
     | "TELEPROMPTER";
 
 export interface WindowItem {

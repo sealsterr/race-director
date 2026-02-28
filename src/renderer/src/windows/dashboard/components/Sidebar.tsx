@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import {
   Table2,
   Monitor,
-  Layers,
   Mic2,
   ExternalLink,
   Lock,
@@ -29,13 +28,6 @@ const WINDOW_DEFINITIONS: Omit<WindowItem, "isOpen">[] = [
     label: "Overlay Dashboard",
     description: "Broadcast overlay control",
     icon: Monitor,
-    isAvailable: false,
-  },
-  {
-    id: "OVERLAYS",
-    label: "Stream Overlays",
-    description: "On-screen broadcast graphics",
-    icon: Layers,
     isAvailable: false,
   },
   {

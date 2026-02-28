@@ -141,7 +141,7 @@ const COLUMNS: ColumnDef[] = [
   { key: "fuel",       label: "Fuel",       defaultVisible: true  },
   { key: "tyres",      label: "Tyres",      defaultVisible: true  },
   { key: "pits",       label: "Pits",       defaultVisible: true  },
-  { key: "penalties",  label: "Pen",        defaultVisible: true  },
+  { key: "penalties",  label: "Penalties",  defaultVisible: true  },
   { key: "status",     label: "Status",     defaultVisible: true  },
 ];
 
