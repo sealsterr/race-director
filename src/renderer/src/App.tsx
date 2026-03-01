@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import Dashboard from "./windows/dashboard";
 import InfoWindow from "./windows/info";
+import OverlayControl from "./windows/overlay-control";
 
 const ROUTES: Record<string, React.ReactElement> = {
   info: <InfoWindow />,
+  "overlay-control": <OverlayControl />,
 };
 
 const App = (): React.ReactElement => {

@@ -16,11 +16,16 @@ export interface LogEntry {
 }
 
 // -- window registry -- 
-
-export type WindowId = 
+export type WindowId =
     | "INFO"
     | "OVERLAY-CONTROL"
-    | "TELEPROMPTER";
+    | "TELEPROMPTER"
+    | "OVERLAY-TOWER"
+    | "OVERLAY-DRIVER"
+    | "OVERLAY-GAP"
+    | "OVERLAY-SESSION"
+    | "OVERLAY-PITS"
+    | "OVERLAY-SECTOR";
 
 export interface WindowItem {
     id: WindowId;

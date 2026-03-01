@@ -3,6 +3,7 @@
   "include": [
     "electron.vite.config.*",
     "src/main/**/*",
+    "src/**/*",
     "src/preload/**/*",
     "src/shared/**/*",
     "src/renderer/src/types/**/*"  // Add this line to include renderer types

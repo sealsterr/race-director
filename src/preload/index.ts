@@ -72,6 +72,41 @@ const api = {
       return () => ipcRenderer.removeListener("window:closed", handler);
     },
   },
+
+  // -- overlay management --
+  overlay: {
+    getDisplays: () =>
+      ipcRenderer.invoke("overlay:getDisplays"),
+
+    getDefaultSavePath: () =>
+      ipcRenderer.invoke("overlay:getDefaultSavePath"),
+
+    savePreset: (overlays: unknown[], savePath: string) =>
+      ipcRenderer.invoke("overlay:savePreset", overlays, savePath),
+
+    loadPreset: (savePath: string) =>
+      ipcRenderer.invoke("overlay:loadPreset", savePath),
+
+    pickSavePath: () =>
+      ipcRenderer.invoke("overlay:pickSavePath"),
+
+    pickLoadPath: () =>
+      ipcRenderer.invoke("overlay:pickLoadPath"),
+
+    updateBounds: (
+      id: string,
+      x: number,
+      y: number,
+      w: number,
+      h: number
+    ) => ipcRenderer.invoke("overlay:updateBounds", id, x, y, w, h),
+
+    setDragMode: (id: string, enabled: boolean) =>
+      ipcRenderer.invoke("overlay:setDragMode", id, enabled),
+
+    getBounds: (id: string) =>
+      ipcRenderer.invoke("overlay:getBounds", id),
+  },
 };
 
 contextBridge.exposeInMainWorld("api", api);

@@ -28,7 +28,7 @@ const WINDOW_DEFINITIONS: Omit<WindowItem, "isOpen">[] = [
     label: "Overlay Dashboard",
     description: "Broadcast overlay control",
     icon: Monitor,
-    isAvailable: false,
+    isAvailable: true,
   },
   {
     id: "TELEPROMPTER",
