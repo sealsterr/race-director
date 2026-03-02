@@ -21,7 +21,7 @@
     "build:win": "electron-vite build && electron-builder --win",
     "build:dir": "electron-vite build && electron-builder --dir"
   },
-  "build" : {
+  "build": {
     "appId": "com.racedirector.app",
     "productName": "RaceDirector",
     "copyright": "Copyright © 2026",
@@ -36,7 +36,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "resources/rd-icon-2.ico"

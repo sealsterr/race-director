@@ -8,9 +8,6 @@ import {
     EyeOff,
     Settings2,
     X,
-    ChevronRight,
-    Monitor,
-    Layers,
     CheckCircle2,
     AlertCircle,
     LayoutList,
@@ -45,22 +42,22 @@ interface OverlayMeta {
 const OVERLAY_META: OverlayMeta[] = [
     {
         id: "OVERLAY-TOWER",
-        label: "Live Tower",
-        description: "Standings tower",
+        label: "Live Standings",
+        description: "",
         icon: LayoutList,
         defaultSize: { w: 340, h: 600 },
     },
     {
         id: "OVERLAY-DRIVER",
-        label: "Driver Cards",
-        description: "Focused driver information",
+        label: "Driver Card",
+        description: "Driver information",
         icon: User,
         defaultSize: { w: 540, h: 120 },
     },
     {
         id: "OVERLAY-GAP",
-        label: "Battle Gap",
-        description: "Head-to-head graphic for close battles",
+        label: "Gap",
+        description: "Close battle graphic",
         icon: Gauge,
         defaultSize: { w: 460, h: 100 },
     },
@@ -73,15 +70,15 @@ const OVERLAY_META: OverlayMeta[] = [
     },
     {
         id: "OVERLAY-PITS",
-        label: "Pit Board",
-        description: "Pitting cars",
+        label: "Pits",
+        description: "Number of pits",
         icon: ParkingSquare,
         defaultSize: { w: 300, h: 500 },
     },
     {
         id: "OVERLAY-SECTOR",
-        label: "Sector Splits",
-        description: "Detailed sector showcase",
+        label: "Sectors",
+        description: "Sector information",
         icon: SplitSquareHorizontal,
         defaultSize: { w: 420, h: 80 },
     },
@@ -157,18 +154,24 @@ const Toggle = ({
     value,
     onChange,
 }: ToggleProps): React.ReactElement => (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between gap-3 min-h-[32px]">
         <span className="text-xs text-rd-muted">{label}</span>
         <button
             onClick={() => onChange(!value)}
             className={cls(
-                "relative h-5 w-9 rounded-full transition-colors duration-200",
+                "relative inline-flex items-center h-6 w-11 rounded-full transition-colors duration-200 focus:outline-none",
                 value ? "bg-rd-accent" : "bg-rd-border"
-            )}>
+            )}
+            style={{ minWidth: "44px" }}  // click-safe
+            type="button"
+            aria-pressed={value}
+        >
+            {/* track */}
+            {/* thumb */}
             <span
                 className={cls(
-                "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200",
-                value ? "translate-x-4" : "translate-x-0.5"
+                    "inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition-transform duration-200",
+                    value ? "translate-x-5" : "translate-x-1"
                 )}
             />
         </button>
@@ -223,12 +226,12 @@ const TowerSettingsPanel = ({
                 label="Class filter"
                 value={s.classFilter}
                 options={[
-                    { label: "All classes", value: "ALL" },
-                    { label: "Hypercar", value: "HYPERCAR" },
-                    { label: "LMP2", value: "LMP2" },
-                    { label: "LMP3", value: "LMP3" },
-                    { label: "LMGT3", value: "LMGT3" },
-                    { label: "GTE", value: "GTE" },
+                    { label: "All classes", value: "ALL"      },
+                    { label: "Hypercar",    value: "HYPERCAR" },
+                    { label: "LMP2",        value: "LMP2"     },
+                    { label: "LMP3",        value: "LMP3"     },
+                    { label: "LMGT3",       value: "LMGT3"    },
+                    { label: "GTE",         value: "GTE"      },
                 ]}
                 onChange={(v) => set({ classFilter: v as TowerSettings["classFilter"] })}
             />
@@ -236,9 +239,9 @@ const TowerSettingsPanel = ({
                 label="Animation speed"
                 value={s.animationSpeed}
                 options={[
-                    { label: "Slow", value: "slow" },
+                    { label: "Slow",   value: "slow"   },
                     { label: "Normal", value: "normal" },
-                    { label: "Fast", value: "fast" },
+                    { label: "Fast",   value: "fast"   },
                 ]}
                 onChange={(v) =>
                     set({ animationSpeed: v as TowerSettings["animationSpeed"] })
@@ -437,9 +440,21 @@ const SettingsDrawer = ({
     const { setOverlayConfig } = useOverlayStore();
     const SpecificPanel = SPECIFIC_PANELS[cfg.id];
     const Icon = meta.icon;
+    const drawerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        function onClick(e: MouseEvent) {
+            if (drawerRef.current && !drawerRef.current.contains(e.target as Node)) {
+                onClose();
+            }
+        }
+        document.addEventListener("mousedown", onClick);
+        return () => document.removeEventListener("mousedown", onClick);
+    }, [onClose]);
 
     return (
         <motion.div
+            ref={drawerRef}
             key="drawer"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
@@ -450,8 +465,8 @@ const SettingsDrawer = ({
             >
             {/* header */}
             <div className="flex items-center gap-3 border-b border-rd-border px-5 py-4">
-                <div className="flex h-8 w-8 items-center justify-center rounded bg-rd-accent/15">
-                    <Icon size={15} className="text-rd-accent" />
+                <div className="flex h-8 w-8 items-center justify-center rounded bg-rd-border/40 text-rd-muted">
+                    <Icon size={15} className="text-rd-muted" />
                 </div>
                 <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-rd-text">{meta.label}</p>
@@ -459,10 +474,10 @@ const SettingsDrawer = ({
                 </div>
                 <button
                     onClick={onClose}
-                    className="rounded p-1 text-rd-subtle hover:bg-rd-elevated hover:text-rd-text
-                        transition-colors"
-                    >
-                    <X size={14} />
+                    className="ml-auto rounded-full p-2 hover:bg-rd-error/10 transition-colors"
+                    title="Close settings"
+                >
+                    <X size={22} className="text-rd-error" />
                 </button>
             </div>
 
@@ -470,7 +485,7 @@ const SettingsDrawer = ({
             <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-6">
                 {/* general */}
                 <section>
-                    <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-rd-subtle">
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-rd-text">
                         General
                     </p>
                     <div className="flex flex-col gap-3">
@@ -497,34 +512,49 @@ const SettingsDrawer = ({
 
                 {/* position */}
                 <section>
-                    <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-rd-subtle">
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-rd-text">
                         Position
                     </p>
                     <div className="flex flex-col gap-3">
                         <div className="grid grid-cols-2 gap-2">
-                            <div>
-                                <p className="mb-1 text-xs text-rd-muted">X (px)</p>
-                                <input
-                                    type="number"
-                                    value={cfg.x}
-                                    onChange={(e) =>
-                                        setOverlayConfig(cfg.id, { x: Number(e.target.value) })
-                                    }
-                                    className="w-full rounded border border-rd-border bg-rd-bg px-2 py-1
-                                        text-xs text-rd-text focus:border-rd-accent focus:outline-none"
-                                />
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-rd-muted">X</span>
+                                <div className="relative flex items-center flex-1">
+                                    <input
+                                        type="number"
+                                        value={cfg.x}
+                                        onChange={(e) =>
+                                            setOverlayConfig(cfg.id, { x: Number(e.target.value) })
+                                        }
+                                        
+                                        className="no-spin w-full rounded border border-rd-border bg-rd-bg px-2 py-1 text-xs text-rd-text 
+                                        focus:border-rd-accent focus:outline-none pr-7 remove-number-spin"
+                                    />
+                                    {typeof cfg.x === "number" && !Number.isNaN(cfg.x) && (
+                                        <span className="absolute right-2 text-xs text-rd-muted select-none pointer-events-none">
+                                            px
+                                        </span>
+                                    )}
+                                </div>
                             </div>
-                            <div>
-                                <p className="mb-1 text-xs text-rd-muted">Y (px)</p>
-                                <input
-                                    type="number"
-                                    value={cfg.y}
-                                    onChange={(e) =>
-                                        setOverlayConfig(cfg.id, { y: Number(e.target.value) })
-                                    }
-                                    className="w-full rounded border border-rd-border bg-rd-bg px-2 py-1
-                                        text-xs text-rd-text focus:border-rd-accent focus:outline-none"
-                                />
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-rd-muted">Y</span>
+                                <div className="relative flex items-center flex-1">
+                                    <input
+                                        type="number"
+                                        value={cfg.y}
+                                        onChange={(e) =>
+                                            setOverlayConfig(cfg.id, { y: Number(e.target.value) })
+                                        }
+                                        className="no-spin w-full rounded border border-rd-border bg-rd-bg px-2 py-1 text-xs text-rd-text 
+                                        focus:border-rd-accent focus:outline-none pr-7 remove-number-spin"
+                                    />
+                                    {typeof cfg.y === "number" && !Number.isNaN(cfg.y) && (
+                                        <span className="absolute right-2 text-xs text-rd-muted select-none pointer-events-none">
+                                            px
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
@@ -546,8 +576,8 @@ const SettingsDrawer = ({
 
                 {/* overlay-specific */}
                 <section>
-                    <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-rd-subtle">
-                        Overlay Settings
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-rd-text">
+                        Custom
                     </p>
                     <SpecificPanel cfg={cfg} />
                 </section>
@@ -580,99 +610,100 @@ const OverlayCard = ({
         <motion.div
             layout
             className={cls(
-                "relative flex flex-col gap-3 rounded-lg border p-4 transition-colors duration-150",
+                "relative flex flex-col rounded-lg border transition-colors duration-150 overflow-hidden",
                 cfg.enabled
-                    ? "border-rd-accent/30 bg-rd-elevated"
+                    ? "border-rd-accent/40 bg-rd-elevated"
                     : "border-rd-border bg-rd-surface"
             )}
-            >
-            {/* live pulse */}
+        >
+            {/* live pulse dot */}
             {cfg.enabled && (
-                <span className="absolute right-3 top-3 flex h-2 w-2">
+                <span className="absolute right-3 top-3 flex h-2 w-2 z-10">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rd-accent opacity-60" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-rd-accent" />
                 </span>
             )}
 
-            {/* header row */}
-            <div className="flex items-start gap-3 pr-4">
-                <div
-                    className={cls(
-                        "flex h-9 w-9 shrink-0 items-center justify-center rounded",
-                        cfg.enabled
-                            ? "bg-rd-accent/20 text-rd-accent"
-                            : "bg-rd-border/40 text-rd-muted"
-                    )}
-                    >
-                    <Icon size={16} />
+            {/* top section: icon + name */}
+            <div className="flex items-center gap-3 px-4 pt-4 pb-3 pr-8">
+                <div className={cls(
+                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+                    cfg.enabled ? "bg-rd-accent/20 text-rd-accent" : "bg-rd-border/40 text-rd-muted"
+                )}>
+                    <Icon size={17} />
                 </div>
-                <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-rd-text">{meta.label}</p>
-                    <p className="text-xs leading-snug text-rd-subtle">
-                        {meta.description}
-                    </p>
+                <div className="min-w-0">
+                    <p className="text-sm font-semibold text-rd-text leading-tight">{meta.label}</p>
+                    <p className="text-[11px] text-rd-subtle leading-tight">{meta.description}</p>
                 </div>
             </div>
 
-            {/* opacity bar preview */}
+            {/* opacity bar only when live */}
             {cfg.enabled && (
-                <div className="h-0.5 rounded-full bg-rd-border overflow-hidden">
+                <div className="mx-4 mb-3 h-0.5 rounded-full bg-rd-border overflow-hidden">
                     <div
-                        className="h-full rounded-full bg-rd-accent/50 transition-all"
+                        className="h-full rounded-full bg-rd-accent/60 transition-all duration-300"
                         style={{ width: `${cfg.opacity}%` }}
                     />
                 </div>
             )}
 
+            {/* divider */}
+            <div className="mx-4 h-px bg-rd-border" />
+
             {/* action row */}
-            <div className="flex items-center gap-2">
-                {/* on / off */}
+            <div className="flex items-stretch">
+                {/* on/off */}
                 <button
                     onClick={onToggleEnabled}
                     className={cls(
-                        "flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5",
-                        "text-xs font-semibold transition-colors duration-150",
+                        "flex flex-1 items-center justify-center gap-2 py-3 text-xs font-bold",
+                        "uppercase tracking-wider transition-colors duration-150",
                         cfg.enabled
-                            ? "bg-rd-accent/20 text-rd-accent hover:bg-rd-accent/30"
-                            : "bg-rd-border/40 text-rd-muted hover:bg-rd-border hover:text-rd-text"
+                            ? "bg-rd-accent/10 text-rd-accent hover:bg-rd-accent/20"
+                            : "text-rd-subtle hover:bg-rd-elevated hover:text-rd-text"
                     )}
-                    >
-                    {cfg.enabled ? (
-                        <>
-                            <Eye size={11} /> LIVE
-                        </>
-                    ) : (
-                        <>
-                            <EyeOff size={11} /> OFF
-                        </>
-                    )}
+                >
+                    {cfg.enabled ? <Eye size={13} /> : <EyeOff size={13} />}
+                    {cfg.enabled ? "Live" : "Off"}
                 </button>
 
-                {/* drag mode */}
+                {/* separator */}
+                <div className="w-px bg-rd-border" />
+
+                {/* drag */}
                 <button
                     onClick={onToggleDrag}
-                    title={cfg.dragMode ? "Drag mode ON: Click to lock" : "Enable drag mode"}
+                    title={cfg.dragMode ? "Drag mode ON — click to lock" : "Enable drag to reposition"}
                     className={cls(
-                        "flex items-center justify-center rounded px-2.5 py-1.5 transition-colors",
+                        "flex items-center justify-center gap-1.5 px-4 py-3 text-[11px] font-medium",
+                        "transition-colors duration-150",
                         cfg.dragMode
-                            ? "bg-rd-gold/20 text-rd-gold hover:bg-rd-gold/30"
-                            : "bg-rd-border/40 text-rd-muted hover:bg-rd-border hover:text-rd-text"
+                            ? "bg-rd-gold/15 text-rd-gold hover:bg-rd-gold/25"
+                            : "text-rd-subtle hover:bg-rd-elevated hover:text-rd-text"
                     )}
-                    >
+                >
                     <Move size={13} />
+                    <span className="hidden sm:inline">Drag</span>
                 </button>
+
+                {/* separator */}
+                <div className="w-px bg-rd-border" />
 
                 {/* settings */}
                 <button
                     onClick={onOpenSettings}
+                    title="Overlay settings"
                     className={cls(
-                        "flex items-center justify-center rounded px-2.5 py-1.5 transition-colors",
+                        "flex items-center justify-center gap-1.5 px-4 py-3 text-[11px] font-medium",
+                        "transition-colors duration-150",
                         isSettingsOpen
-                            ? "bg-rd-accent/20 text-rd-accent"
-                            : "bg-rd-border/40 text-rd-muted hover:bg-rd-border hover:text-rd-text"
+                            ? "bg-rd-accent/15 text-rd-accent"
+                            : "text-rd-subtle hover:bg-rd-elevated hover:text-rd-text"
                     )}
-                    >
+                >
                     <Settings2 size={13} />
+                    <span className="hidden sm:inline">Edit</span>
                 </button>
             </div>
         </motion.div>
@@ -683,7 +714,6 @@ const OverlayCard = ({
 const OverlayControl = (): React.ReactElement => {
     const { overlays, savePath, setOverlayConfig, setSavePath, loadFromPreset } =
         useOverlayStore();
-    const session = useRaceStore((s) => s.session);
     const connection = useRaceStore((s) => s.connection);
 
     const [displays, setDisplays] = useState<DisplayInfo[]>([]);
@@ -820,122 +850,120 @@ const OverlayControl = (): React.ReactElement => {
         >
             {/* title bar */}
             <div
-                className="flex h-14 shrink-0 items-center gap-4 border-b border-rd-border
-                bg-rd-surface px-6"
+                className="flex h-12 shrink-0 items-center gap-4 border-b border-rd-border bg-rd-surface px-4"
                 style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
             >
-                {/* logo mark */}
-                <div className="flex items-center gap-2">
-                    <div className="flex h-7 w-7 items-center justify-center rounded bg-rd-accent">
-                        <Layers size={14} className="text-white" />
-                    </div>
-                    <div>
-                        <p className="text-xs font-bold uppercase tracking-widest text-rd-text">
-                            Overlay Control
-                        </p>
-                        <p className="text-[10px] text-rd-subtle leading-none">
-                            RaceDirector
-                        </p>
-                    </div>
+                <div className="flex items-center gap-2 shrink-0">
+                    <p className="text-xs font-bold uppercase tracking-widest text-rd-accent">
+                        Overlay Control
+                    </p>
                 </div>
 
-                {/* session pill */}
-                {session && (
-                <div className="hidden sm:flex items-center gap-2 rounded border border-rd-border
-                    bg-rd-elevated px-3 py-1">
-                    <Monitor size={11} className="text-rd-muted" />
-                    <span className="text-xs text-rd-muted">{session.trackName}</span>
-                    <ChevronRight size={10} className="text-rd-subtle" />
-                    <span className="text-xs text-rd-text">{session.sessionType}</span>
-                </div>
-                )}
+                <div className="h-4 w-px bg-rd-border shrink-0" />
 
-                <div className="flex-1" style={{ WebkitAppRegion: "drag" } as React.CSSProperties} />
-
-                {/* action buttons */}
+                {/* mode switcher */}
                 <div
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-1 rounded-lg border border-rd-border bg-rd-bg p-1"
                     style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
-                    >
-                    <button
-                        onClick={handleLoad}
-                        title="Load preset"
-                        className="flex items-center gap-1.5 rounded border border-rd-border
-                        bg-rd-elevated px-3 py-1.5 text-xs text-rd-muted hover:border-rd-muted
-                        hover:text-rd-text transition-colors"
-                    >
-                        <FolderOpen size={12} />
-                        Load
+                >
+                    <button className="rounded px-3 py-1 text-xs font-semibold bg-rd-elevated text-rd-text transition-colors">
+                        Manual
                     </button>
-                    <button
-                        onClick={handleSave}
-                        disabled={isSaving}
-                        title="Save preset"
-                        className="flex items-center gap-1.5 rounded border border-rd-accent/40
-                        bg-rd-accent/10 px-3 py-1.5 text-xs text-rd-accent hover:bg-rd-accent/20
-                        transition-colors disabled:opacity-50"
-                    >
-                        <Save size={12} />
-                        {isSaving ? "Saving…" : "Save"}
-                    </button>
+                    <div className="relative">
+                        <button
+                            disabled
+                            className="rounded px-3 py-1 text-xs font-semibold text-rd-subtle opacity-50 cursor-not-allowed"
+                        >
+                            Automatic
+                        </button>
+                        <span className="absolute -top-2 -right-1 rounded px-1 text-[8px] font-bold uppercase tracking-wide bg-rd-logo-primary/20 text-rd-logo-primary leading-4">
+                            Coming Soon
+                        </span>
+                    </div>
                 </div>
             </div>
+
+            {/* connection warning always at top of body when not connected */}
+            {connection !== "CONNECTED" && (
+                <div className="flex shrink-0 items-center gap-2 border-b border-rd-warning/20 bg-rd-warning/10 px-4 py-2">
+                    <AlertCircle size={25} className="text-rd-warning shrink-0" />
+                    <p className="text-s text-rd-warning">
+                        Not connected to Le Mans Ultimate
+                    </p>
+                </div>
+            )}
 
             {/* body */}
             <div className="relative flex flex-1 overflow-hidden">
 
-                {/* scrollable card grid */}
-                <div className="flex-1 overflow-y-auto p-6">
+                {/* scrollable content */}
+                <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
 
-                    {/* save path bar */}
-                    <div className="mb-5 flex items-center gap-2 rounded border border-rd-border
-                        bg-rd-surface px-4 py-2.5"
-                    >
-                        <Save size={11} className="shrink-0 text-rd-subtle" />
-                        <p className="flex-1 truncate text-xs text-rd-subtle font-mono">
-                            {savePath || "No save path set"}
-                        </p>
-                        <button
-                            onClick={handleSaveAs}
-                            className="shrink-0 text-xs text-rd-muted hover:text-rd-text transition-colors"
-                            >
-                            Change
-                        </button>
-                    </div>
-
-                    {/* connection warning */}
-                    {connection !== "CONNECTED" && (
-                        <div className="mb-5 flex items-center gap-2 rounded border border-rd-warning/30
-                        bg-rd-warning/10 px-4 py-2.5">
-                            <AlertCircle size={13} className="text-rd-warning shrink-0" />
-                            <p className="text-xs text-rd-warning">
-                                Not connected to LMU. Overlay data will be unavailable until connected!
+                    {/* preset manager */}
+                    <div className="rounded-lg border border-rd-border bg-rd-surface p-4 flex flex-col gap-3">
+                        <div className="flex items-center justify-between">
+                            <p className="text-xl font-semibold uppercase tracking-widest text-rd-accent">
+                                Preset
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={handleLoad}
+                                    className="flex items-center gap-1.5 rounded border border-rd-border bg-rd-elevated
+                                        px-3 py-1.5 text-xs text-rd-muted hover:border-rd-muted hover:text-rd-text transition-colors"
+                                >
+                                    <FolderOpen size={15} />
+                                    Load
+                                </button>
+                                <button
+                                    onClick={handleSaveAs}
+                                    className="flex items-center gap-1.5 rounded border border-rd-border bg-rd-elevated
+                                        px-3 py-1.5 text-xs text-rd-muted hover:border-rd-muted hover:text-rd-text transition-colors"
+                                >
+                                    <Save size={15} />
+                                    Save As
+                                </button>
+                                <button
+                                    onClick={handleSave}
+                                    disabled={isSaving}
+                                    className="flex items-center gap-1.5 rounded border border-rd-accent/40
+                                        bg-rd-accent/10 px-3 py-1.5 text-xs text-rd-accent hover:bg-rd-accent/20
+                                        transition-colors disabled:opacity-50"
+                                >
+                                    <Save size={15} />
+                                    {isSaving ? "Saving…" : "Save"}
+                                </button>
+                            </div>
+                        </div>
+                        {/* file path */}
+                        <div className="flex items-center gap-2 rounded border border-rd-border/60 bg-rd-bg px-3 py-2">
+                            <Save size={15} className="shrink-0 text-rd-subtle" />
+                            <p className="flex-1 truncate font-mono text-[14px] text-rd-subtle">
+                                {savePath || "No save path set"}
                             </p>
                         </div>
-                    )}
+                    </div>
 
                     {/* overlay cards */}
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid grid-cols-2 gap-3">
                         {OVERLAY_META.map((meta) => {
                             const cfg = overlays.find((o) => o.id === meta.id);
                             if (!cfg) return null;
                             return (
                                 <OverlayCard
-                                key={meta.id}
-                                cfg={cfg}
-                                meta={meta}
-                                isSettingsOpen={openSettings === meta.id}
-                                onToggleEnabled={() => void handleToggleEnabled(meta.id)}
-                                onToggleDrag={() => void handleToggleDrag(meta.id)}
-                                onOpenSettings={() =>
-                                    setOpenSettings((prev) =>
-                                    prev === meta.id ? null : meta.id
-                                    )
-                                }
+                                    key={meta.id}
+                                    cfg={cfg}
+                                    meta={meta}
+                                    isSettingsOpen={openSettings === meta.id}
+                                    onToggleEnabled={() => void handleToggleEnabled(meta.id)}
+                                    onToggleDrag={() => void handleToggleDrag(meta.id)}
+                                    onOpenSettings={() =>
+                                        setOpenSettings((prev) => prev === meta.id ? null : meta.id)
+                                    }
                                 />
                             );
                         })}
                     </div>
+
                 </div>
 
                 {/* settings drawer */}
@@ -967,7 +995,7 @@ const OverlayControl = (): React.ReactElement => {
                                     ? "border-rd-success/30 bg-rd-surface text-rd-success"
                                     : "border-rd-error/30 bg-rd-surface text-rd-error"
                             )}
-                            >
+                        >
                             {t.type === "success" ? (
                                 <CheckCircle2 size={13} />
                             ) : (
