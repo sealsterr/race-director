@@ -21,7 +21,11 @@ import { useOverlayStore } from "../../store/overlayStore";
 import type {
     OverlayId,
     OverlayConfig,
+    OverlaySpecificSettings,
     TowerSettings,
+    TowerRaceMode,
+    TowerQualiMode,
+    TowerViewLayout,
     DriverSettings,
     GapSettings,
     SessionSettings,
@@ -96,6 +100,18 @@ interface Toast {
 }
 
 let toastCounter = 0;
+
+function pushToast(
+    setToasts: React.Dispatch<React.SetStateAction<Toast[]>>,
+    type: Toast["type"],
+    message: string,
+): void {
+    const id = ++toastCounter;
+    setToasts((prev) => [...prev, { id, type, message }]);
+    setTimeout(() => {
+        setToasts((prev) => prev.filter((x) => x.id !== id));
+    }, 3500);
+}
 
 // -- slider --
 interface SliderProps {
@@ -209,11 +225,46 @@ const Select = ({
     </div>
 );
 
-// -- overlay-specific settings panels --
+// -- color picker --
+interface ColorPickerProps {
+    readonly label: string;
+    readonly value: string;
+    readonly onChange: (v: string) => void;
+}
+
+const ColorPicker = ({ label, value, onChange }: ColorPickerProps): React.ReactElement => (
+    <div className="flex items-center justify-between gap-3 min-h-[32px]">
+        <span className="text-xs text-rd-muted">{label}</span>
+        <div className="flex items-center gap-2">
+            <span className="font-mono text-xs text-rd-subtle">{value.toUpperCase()}</span>
+            <label className="relative h-6 w-6 cursor-pointer overflow-hidden rounded border border-rd-border">
+                <span className="sr-only">{label}</span>
+                <span
+                    className="absolute inset-0 rounded"
+                    style={{ background: value }}
+                />
+                <input
+                    type="color"
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                />
+            </label>
+        </div>
+    </div>
+);
+
+// -- section heading inside a settings panel --
+const PanelSection = ({ title }: { readonly title: string }): React.ReactElement => (
+    <p className="pt-1 text-[10px] font-bold uppercase tracking-widest text-rd-subtle border-t border-rd-border/60">
+        {title}
+    </p>
+);
+
 const TowerSettingsPanel = ({
     cfg,
 }: {
-    cfg: OverlayConfig;
+    readonly cfg: OverlayConfig;
 }): React.ReactElement => {
     const { setOverlaySettings } = useOverlayStore();
     const s = cfg.settings as TowerSettings;
@@ -222,18 +273,34 @@ const TowerSettingsPanel = ({
 
     return (
         <div className="flex flex-col gap-3">
+            {/* layout */}
+            <PanelSection title="Layout" />
             <Select
-                label="Class filter"
-                value={s.classFilter}
+                label="View layout"
+                value={s.viewLayout}
                 options={[
-                    { label: "All classes", value: "ALL"      },
-                    { label: "Hypercar",    value: "HYPERCAR" },
-                    { label: "LMP2",        value: "LMP2"     },
-                    { label: "LMP3",        value: "LMP3"     },
-                    { label: "LMGT3",       value: "LMGT3"    },
-                    { label: "GTE",         value: "GTE"      },
+                    { label: "Per class",  value: "PER_CLASS"  },
+                    { label: "Mixed top",  value: "MIXED_TOP"  },
                 ]}
-                onChange={(v) => set({ classFilter: v as TowerSettings["classFilter"] })}
+                onChange={(v) => set({ viewLayout: v as TowerViewLayout })}
+            />
+            <Slider
+                label="Max rows per class"
+                value={s.maxRowsPerClass}
+                min={3}
+                max={20}
+                step={1}
+                onChange={(v) => set({ maxRowsPerClass: v })}
+            />
+            <Toggle
+                label="Show car number"
+                value={s.showCarNumber}
+                onChange={(v) => set({ showCarNumber: v })}
+            />
+            <Toggle
+                label="Show class bar"
+                value={s.showClassBar}
+                onChange={(v) => set({ showClassBar: v })}
             />
             <Select
                 label="Animation speed"
@@ -247,28 +314,40 @@ const TowerSettingsPanel = ({
                     set({ animationSpeed: v as TowerSettings["animationSpeed"] })
                 }
             />
+
+            {/* fight detection */}
+            <PanelSection title="Fight detection" />
             <Slider
-                label="Max rows"
-                value={s.maxRows}
-                min={3}
-                max={20}
-                step={1}
-                onChange={(v) => set({ maxRows: v })}
+                label="Fight threshold"
+                value={s.fightThresholdSeconds}
+                min={0.2}
+                max={5}
+                step={0.1}
+                unit="s"
+                onChange={(v) => set({ fightThresholdSeconds: v })}
             />
-            <Toggle
-                label="Show car logos"
-                value={s.showCarLogos}
-                onChange={(v) => set({ showCarLogos: v })}
-            />
-            <Toggle
-                label="Show car number"
-                value={s.showCarNumber}
-                onChange={(v) => set({ showCarNumber: v })}
-            />
-            <Toggle
-                label="Show gap to leader"
-                value={s.showGapToLeader}
-                onChange={(v) => set({ showGapToLeader: v })}
+
+            {/* class colors */}
+            <PanelSection title="Class colors" />
+            <ColorPicker label="Hypercar" value={s.colorHypercar} onChange={(v) => set({ colorHypercar: v })} />
+            <ColorPicker label="LMP2"     value={s.colorLMP2}     onChange={(v) => set({ colorLMP2: v })}     />
+            <ColorPicker label="LMP3"     value={s.colorLMP3}     onChange={(v) => set({ colorLMP3: v })}     />
+            <ColorPicker label="LMGT3"    value={s.colorLMGT3}    onChange={(v) => set({ colorLMGT3: v })}    />
+            <ColorPicker label="GTE"      value={s.colorGTE}      onChange={(v) => set({ colorGTE: v })}      />
+
+            {/* tyre colors */}
+            <PanelSection title="Tyre colors" />
+            <ColorPicker label="Hard"   value={s.colorHard}   onChange={(v) => set({ colorHard: v })}   />
+            <ColorPicker label="Medium" value={s.colorMedium} onChange={(v) => set({ colorMedium: v })} />
+            <ColorPicker label="Soft"   value={s.colorSoft}   onChange={(v) => set({ colorSoft: v })}   />
+            <ColorPicker label="Wet"    value={s.colorWet}    onChange={(v) => set({ colorWet: v })}    />
+
+            {/* status colors */}
+            <PanelSection title="Status colors" />
+            <ColorPicker
+                label="Pit badge"
+                value={s.colorPitBadge}
+                onChange={(v) => set({ colorPitBadge: v })}
             />
         </div>
     );
@@ -594,6 +673,7 @@ interface OverlayCardProps {
     onToggleEnabled: () => void;
     onToggleDrag: () => void;
     onOpenSettings: () => void;
+    onSettingsChange: (id: OverlayId, settings: Partial<OverlaySpecificSettings>) => void;
 }
 
 const OverlayCard = ({
@@ -603,8 +683,13 @@ const OverlayCard = ({
     onToggleEnabled,
     onToggleDrag,
     onOpenSettings,
+    onSettingsChange,
 }: OverlayCardProps): React.ReactElement => {
     const Icon = meta.icon;
+    const session = useRaceStore((s) => s.session);
+    const isQualiSession =
+        session?.sessionType === "PRACTICE" ||
+        session?.sessionType === "QUALIFYING";
 
     return (
         <motion.div
@@ -652,7 +737,56 @@ const OverlayCard = ({
             <div className="mx-4 h-px bg-rd-border" />
 
             {/* action row */}
-            <div className="flex items-stretch">
+            <div className="flex items-stretch bg-rd-surface/40">
+                {meta.id === "OVERLAY-TOWER" && (() => {
+                    const towerCfg = cfg.settings as TowerSettings;
+                    const value = isQualiSession
+                        ? towerCfg.qualiMode
+                        : towerCfg.raceMode;
+
+                    return (
+                        <div className="flex items-center px-3 py-2 bg-rd-surface/50">
+                            <select
+                                value={value}
+                                onChange={(e) => {
+                                    const nextValue = e.target.value;
+
+                                    if (isQualiSession) {
+                                        onSettingsChange("OVERLAY-TOWER", {
+                                            qualiMode: nextValue as TowerQualiMode,
+                                        });
+                                    } else {
+                                        onSettingsChange("OVERLAY-TOWER", {
+                                            raceMode: nextValue as TowerRaceMode,
+                                        });
+                                    }
+
+                                    e.currentTarget.blur();
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="h-8 min-w-[138px] rounded-md border border-rd-border bg-rd-elevated px-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-rd-text outline-none transition-colors hover:border-rd-muted hover:bg-rd-surface focus:border-rd-accent cursor-pointer"
+                                title="Data mode"
+                            >
+                                {isQualiSession ? (
+                                    <>
+                                        <option value="QUALI_GAP">Q GAP</option>
+                                        <option value="QUALI_TIMES">Q TIME</option>
+                                    </>
+                                ) : (
+                                    <>
+                                        <option value="GAP_AHEAD">INT</option>
+                                        <option value="GAP_LEADER">LEAD</option>
+                                        <option value="PITS">PITS</option>
+                                        <option value="FUEL">FUEL</option>
+                                        <option value="TYRES">TYRES</option>
+                                        <option value="POSITIONS">GAIN</option>
+                                    </>
+                                )}
+                            </select>
+                        </div>
+                    );
+                })()}
+
                 {/* on/off */}
                 <button
                     onClick={onToggleEnabled}
@@ -669,12 +803,12 @@ const OverlayCard = ({
                 </button>
 
                 {/* separator */}
-                <div className="w-px bg-rd-border" />
+                <div className="w-px bg-rd-border/80" />
 
                 {/* drag */}
                 <button
                     onClick={onToggleDrag}
-                    title={cfg.dragMode ? "Drag mode ON — click to lock" : "Enable drag to reposition"}
+                    title={cfg.dragMode ? "Drag mode ON" : "Enable dragging"}
                     className={cls(
                         "flex items-center justify-center gap-1.5 px-4 py-3 text-[11px] font-medium",
                         "transition-colors duration-150",
@@ -688,7 +822,7 @@ const OverlayCard = ({
                 </button>
 
                 {/* separator */}
-                <div className="w-px bg-rd-border" />
+                <div className="w-px bg-rd-border/80" />
 
                 {/* settings */}
                 <button
@@ -712,7 +846,7 @@ const OverlayCard = ({
 
 // -- main component --
 const OverlayControl = (): React.ReactElement => {
-    const { overlays, savePath, setOverlayConfig, setSavePath, loadFromPreset } =
+    const { overlays, savePath, setOverlayConfig, setOverlaySettings, setSavePath, loadFromPreset } =
         useOverlayStore();
     const connection = useRaceStore((s) => s.connection);
 
@@ -764,7 +898,7 @@ const OverlayControl = (): React.ReactElement => {
 
         const runAutoSave = async (): Promise<void> => {
             const r = await globalThis.api.overlay.savePreset(overlays, savePath);
-            if (!r.ok) pushToast("error", `Auto-save failed: ${r.error}`);
+            if (!r.ok) pushToast(setToasts, "error", `Auto-save failed: ${r.error}`);
         };
 
         saveTimer.current = setTimeout(() => {
@@ -776,22 +910,15 @@ const OverlayControl = (): React.ReactElement => {
         };
     }, [overlays, savePath]);
 
-    // -- toast helpers --
-    const pushToast = (type: Toast["type"], message: string): void => {
-        const id = ++toastCounter;
-        setToasts((prev) => [...prev, { id, type, message }]);
-        const removeToast = (): void =>
-            setToasts((prev) => prev.filter((x) => x.id !== id));
-        setTimeout(removeToast, 3500);
-    };
+    
 
     // -- save / load --
     const handleSave = async (): Promise<void> => {
         setIsSaving(true);
         const r = await globalThis.api.overlay.savePreset(overlays, savePath);
         setIsSaving(false);
-        if (r.ok) pushToast("success", "Preset saved!");
-        else pushToast("error", `Save failed: ${r.error}`);
+        if (r.ok) pushToast(setToasts, "success", "Preset saved!");
+        else pushToast(setToasts, "error", `Save failed: ${r.error}`);
     };
 
     const handleSaveAs = async (): Promise<void> => {
@@ -799,8 +926,8 @@ const OverlayControl = (): React.ReactElement => {
         if (!pick.ok || !pick.path) return;
         setSavePath(pick.path);
         const r = await globalThis.api.overlay.savePreset(overlays, pick.path);
-        if (r.ok) pushToast("success", "Preset saved to new location!");
-        else pushToast("error", `Save failed: ${r.error}`);
+        if (r.ok) pushToast(setToasts, "success", "Preset saved to new location!");
+        else pushToast(setToasts, "error", `Save failed: ${r.error}`);
     };
 
     const handleLoad = async (): Promise<void> => {
@@ -809,9 +936,9 @@ const OverlayControl = (): React.ReactElement => {
         const r = await globalThis.api.overlay.loadPreset(pick.path);
         if (r.ok && r.data) {
             loadFromPreset(r.data.overlays, pick.path);
-            pushToast("success", "Preset loaded!");
+            pushToast(setToasts, "success", "Preset loaded!");
         } else {
-            pushToast("error", `Load failed: ${r.error}`);
+            pushToast(setToasts, "error", `Load failed: ${r.error}`);
         }
     };
 
@@ -953,6 +1080,7 @@ const OverlayControl = (): React.ReactElement => {
                                     key={meta.id}
                                     cfg={cfg}
                                     meta={meta}
+                                    onSettingsChange={(id, settings) => setOverlaySettings(id, settings)}
                                     isSettingsOpen={openSettings === meta.id}
                                     onToggleEnabled={() => void handleToggleEnabled(meta.id)}
                                     onToggleDrag={() => void handleToggleDrag(meta.id)}

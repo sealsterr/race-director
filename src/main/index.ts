@@ -8,7 +8,35 @@ const DASHBOARD_WIDTH = 1100;
 const DASHBOARD_HEIGHT = 700;
 
 // -- track child windows so we don't open duplicates --
+// -- track child windows so we don't open duplicates --
 const childWindows: Map<string, BrowserWindow> = new Map();
+
+const OVERLAY_WINDOW_IDS = new Set<string>([
+  "OVERLAY-TOWER",
+  "OVERLAY-DRIVER",
+  "OVERLAY-GAP",
+  "OVERLAY-SESSION",
+  "OVERLAY-PITS",
+  "OVERLAY-SECTOR",
+]);
+
+function isOverlayWindowId(id: string): boolean {
+  return OVERLAY_WINDOW_IDS.has(id);
+}
+
+function closeAllOverlayWindows(): void {
+  for (const [id, win] of childWindows.entries()) {
+    if (!isOverlayWindowId(id)) continue;
+    if (win.isDestroyed()) continue;
+    win.close();
+  }
+}
+
+function getOpenNonOverlayChildWindowCount(): number {
+  return Array.from(childWindows.entries()).filter(([id, win]) => {
+    return !isOverlayWindowId(id) && !win.isDestroyed();
+  }).length;
+}
 
 const createMainWindow = (): BrowserWindow => {
   const win = new BrowserWindow({
@@ -102,8 +130,13 @@ const createChildWindow = (
   // -- clean up map entry and notify dashboard when closed --
   win.on("closed", () => {
     childWindows.delete(id);
+
     if (!mainWindow.isDestroyed()) {
       mainWindow.webContents.send("window:closed", id);
+    }
+
+    if (getOpenNonOverlayChildWindowCount() === 0 && mainWindow.isDestroyed()) {
+      closeAllOverlayWindows();
     }
   });
 
@@ -137,7 +170,7 @@ const createOverlayWindow = (
     skipTaskbar: true,
     hasShadow: false,
     resizable: false,
-    focusable: false,       // wont steal focus from game
+    focusable: false,
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
       sandbox: false,
@@ -152,10 +185,11 @@ const createOverlayWindow = (
   win.once("ready-to-show", () => win.show());
 
   if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-    const base = process.env["ELECTRON_RENDERER_URL"].replace(/\/$/, "");
-    win.loadURL(`${base}/#${route}`);
+    win.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}/#${route}`);
   } else {
-    win.loadFile(join(__dirname, "../renderer/index.html"), { hash: route });
+    win.loadFile(join(__dirname, "../renderer/index.html"), {
+      hash: route,
+    });
   }
 
   win.on("closed", () => {
@@ -201,12 +235,16 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
       return true;
     }
 
+    if (id === "OVERLAY-TOWER") {
+      createOverlayWindow("OVERLAY-TOWER", "overlay/tower", 0, 0, 360, 700);
+    }
+
     // -- overlay windows --
     const OVERLAY_SIZES: Record<
       string,
       { route: string; w: number; h: number }
     > = {
-      "OVERLAY-TOWER":   { route: "overlay/tower",   w: 340,  h: 600 },
+      "OVERLAY-TOWER":   { route: "overlay/tower",   w: 360,  h: 700 },
       "OVERLAY-DRIVER":  { route: "overlay/driver",  w: 540,  h: 120 },
       "OVERLAY-GAP":     { route: "overlay/gap",     w: 460,  h: 100 },
       "OVERLAY-SESSION": { route: "overlay/session", w: 1920, h: 60  },
@@ -284,6 +322,11 @@ const bootstrap = async (): Promise<void> => {
     });
 
     const mainWindow = createMainWindow();
+
+    mainWindow.on("closed", () => {
+      closeAllOverlayWindows();
+    });
+
     registerIpcHandlers(mainWindow);
     registerOverlayHandlers();
     registerWindowIpc(mainWindow);

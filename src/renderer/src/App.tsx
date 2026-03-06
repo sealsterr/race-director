@@ -2,10 +2,13 @@ import React, { useState, useEffect } from "react";
 import Dashboard from "./windows/dashboard";
 import InfoWindow from "./windows/info";
 import OverlayControl from "./windows/overlay-control";
+import TowerOverlay from "./windows/overlay/tower/index";
 
 const ROUTES: Record<string, React.ReactElement> = {
-  info: <InfoWindow />,
+  "": <Dashboard />,
+  "info": <InfoWindow />,
   "overlay-control": <OverlayControl />,
+  "overlay/tower": <TowerOverlay />,
 };
 
 const App = (): React.ReactElement => {

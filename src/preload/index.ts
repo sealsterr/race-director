@@ -106,6 +106,13 @@ const api = {
 
     getBounds: (id: string) =>
       ipcRenderer.invoke("overlay:getBounds", id),
+    broadcastConfig: (config: unknown) =>
+      ipcRenderer.invoke("overlay:broadcastConfig", config),
+    onConfigUpdate: (cb: (config: unknown) => void) => {
+      const handler = (_e: unknown, config: unknown): void => cb(config);
+      ipcRenderer.on("overlay:configUpdate", handler);
+      return () => ipcRenderer.removeListener("overlay:configUpdate", handler);
+    },
   },
 };
 

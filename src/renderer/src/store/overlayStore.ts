@@ -10,13 +10,42 @@ export type OverlayId =
     | "OVERLAY-SECTOR";
 
 // -- specific settings --
+export type TowerRaceMode =
+    | "GAP_AHEAD"
+    | "GAP_LEADER"
+    | "PITS"
+    | "FUEL"
+    | "TYRES"
+    | "POSITIONS";
+
+export type TowerQualiMode = "QUALI_GAP" | "QUALI_TIMES";
+
+export type TowerViewLayout = "PER_CLASS" | "MIXED_TOP";
+
 export interface TowerSettings {
-    maxRows: number;
-    classFilter: "ALL" | "HYPERCAR" | "LMP2" | "LMP3" | "LMGT3" | "GTE";
-    showCarLogos: boolean;
+    viewLayout: TowerViewLayout;
+    raceMode: TowerRaceMode;
+    qualiMode: TowerQualiMode;
+    maxRowsPerClass: number;
+    fightThresholdSeconds: number;
     showCarNumber: boolean;
-    showGapToLeader: boolean;
+    showClassBar: boolean;
     animationSpeed: "slow" | "normal" | "fast";
+
+    // class colors
+    colorHypercar: string;
+    colorLMP2: string;
+    colorLMP3: string;
+    colorLMGT3: string;
+    colorGTE: string;
+
+    // tyre colors
+    colorHard: string;
+    colorMedium: string;
+    colorSoft: string;
+    colorWet: string;
+    
+    colorPitBadge: string;
 }
 
 export interface DriverSettings {
@@ -80,19 +109,31 @@ const DEFAULT_CONFIGS: OverlayConfig[] = [
     {
         id: "OVERLAY-TOWER",
         enabled: false,
-        opacity: 90,
+        opacity: 100,
         scale: 1,
-        x: 40,
-        y: 160,
+        x: 20,
+        y: 100,
         displayId: 0,
         dragMode: false,
         settings: {
-            maxRows: 10,
-            classFilter: "ALL",
-            showCarLogos: true,
+            viewLayout: "PER_CLASS",
+            raceMode: "GAP_AHEAD",
+            qualiMode: "QUALI_GAP",
+            maxRowsPerClass: 5,
+            fightThresholdSeconds: 1,
             showCarNumber: true,
-            showGapToLeader: true,
+            showClassBar: true,
             animationSpeed: "normal",
+            colorHypercar: "#E4002B",
+            colorLMP2: "#0057A8",
+            colorLMP3: "#FFD700",
+            colorLMGT3: "#00A651",
+            colorGTE: "#FF6600",
+            colorHard: "#FFFFFF",
+            colorMedium: "#FFD700",
+            colorSoft: "#E4002B",
+            colorWet: "#0099FF",
+            colorPitBadge: "#F59E0B",
         } satisfies TowerSettings,
     },
     {
@@ -194,21 +235,27 @@ export const useOverlayStore = create<OverlayStore>((set, get) => ({
     overlays: DEFAULT_CONFIGS,
     savePath: "",
 
-    setOverlayConfig: (id, partial) =>
+    setOverlayConfig: (id, partial) => {
         set((state) => ({
             overlays: state.overlays.map((o) =>
                 o.id === id ? { ...o, ...partial } : o
             ),
-        })),
+        }));
+        const updated = get().overlays.find((o) => o.id === id);
+        if (updated) globalThis.api?.overlay?.broadcastConfig?.(updated);
+    },
 
-    setOverlaySettings: (id, settings) =>
+    setOverlaySettings: (id, settings) => {
         set((state) => ({
             overlays: state.overlays.map((o) =>
                 o.id === id
                     ? { ...o, settings: { ...o.settings, ...settings } }
                     : o
             ),
-        })),
+        }));
+        const updated = get().overlays.find((o) => o.id === id);
+        if (updated) globalThis.api?.overlay?.broadcastConfig?.(updated);
+    },
 
     setSavePath: (path) => set({ savePath: path }),
 

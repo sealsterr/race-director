@@ -1,0 +1,306 @@
+import { useEffect, useRef, useState } from "react";
+import type { AppState, SectorTime, DriverStanding } from "../../../types/lmu";
+import { useOverlayStore } from "../../../store/overlayStore";
+import type { OverlayConfig, TowerSettings } from "../../../store/overlayStore";
+import { useTowerData } from "./useTowerData";
+import { useFightDetection } from "./useFightDetection";
+
+import TowerSection from "./TowerSection";
+
+// -- empty sector time sentinel --
+const EMPTY_SECTORS: SectorTime = {
+    sector1: null,
+    sector2: null,
+    sector3: null,
+};
+
+// -- derive session-best sectors from all standings --
+function deriveSessionBestSectors(
+    standings: DriverStanding[]
+): SectorTime {
+    let s1: number | null = null;
+    let s2: number | null = null;
+    let s3: number | null = null;
+
+    for (const d of standings) {
+        const b = d.bestSectors;
+        if (b.sector1 !== null && (s1 === null || b.sector1 < s1)) s1 = b.sector1;
+        if (b.sector2 !== null && (s2 === null || b.sector2 < s2)) s2 = b.sector2;
+        if (b.sector3 !== null && (s3 === null || b.sector3 < s3)) s3 = b.sector3;
+    }
+
+    return { sector1: s1, sector2: s2, sector3: s3 };
+}
+
+// -- overtake detection --
+// returns a map of slotId: "gained" or "lost" clears after flash duration
+const OVERTAKE_FLASH_MS = 600;
+
+function applyOvertakeFlash(
+    gained: number[],
+    lost: number[],
+    setOvertakingSlots: React.Dispatch<
+        React.SetStateAction<Map<number, "gained" | "lost">>
+    >,
+    overtakeTimersRef: React.RefObject<
+        Map<number, ReturnType<typeof setTimeout>>
+    >
+): void {
+    setOvertakingSlots((current) => {
+        const next = new Map(current);
+        for (const id of gained) next.set(id, "gained");
+        for (const id of lost) next.set(id, "lost");
+        return next;
+    });
+
+    const clearIds = [...gained, ...lost];
+    for (const id of clearIds) {
+        const existing = overtakeTimersRef.current.get(id);
+        if (existing) clearTimeout(existing);
+
+        const timer = setTimeout(() => {
+            setOvertakingSlots((current) => {
+                const next = new Map(current);
+                next.delete(id);
+                return next;
+            });
+            overtakeTimersRef.current.delete(id);
+        }, OVERTAKE_FLASH_MS);
+
+        overtakeTimersRef.current.set(id, timer);
+    }
+}
+
+export default function TowerOverlay() {
+    const [appState, setAppState] = useState<AppState>({
+        connection: "DISCONNECTED",
+        session: null,
+        standings: [],
+        lastUpdated: null,
+    });
+
+    const storeConfig = useOverlayStore((s) =>
+        s.getOverlay("OVERLAY-TOWER") as OverlayConfig<TowerSettings> | undefined
+    );
+    const [overlayConfig, setOverlayConfig] = useState<
+        OverlayConfig<TowerSettings> | undefined
+    >(storeConfig);
+
+    useEffect(() => {
+        setOverlayConfig(storeConfig);
+    }, [storeConfig]);
+
+    const settings = overlayConfig?.settings;
+
+    // -- start positions: captured once at race start, never reset mid-race --
+    const startPositionsRef = useRef<Map<number, number>>(new Map());
+    const raceStartedRef = useRef(false);
+
+    // -- previous positions for overtake detection --
+    const prevPositionsRef = useRef<Map<number, number>>(new Map());
+
+    // -- overtaking flash state --
+    const [overtakingSlots, setOvertakingSlots] = useState<
+        Map<number, "gained" | "lost">
+    >(new Map());
+    const overtakeTimersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(
+        new Map()
+    );
+
+    // -- self-hydrate on mount --
+    useEffect(() => {
+        const unsubConfig = globalThis.api?.overlay?.onConfigUpdate?.((raw: unknown) => {
+            const incoming = raw as OverlayConfig<TowerSettings>;
+            if (incoming?.id === "OVERLAY-TOWER") {
+                setOverlayConfig(incoming);
+            }
+        });
+
+        globalThis.api.getState().then((state) => {
+            setAppState(state);
+        }).catch(() => undefined);
+
+        const unsub = globalThis.api.onStateUpdate((state) => {
+            setAppState(state);
+        });
+
+        return () => {
+            unsubConfig?.();
+            unsub();
+        };
+    }, []);
+
+    // -- capture start positions when race begins --
+    useEffect(() => {
+        const { session, standings } = appState;
+        if (session?.sessionType !== "RACE") {
+            raceStartedRef.current = false;
+            return;
+        }
+        if (raceStartedRef.current) return;
+        if (standings.length === 0) return;
+
+        const map = new Map<number, number>();
+        for (const d of standings) {
+            map.set(d.slotId, d.position);
+        }
+        startPositionsRef.current = map;
+        raceStartedRef.current = true;
+    }, [appState]);
+
+    // -- overtake detection --
+    useEffect(() => {
+        const { standings } = appState;
+        const prev = prevPositionsRef.current;
+        if (prev.size === 0) {
+            // first frame — just record, no flash
+            for (const d of standings) {
+                prev.set(d.slotId, d.position);
+            }
+            return;
+        }
+
+        const gained: number[] = [];
+        const lost: number[] = [];
+
+        for (const d of standings) {
+            const prevPos = prev.get(d.slotId);
+            if (prevPos === undefined) continue;
+            if (d.position < prevPos) gained.push(d.slotId);
+            if (d.position > prevPos) lost.push(d.slotId);
+        }
+
+        if (gained.length > 0 || lost.length > 0) {
+            applyOvertakeFlash(
+                gained,
+                lost,
+                setOvertakingSlots,
+                overtakeTimersRef
+            );
+        }
+
+        // update prev positions
+        for (const d of standings) {
+            prev.set(d.slotId, d.position);
+        }
+    }, [appState.standings]);
+
+    // -- cleanup timers on unmount --
+    useEffect(() => {
+        return () => {
+            for (const t of overtakeTimersRef.current.values()) {
+                clearTimeout(t);
+            }
+        };
+    }, []);
+
+    const towerSettings = settings ?? {
+        viewLayout: "PER_CLASS" as const,
+        raceMode: "GAP_AHEAD" as const,
+        qualiMode: "QUALI_GAP" as const,
+        maxRowsPerClass: 5,
+        fightThresholdSeconds: 1,
+        showCarNumber: true,
+        showClassBar: true,
+        animationSpeed: "normal" as const,
+        colorHypercar: "#E4002B",
+        colorLMP2: "#0057A8",
+        colorLMP3: "#FFD700",
+        colorLMGT3: "#00A651",
+        colorGTE: "#FF6600",
+        colorHard: "#FFFFFF",
+        colorMedium: "#FFD700",
+        colorSoft: "#E4002B",
+        colorWet: "#0099FF",
+        colorPitBadge: "#F59E0B",
+    };
+
+    const { sections, isQuali, isRace } = useTowerData({
+        standings: appState.standings,
+        session: appState.session,
+        settings: towerSettings,
+        startPositions: startPositionsRef.current,
+    });
+
+    const fightGroups = useFightDetection({
+        sections,
+        thresholdSeconds: towerSettings.fightThresholdSeconds,
+        enabled: isRace,
+    });
+
+    const sessionBestSectors = isQuali
+        ? deriveSessionBestSectors(appState.standings)
+        : EMPTY_SECTORS;
+
+    const opacity = (overlayConfig?.opacity ?? 100) / 100;
+    const scale = overlayConfig?.scale ?? 1;
+
+    if (appState.connection !== "CONNECTED") {
+        return (
+            <div
+                style={{
+                    width: "100vw",
+                    height: "100vh",
+                    background: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                }}
+            >
+                <span
+                    style={{
+                        fontSize: 11,
+                        color: "rgba(148,163,184,0.5)",
+                        fontFamily: "sans-serif",
+                    }}
+                >
+                    NOT CONNECTED
+                </span>
+            </div>
+        );
+    }
+
+    return (
+        <div
+            style={{
+                width: "100vw",
+                height: "100vh",
+                background: "none",
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "flex-start",
+                padding: 0,
+                overflow: "hidden",
+                pointerEvents: "none",
+            }}
+        >
+            <div
+                style={{
+                    opacity,
+                    transform: `scale(${scale})`,
+                    transformOrigin: "top left",
+                    fontFamily:
+                        "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
+                    padding: "8px 0",
+                    minWidth: 300,
+                }}
+            >
+                {sections.map((section) => (
+                    <TowerSection
+                        key={section.carClass}
+                        section={section}
+                        settings={towerSettings}
+                        fightGroups={fightGroups.filter((g) =>
+                            section.rows.some((r) =>
+                                g.slotIds.includes(r.standing.slotId)
+                            )
+                        )}
+                        overtakingSlots={overtakingSlots}
+                        sessionBestSectors={sessionBestSectors}
+                        isQuali={isQuali}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+}

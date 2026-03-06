@@ -1,4 +1,4 @@
-import { ipcMain, dialog, app, screen } from "electron";
+import { ipcMain, dialog, app, screen, BrowserWindow } from "electron";
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import type { OverlayConfig } from "../../renderer/src/store/overlayStore";
@@ -106,5 +106,13 @@ export const registerOverlayHandlers = (): void => {
             bounds: d.bounds,
             isPrimary: d.id === primary.id,
         }));
+    });
+
+    ipcMain.handle("overlay:broadcastConfig", (_e, config: unknown): void => {
+        BrowserWindow.getAllWindows().forEach((win) => {
+            if (!win.isDestroyed()) {
+                win.webContents.send("overlay:configUpdate", config);
+            }
+        });
     });
 };
