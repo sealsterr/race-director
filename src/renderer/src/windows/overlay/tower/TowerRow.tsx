@@ -68,44 +68,76 @@ function resolveFlashBackground(overtaking: "gained" | "lost" | null): string {
 }
 
 function PitEar({
-    color,
+    animDuration,
 }: {
-    readonly color: string;
+    readonly animDuration: number;
 }) {
     return (
-        <div
+        <motion.div
+            initial={{ x: -14, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -14, opacity: 0 }}
+            transition={{ duration: animDuration, ease: "easeOut" }}
             style={{
                 position: "absolute",
-                top: "50%",
-                right: -34,
+                top: "23%",
+                left: "calc(100% - 1px)",
                 transform: "translateY(-50%)",
-                height: 22,
-                minWidth: 42,
+                height: 24,
+                minWidth: 46,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                padding: "0 10px 0 12px",
-                borderTopRightRadius: 999,
-                borderBottomRightRadius: 999,
-                borderTopLeftRadius: 0,
-                borderBottomLeftRadius: 0,
-                border: `1px solid ${color}66`,
+                padding: "0 10px",
+                borderRadius: "0 6px 6px 0",
+                border: "1px solid rgba(148,163,184,0.34)",
                 borderLeft: "none",
-                background: `${color}20`,
-                color,
+                background:
+                    "linear-gradient(180deg, rgba(22,24,32,0.96) 0%, rgba(11,13,18,0.94) 100%)",
+                color: "#e2e8f0",
                 fontSize: 10,
-                fontWeight: 800,
+                fontWeight: 900,
                 letterSpacing: "0.14em",
                 textTransform: "uppercase",
                 lineHeight: 1,
-                fontVariantNumeric: "tabular-nums",
-                boxShadow: `0 0 12px ${color}22`,
+                boxShadow:
+                    "0 4px 14px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.04)",
                 pointerEvents: "none",
-                zIndex: 3,
+                zIndex: 0,
+                overflow: "hidden",
             }}
         >
-            PIT
-        </div>
+            <span
+                style={{
+                    position: "absolute",
+                    inset: 1,
+                    border: "1px solid rgba(255,255,255,0.035)",
+                    borderLeft: "none",
+                    borderRadius: "0 5px 5px 0",
+                    pointerEvents: "none",
+                }}
+            />
+            <span
+                style={{
+                    position: "absolute",
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: 2,
+                    background:
+                        "linear-gradient(180deg, rgba(148,163,184,0.55), rgba(71,85,105,0.45))",
+                    pointerEvents: "none",
+                }}
+            />
+            <span
+                style={{
+                    position: "relative",
+                    top: -0.5,
+                }}
+            >
+                PIT
+            </span>
+        </motion.div>
     );
 }
 
@@ -284,20 +316,20 @@ export default function TowerRow({
 
     return (
         <motion.div
-            layout
-            layoutId={row.key}
-            transition={{ duration: animDuration }}
-            style={{
-                display: "flex",
-                alignItems: "center",
-                height: 36,
-                width: "100%",
-                backgroundColor: flashBg,
-                borderRadius: 3,
-                overflow: "visible",
-                position: "relative",
-                marginBottom: 2,
-            }}
+                layout
+                layoutId={row.key}
+                transition={{ duration: animDuration }}
+                style={{
+                    display: "flex",
+                    alignItems: "center",
+                    height: 36,
+                    width: "100%",
+                    backgroundColor: flashBg,
+                    borderRadius: 3,
+                    overflow: "visible",
+                    position: "relative",
+                    zIndex: 1,
+                }}
         >
             {/* fight pulse ring */}
             <AnimatePresence>
@@ -402,9 +434,12 @@ export default function TowerRow({
                     lapHighlightColor={lapHighlightColor}
                 />
             </div>
-        {showPitBadge && (
-                <PitEar color={settings.colorPitBadge} />
-            )}
-        </motion.div>
+
+            <AnimatePresence>
+                {showPitBadge && (
+                    <PitEar animDuration={animDuration} />
+                )}
+            </AnimatePresence>
+            </motion.div>
     );
 }

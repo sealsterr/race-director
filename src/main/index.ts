@@ -1,5 +1,6 @@
 import { app, BrowserWindow, shell, ipcMain } from "electron";
-import { join } from "node:path";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import { registerIpcHandlers } from "./ipc/handlers";
 import { registerOverlayHandlers } from "./ipc/overlayHandlers";
@@ -7,7 +8,18 @@ import { registerOverlayHandlers } from "./ipc/overlayHandlers";
 const DASHBOARD_WIDTH = 1100;
 const DASHBOARD_HEIGHT = 700;
 
-// -- track child windows so we don't open duplicates --
+interface UiPrefs {
+  showQuitConfirm: boolean;
+}
+
+const DEFAULT_UI_PREFS: UiPrefs = {
+  showQuitConfirm: true,
+};
+
+let uiPrefs: UiPrefs = DEFAULT_UI_PREFS;
+let isAppQuitting = false;
+let isQuitDialogOpen = false;
+
 // -- track child windows so we don't open duplicates --
 const childWindows: Map<string, BrowserWindow> = new Map();
 
@@ -36,6 +48,88 @@ function getOpenNonOverlayChildWindowCount(): number {
   return Array.from(childWindows.entries()).filter(([id, win]) => {
     return !isOverlayWindowId(id) && !win.isDestroyed();
   }).length;
+}
+
+function getUiPrefsPath(): string {
+  return join(app.getPath("userData"), "ui-prefs.json");
+}
+
+function loadUiPrefs(): UiPrefs {
+  try {
+    const raw = readFileSync(getUiPrefsPath(), "utf8");
+    const parsed = JSON.parse(raw) as Partial<UiPrefs>;
+    return {
+      ...DEFAULT_UI_PREFS,
+      ...parsed,
+    };
+  } catch {
+    return DEFAULT_UI_PREFS;
+  }
+}
+
+function saveUiPrefs(next: UiPrefs): void {
+  const path = getUiPrefsPath();
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, JSON.stringify(next, null, 2), "utf8");
+}
+
+function closeAllManagedWindows(exceptIds: Set<string> = new Set()): void {
+  for (const [id, win] of childWindows.entries()) {
+    if (exceptIds.has(id)) continue;
+    if (win.isDestroyed()) continue;
+    win.close();
+  }
+}
+
+function openDisconnectNotice(mainWindow: BrowserWindow): void {
+  createChildWindow(
+    "DISCONNECT-NOTICE",
+    "system/disconnect-notice",
+    {
+      width: 520,
+      height: 280,
+      resizable: false,
+      minimizable: false,
+      maximizable: false,
+      frame: false,
+      transparent: true,
+      hasShadow: false,
+      backgroundColor: "#00000000",
+      title: "Connection Lost",
+    },
+    mainWindow
+  );
+}
+
+function openQuitConfirm(mainWindow: BrowserWindow): void {
+  const bounds = mainWindow.getBounds();
+  createChildWindow(
+    "QUIT-CONFIRM",
+    "system/quit-confirm",
+    {
+      x: bounds.x,
+      y: bounds.y,
+      width: bounds.width,
+      height: bounds.height,
+      parent: mainWindow,
+      modal: true,
+      movable: false,
+      minimizable: false,
+      maximizable: false,
+      resizable: false,
+      skipTaskbar: true,
+      title: "Confirm Quit",
+      frame: false,
+      transparent: true,
+      backgroundColor: "#00000000",
+      hasShadow: false,
+      thickFrame: false,
+      roundedCorners: true,
+      alwaysOnTop: true,
+    },
+    mainWindow
+  );
+  isQuitDialogOpen = true;
 }
 
 const createMainWindow = (): BrowserWindow => {
@@ -93,15 +187,22 @@ const createChildWindow = (
     return existing;
   }
 
+  
+  const isFrameless = options.frame === false;
+
   const win = new BrowserWindow({
     show: false,
-    backgroundColor: "#08090c",
-    titleBarStyle: "hidden",
-    titleBarOverlay: {
-      color: "#0f1117",
-      symbolColor: "#f1f5f9",
-      height: 40,
-    },
+    backgroundColor: isFrameless ? "#00000000" : "#08090c",
+    ...(isFrameless
+      ? {}
+      : {
+          titleBarStyle: "hidden",
+          titleBarOverlay: {
+            color: "#0f1117",
+            symbolColor: "#f1f5f9",
+            height: 40,
+          },
+        }),
     icon: join(__dirname, "../../resources/rd-icon-2.ico"),
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
@@ -130,6 +231,10 @@ const createChildWindow = (
   // -- clean up map entry and notify dashboard when closed --
   win.on("closed", () => {
     childWindows.delete(id);
+
+    if (id === "QUIT-CONFIRM" && !mainWindow.isDestroyed()) {
+      isQuitDialogOpen = false;
+    }
 
     if (!mainWindow.isDestroyed()) {
       mainWindow.webContents.send("window:closed", id);
@@ -300,6 +405,52 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
     if (win && !win.isDestroyed()) win.close();
   });
 
+  ipcMain.handle("system:ackDisconnect", (): void => {
+    const win = childWindows.get("DISCONNECT-NOTICE");
+    if (win && !win.isDestroyed()) win.close();
+
+    if (!mainWindow.isDestroyed()) {
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+
+  ipcMain.handle("system:getQuitConfirmPreference", (): boolean => {
+    return uiPrefs.showQuitConfirm;
+  });
+
+  ipcMain.handle("system:cancelQuit", (): void => {
+    const win = childWindows.get("QUIT-CONFIRM");
+    isQuitDialogOpen = false;
+    if (win && !win.isDestroyed()) win.close();
+
+    if (!mainWindow.isDestroyed()) {
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+
+  ipcMain.handle("system:confirmQuit", (_event, dontAskAgain: boolean): void => {
+    uiPrefs = {
+      ...uiPrefs,
+      showQuitConfirm: !dontAskAgain,
+    };
+    saveUiPrefs(uiPrefs);
+
+    isAppQuitting = true;
+    closeAllManagedWindows();
+
+    if (!mainWindow.isDestroyed()) {
+      mainWindow.close();
+    }
+  });
+
   // -- query which windows are open --
   ipcMain.handle("window:getOpen", (): string[] => {
     return Array.from(childWindows.entries())
@@ -321,13 +472,40 @@ const bootstrap = async (): Promise<void> => {
       optimizer.watchWindowShortcuts(window);
     });
 
+    uiPrefs = loadUiPrefs();
+
     const mainWindow = createMainWindow();
 
-    mainWindow.on("closed", () => {
-      closeAllOverlayWindows();
+    const handleConnectionLost = (): void => {
+      if (isAppQuitting || mainWindow.isDestroyed()) return;
+
+      closeAllManagedWindows();
+      openDisconnectNotice(mainWindow);
+      mainWindow.focus();
+    };
+
+    mainWindow.on("close", (event) => {
+      if (isAppQuitting) return;
+      if (isQuitDialogOpen) {
+        event.preventDefault();
+        return;
+      }
+
+      if (!uiPrefs.showQuitConfirm) {
+        isAppQuitting = true;
+        closeAllManagedWindows();
+        return;
+      }
+
+      event.preventDefault();
+      openQuitConfirm(mainWindow);
     });
 
-    registerIpcHandlers(mainWindow);
+    mainWindow.on("closed", () => {
+      closeAllManagedWindows();
+    });
+
+    registerIpcHandlers(mainWindow, handleConnectionLost);
     registerOverlayHandlers();
     registerWindowIpc(mainWindow);
 

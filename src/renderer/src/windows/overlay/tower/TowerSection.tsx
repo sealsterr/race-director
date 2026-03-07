@@ -53,7 +53,7 @@ export default function TowerSection({
             style={{
                 marginBottom: 12,
                 borderRadius: 6,
-                overflow: "hidden",
+                overflow: "visible",
                 backgroundColor: "rgba(8, 9, 14, 0.75)",
                 backdropFilter: "blur(18px) saturate(1.4) brightness(0.7)",
                 WebkitBackdropFilter: "saturate(1.4) brightness(0.7)",

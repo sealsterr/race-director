@@ -157,5 +157,5 @@ export const FIGHT_CLEAR_POLLS = 5;
     height 700 fits ~20 rows comfortably
 */
 
-export const TOWER_DEFAULT_WIDTH = 360;
+export const TOWER_DEFAULT_WIDTH = 400;
 export const TOWER_DEFAULT_HEIGHT = 700;

@@ -105,18 +105,22 @@ const mapFlagState = (yellowFlagState: string, sectorFlags: string[]): FlagState
 };
 
 const mapCarClass = (vehicleClass: string): CarClass => {
-  const upper = vehicleClass.toUpperCase();
+  const upper = vehicleClass.toUpperCase().trim();
+  const normalized = upper.replace(/[^A-Z0-9]/g, "");
   const map: Record<string, CarClass> = {
     HYPER: "HYPERCAR",
     HYPERCAR: "HYPERCAR",
     LMH: "HYPERCAR",
     LMP2: "LMP2",
+    LMP2PRO: "LMP2",
+    LMP2PROAM: "LMP2",
+    LMP2AM: "LMP2",
     LMP3: "LMP3",
     GT3: "LMGT3",
     LMGT3: "LMGT3",
     GTE: "GTE",
   };
-  return map[upper] ?? "UNKNOWN";
+  return map[normalized] ?? map[upper] ?? "UNKNOWN";
 };
 
 // -- tyre compound not available via REST yet --
@@ -127,8 +131,7 @@ const mapDriverStatus = (v: RawVehicleStanding): DriverStatus => {
   if (finish === "FSTAT_DQ") return "DISQUALIFIED";
   if (finish === "FSTAT_DNF") return "RETIRED";
   if (finish === "FSTAT_FINISHED") return "FINISHED";
-  if (v.inGarageStall) return "RETIRED";
-  if (v.pitting) return "PITTING";
+  if (v.pitting || v.inGarageStall) return "PITTING";
   return "RACING";
 };
 

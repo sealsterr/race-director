@@ -6,7 +6,12 @@ import type { AppState, ConnectionStatus } from "../../renderer/src/types/lmu";
     -- registers all IPC handlers for LMU API client --
     -- call once during app startup, passing main window reference --
 */
-export const registerIpcHandlers = (_mainWindow: BrowserWindow): void => {
+export const registerIpcHandlers = (
+  _mainWindow: BrowserWindow,
+  onConnectionLost?: () => void
+): void => {
+  let previousStatus: ConnectionStatus = lmuClient.getState().connection;
+
   // -- lmu:connect --
   // -- renderer calls: await window.api.connect(url, pollRate) --
   ipcMain.handle(
@@ -30,6 +35,16 @@ export const registerIpcHandlers = (_mainWindow: BrowserWindow): void => {
             win.webContents.send("lmu:connectionChange", status);
           }
         });
+
+        const lostConnection =
+          previousStatus === "CONNECTED" &&
+          (status === "DISCONNECTED" || status === "ERROR");
+
+        previousStatus = status;
+
+        if (lostConnection) {
+          onConnectionLost?.();
+        }
       });
 
       await lmuClient.connect();

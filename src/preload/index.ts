@@ -73,6 +73,20 @@ const api = {
     },
   },
 
+  system: {
+    ackDisconnect: (): Promise<void> =>
+      ipcRenderer.invoke("system:ackDisconnect"),
+
+    getQuitConfirmPreference: (): Promise<boolean> =>
+      ipcRenderer.invoke("system:getQuitConfirmPreference"),
+
+    cancelQuit: (): Promise<void> =>
+      ipcRenderer.invoke("system:cancelQuit"),
+
+    confirmQuit: (dontAskAgain: boolean): Promise<void> =>
+      ipcRenderer.invoke("system:confirmQuit", dontAskAgain),
+  },
+
   // -- overlay management --
   overlay: {
     getDisplays: () =>
