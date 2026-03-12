@@ -1,10 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AlertTriangle, Power, X } from "lucide-react";
 
 const QuitConfirm = (): React.ReactElement => {
   const [dontAskAgain, setDontAskAgain] = useState(false);
-  const [overlayRight, setOverlayRight] = useState(160);
-  const [overlayHeight, setOverlayHeight] = useState(56);
 
   useEffect(() => {
     globalThis.api.system
@@ -15,66 +13,16 @@ const QuitConfirm = (): React.ReactElement => {
       .catch(() => undefined);
   }, []);
 
-  // -- align with native window-controls area so we can mask it perfectly --
-  useEffect(() => {
-    const compute = (): void => {
-      const wco: any = (navigator as any).windowControlsOverlay;
-      if (!wco?.visible) {
-        setOverlayRight(160);
-        setOverlayHeight(56);
-        return;
-      }
-      const rect = wco.getTitlebarAreaRect();
-      const right = Math.max(0, Math.round(window.innerWidth - (rect.x + rect.width)));
-      const height = Math.max(0, Math.round(rect.height));
-      setOverlayRight(right || 160);
-      setOverlayHeight(height || 56);
-    };
-    compute();
-    const wco: any = (navigator as any).windowControlsOverlay;
-    if (!wco) return;
-    wco.addEventListener("geometrychange", compute);
-    window.addEventListener("resize", compute);
-    return () => {
-      wco?.removeEventListener?.("geometrychange", compute);
-      window.removeEventListener("resize", compute);
-    };
-  }, []);
-
-  const topRightStyle = useMemo(
-    () =>
-      ({
-        width: `${overlayRight}px`,
-        height: `${overlayHeight}px`,
-        WebkitAppRegion: "no-drag",
-      }) as React.CSSProperties,
-    [overlayRight, overlayHeight]
-  );
-
   return (
     <div
-      className="relative flex h-screen w-screen items-center justify-center bg-transparent text-rd-text"
-      style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
+      className="h-screen w-screen bg-transparent p-3 text-rd-text"
+      style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
     >
-      {/* mask and replace the OS close button area with our integrated control */}
-      <div
-        className="absolute right-0 top-0 rounded-bl-2xl bg-rd-surface/95 backdrop-blur-[1px] shadow-lg"
-        style={topRightStyle}
-      >
-        <div className="absolute bottom-0 left-0 h-px w-full bg-rd-border/80" aria-hidden="true" />
-        <button
-          aria-label="Cancel"
-          onClick={async () => {
-            await globalThis.api.system.cancelQuit();
-          }}
-          className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-lg text-rd-subtle hover:bg-rd-elevated hover:text-rd-text transition-colors"
+      <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-rd-accent/25 bg-rd-surface shadow-2xl">
+        <div
+          className="flex items-start justify-between gap-4 border-b border-rd-border px-6 py-5"
+          style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
         >
-          <X size={16} />
-        </button>
-      </div>
-
-      <div className="w-[450px] rounded-2xl border border-rd-accent/25 bg-rd-surface shadow-2xl relative">
-        <div className="border-b border-rd-border px-6 py-5">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-rd-accent/12 text-rd-accent">
               <AlertTriangle size={24} />
@@ -88,9 +36,19 @@ const QuitConfirm = (): React.ReactElement => {
               </h1>
             </div>
           </div>
+          <button
+            aria-label="Cancel quit"
+            onClick={async () => {
+              await globalThis.api.system.cancelQuit();
+            }}
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rd-border bg-rd-elevated text-rd-subtle transition-colors hover:border-rd-muted hover:text-rd-text"
+            style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+          >
+            <X size={15} />
+          </button>
         </div>
 
-        <div className="px-6 py-5">
+        <div className="flex-1 px-6 py-5">
           <p className="text-sm leading-6 text-rd-muted">
             This action will close everything.
           </p>
@@ -115,6 +73,14 @@ const QuitConfirm = (): React.ReactElement => {
           className="flex justify-end gap-3 border-t border-rd-border px-6 py-4"
           style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
         >
+          <button
+            onClick={async () => {
+              await globalThis.api.system.cancelQuit();
+            }}
+            className="inline-flex items-center rounded-lg border border-rd-border bg-rd-elevated px-4 py-2 text-sm font-semibold text-rd-text transition-colors hover:border-rd-muted hover:bg-rd-bg"
+          >
+            Cancel
+          </button>
           <button
             onClick={async () => {
               await globalThis.api.system.confirmQuit(dontAskAgain);

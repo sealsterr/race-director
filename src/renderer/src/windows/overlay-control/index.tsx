@@ -523,6 +523,14 @@ const SettingsDrawer = ({
 
     useEffect(() => {
         function onClick(e: MouseEvent) {
+            const target = e.target;
+            if (
+                target instanceof Element &&
+                target.closest("[data-overlay-settings-toggle='true']")
+            ) {
+                return;
+            }
+
             if (drawerRef.current && !drawerRef.current.contains(e.target as Node)) {
                 onClose();
             }
@@ -827,6 +835,7 @@ const OverlayCard = ({
                 {/* settings */}
                 <button
                     onClick={onOpenSettings}
+                    data-overlay-settings-toggle="true"
                     title="Overlay settings"
                     className={cls(
                         "flex items-center justify-center gap-1.5 px-4 py-3 text-[11px] font-medium",

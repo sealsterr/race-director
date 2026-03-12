@@ -1,14 +1,32 @@
 import React from "react";
-import { WifiOff, ArrowLeft } from "lucide-react";
+import { WifiOff, ArrowLeft, X } from "lucide-react";
 
 const DisconnectNotice = (): React.ReactElement => {
   return (
     <div
-      className="flex h-screen w-screen items-center justify-center bg-transparent p-4 text-rd-text"
-      style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
+      className="h-screen w-screen bg-transparent p-3 text-rd-text"
+      style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
     >
-      <div className="w-[420px] rounded-2xl border border-rd-warning/25 bg-rd-surface shadow-2xl">
-        {/* Header */}
+      <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-rd-warning/25 bg-rd-surface shadow-2xl">
+        <div
+          className="flex items-center gap-3 border-b border-rd-border px-4 py-3"
+          style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
+        >
+          <button
+            aria-label="Dismiss notice"
+            onClick={async () => {
+              await globalThis.api.system.ackDisconnect();
+            }}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rd-border bg-rd-elevated text-rd-subtle transition-colors hover:border-rd-muted hover:text-rd-text"
+            style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+          >
+            <X size={15} />
+          </button>
+          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-rd-warning">
+            Connection Lost
+          </p>
+        </div>
+
         <div className="border-b border-rd-border px-6 py-5">
           <div className="flex items-center gap-4">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rd-warning/15 text-rd-warning">
@@ -40,7 +58,6 @@ const DisconnectNotice = (): React.ReactElement => {
           <button
             onClick={async () => {
               await globalThis.api.system.ackDisconnect();
-              await globalThis.api.window.focus("main");
             }}
             className="inline-flex items-center gap-2 rounded-lg border border-rd-warning/30 bg-rd-warning/10 px-4 py-2 text-sm font-semibold text-rd-warning transition-colors hover:bg-rd-warning/20"
           >

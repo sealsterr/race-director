@@ -81,13 +81,58 @@ function closeAllManagedWindows(exceptIds: Set<string> = new Set()): void {
   }
 }
 
+function focusMainWindow(mainWindow: BrowserWindow): void {
+  if (mainWindow.isDestroyed()) return;
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+  mainWindow.show();
+  mainWindow.focus();
+}
+
+function destroyChildWindow(id: string): void {
+  const win = childWindows.get(id);
+  if (win && !win.isDestroyed()) {
+    win.destroy();
+  }
+}
+
+function dismissDisconnectNotice(mainWindow: BrowserWindow): void {
+  destroyChildWindow("DISCONNECT-NOTICE");
+  focusMainWindow(mainWindow);
+}
+
+function dismissQuitConfirm(mainWindow: BrowserWindow): void {
+  isQuitDialogOpen = false;
+  destroyChildWindow("QUIT-CONFIRM");
+  focusMainWindow(mainWindow);
+}
+
+function getCenteredBounds(
+  mainWindow: BrowserWindow,
+  width: number,
+  height: number
+): Electron.Rectangle {
+  const bounds = mainWindow.getBounds();
+  return {
+    x: bounds.x + Math.round((bounds.width - width) / 2),
+    y: bounds.y + Math.round((bounds.height - height) / 2),
+    width,
+    height,
+  };
+}
+
 function openDisconnectNotice(mainWindow: BrowserWindow): void {
+  const bounds = getCenteredBounds(mainWindow, 460, 248);
   createChildWindow(
     "DISCONNECT-NOTICE",
     "system/disconnect-notice",
     {
-      width: 520,
-      height: 280,
+      x: bounds.x,
+      y: bounds.y,
+      width: bounds.width,
+      height: bounds.height,
+      parent: mainWindow,
       resizable: false,
       minimizable: false,
       maximizable: false,
@@ -102,7 +147,7 @@ function openDisconnectNotice(mainWindow: BrowserWindow): void {
 }
 
 function openQuitConfirm(mainWindow: BrowserWindow): void {
-  const bounds = mainWindow.getBounds();
+  const bounds = getCenteredBounds(mainWindow, 490, 370);
   createChildWindow(
     "QUIT-CONFIRM",
     "system/quit-confirm",
@@ -216,6 +261,21 @@ const createChildWindow = (
   win.once("ready-to-show", () => win.show());
   win.webContents.on("did-finish-load", () => {
     if (options.title) win.setTitle(options.title);
+  });
+
+  win.on("close", (event) => {
+    if (isAppQuitting) return;
+
+    if (id === "QUIT-CONFIRM") {
+      event.preventDefault();
+      dismissQuitConfirm(mainWindow);
+      return;
+    }
+
+    if (id === "DISCONNECT-NOTICE") {
+      event.preventDefault();
+      dismissDisconnectNotice(mainWindow);
+    }
   });
 
   // -- load same renderer with hash route --
@@ -406,16 +466,7 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
   });
 
   ipcMain.handle("system:ackDisconnect", (): void => {
-    const win = childWindows.get("DISCONNECT-NOTICE");
-    if (win && !win.isDestroyed()) win.close();
-
-    if (!mainWindow.isDestroyed()) {
-      if (mainWindow.isMinimized()) {
-        mainWindow.restore();
-      }
-      mainWindow.show();
-      mainWindow.focus();
-    }
+    dismissDisconnectNotice(mainWindow);
   });
 
   ipcMain.handle("system:getQuitConfirmPreference", (): boolean => {
@@ -423,17 +474,7 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
   });
 
   ipcMain.handle("system:cancelQuit", (): void => {
-    const win = childWindows.get("QUIT-CONFIRM");
-    isQuitDialogOpen = false;
-    if (win && !win.isDestroyed()) win.close();
-
-    if (!mainWindow.isDestroyed()) {
-      if (mainWindow.isMinimized()) {
-        mainWindow.restore();
-      }
-      mainWindow.show();
-      mainWindow.focus();
-    }
+    dismissQuitConfirm(mainWindow);
   });
 
   ipcMain.handle("system:confirmQuit", (_event, dontAskAgain: boolean): void => {
