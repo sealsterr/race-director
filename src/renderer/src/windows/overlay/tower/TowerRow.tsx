@@ -69,8 +69,10 @@ function resolveFlashBackground(overtaking: "gained" | "lost" | null): string {
 
 function PitEar({
     animDuration,
+    accentColor,
 }: {
     readonly animDuration: number;
+    readonly accentColor: string;
 }) {
     return (
         <motion.div
@@ -80,52 +82,43 @@ function PitEar({
             transition={{ duration: animDuration, ease: "easeOut" }}
             style={{
                 position: "absolute",
-                top: "23%",
-                left: "calc(100% - 1px)",
+                top: "50%",
+                left: "calc(100% + 4px)",
                 transform: "translateY(-50%)",
-                height: 24,
-                minWidth: 46,
+                height: 18,
+                minWidth: 42,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                padding: "0 10px",
-                borderRadius: "0 6px 6px 0",
-                border: "1px solid rgba(148,163,184,0.34)",
-                borderLeft: "none",
-                background:
-                    "linear-gradient(180deg, rgba(22,24,32,0.96) 0%, rgba(11,13,18,0.94) 100%)",
-                color: "#e2e8f0",
-                fontSize: 10,
-                fontWeight: 900,
-                letterSpacing: "0.14em",
+                padding: "0 9px 0 10px",
+                borderRadius: 4,
+                border: "1px solid rgba(255,255,255,0.08)",
+                background: "rgba(8, 9, 14, 0.82)",
+                backdropFilter: "blur(18px) saturate(1.35) brightness(0.72)",
+                WebkitBackdropFilter: "blur(18px) saturate(1.35) brightness(0.72)",
+                color: accentColor,
+                fontSize: 9,
+                fontWeight: 800,
+                letterSpacing: "0.12em",
                 textTransform: "uppercase",
                 lineHeight: 1,
                 boxShadow:
-                    "0 4px 14px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.04)",
+                    "0 4px 18px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)",
                 pointerEvents: "none",
-                zIndex: 0,
+                zIndex: 2,
                 overflow: "hidden",
             }}
         >
             <span
                 style={{
                     position: "absolute",
-                    inset: 1,
-                    border: "1px solid rgba(255,255,255,0.035)",
-                    borderLeft: "none",
-                    borderRadius: "0 5px 5px 0",
-                    pointerEvents: "none",
-                }}
-            />
-            <span
-                style={{
-                    position: "absolute",
                     left: 0,
-                    top: 0,
-                    bottom: 0,
+                    top: 3,
+                    bottom: 3,
                     width: 2,
-                    background:
-                        "linear-gradient(180deg, rgba(148,163,184,0.55), rgba(71,85,105,0.45))",
+                    borderRadius: 999,
+                    background: accentColor,
+                    boxShadow: `0 0 10px ${accentColor}66`,
                     pointerEvents: "none",
                 }}
             />
@@ -133,6 +126,7 @@ function PitEar({
                 style={{
                     position: "relative",
                     top: -0.5,
+                    textShadow: `0 0 10px ${accentColor}22`,
                 }}
             >
                 PIT
@@ -437,7 +431,10 @@ export default function TowerRow({
 
             <AnimatePresence>
                 {showPitBadge && (
-                    <PitEar animDuration={animDuration} />
+                    <PitEar
+                        animDuration={animDuration}
+                        accentColor={settings.colorPitBadge}
+                    />
                 )}
             </AnimatePresence>
             </motion.div>

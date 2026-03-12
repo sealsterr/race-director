@@ -195,7 +195,8 @@ export default function TowerOverlay() {
     }, []);
 
     const towerSettings = settings ?? {
-        viewLayout: "PER_CLASS" as const,
+        viewLayout: "MIXED_TOP" as const,
+        specificClass: null,
         raceMode: "GAP_AHEAD" as const,
         qualiMode: "QUALI_GAP" as const,
         maxRowsPerClass: 5,
@@ -234,6 +235,7 @@ export default function TowerOverlay() {
 
     const opacity = (overlayConfig?.opacity ?? 100) / 100;
     const scale = overlayConfig?.scale ?? 1;
+    const dragMode = overlayConfig?.dragMode ?? false;
 
     if (appState.connection !== "CONNECTED") {
         return (
@@ -271,8 +273,9 @@ export default function TowerOverlay() {
                 justifyContent: "flex-start",
                 padding: 0,
                 overflow: "hidden",
-                pointerEvents: "none",
-            }}
+                pointerEvents: dragMode ? "auto" : "none",
+                WebkitAppRegion: dragMode ? "drag" : "no-drag",
+            } as React.CSSProperties}
         >
             <div
                 style={{
@@ -283,7 +286,10 @@ export default function TowerOverlay() {
                         "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
                     padding: "8px 0",
                     minWidth: 300,
-                }}
+                    pointerEvents: dragMode ? "auto" : "none",
+                    WebkitAppRegion: dragMode ? "drag" : "no-drag",
+                    cursor: dragMode ? "grab" : "default",
+                } as React.CSSProperties}
             >
                 {sections.map((section) => (
                     <TowerSection

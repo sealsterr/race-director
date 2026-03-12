@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { CarClass } from "../types/lmu";
 
 // -- types --
 export type OverlayId = 
@@ -20,10 +21,15 @@ export type TowerRaceMode =
 
 export type TowerQualiMode = "QUALI_GAP" | "QUALI_TIMES";
 
-export type TowerViewLayout = "PER_CLASS" | "MIXED_TOP";
+export type TowerViewLayout =
+    | "CLASS_ONLY"
+    | "MIXED_TOP"
+    | "EVERYONE_TOP"
+    | "PER_CLASS";
 
 export interface TowerSettings {
     viewLayout: TowerViewLayout;
+    specificClass: CarClass | null;
     raceMode: TowerRaceMode;
     qualiMode: TowerQualiMode;
     maxRowsPerClass: number;
@@ -116,7 +122,8 @@ const DEFAULT_CONFIGS: OverlayConfig[] = [
         displayId: 0,
         dragMode: false,
         settings: {
-            viewLayout: "PER_CLASS",
+            viewLayout: "MIXED_TOP",
+            specificClass: null,
             raceMode: "GAP_AHEAD",
             qualiMode: "QUALI_GAP",
             maxRowsPerClass: 5,

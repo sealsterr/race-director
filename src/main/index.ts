@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, ipcMain } from "electron";
+import { app, BrowserWindow, shell, ipcMain, screen } from "electron";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
@@ -22,6 +22,7 @@ let isQuitDialogOpen = false;
 
 // -- track child windows so we don't open duplicates --
 const childWindows: Map<string, BrowserWindow> = new Map();
+const suppressOverlayMoveEvents = new Set<string>();
 
 const OVERLAY_WINDOW_IDS = new Set<string>([
   "OVERLAY-TOWER",
@@ -42,6 +43,65 @@ function closeAllOverlayWindows(): void {
     if (win.isDestroyed()) continue;
     win.close();
   }
+}
+
+function clampBoundsToDisplay(
+  bounds: Electron.Rectangle,
+  displayBounds: Electron.Rectangle
+): Electron.Rectangle {
+  const maxX = Math.max(displayBounds.x, displayBounds.x + displayBounds.width - bounds.width);
+  const maxY = Math.max(displayBounds.y, displayBounds.y + displayBounds.height - bounds.height);
+
+  return {
+    ...bounds,
+    x: Math.min(Math.max(bounds.x, displayBounds.x), maxX),
+    y: Math.min(Math.max(bounds.y, displayBounds.y), maxY),
+  };
+}
+
+function getDisplayForBounds(bounds: Electron.Rectangle): Electron.Display {
+  const electronScreen = screen as any;
+  const centerPoint = {
+    x: Math.round(bounds.x + bounds.width / 2),
+    y: Math.round(bounds.y + bounds.height / 2),
+  };
+
+  const displays = electronScreen.getAllDisplays() as Electron.Display[];
+  const primaryDisplay = electronScreen.getPrimaryDisplay() as Electron.Display;
+
+  let closestDisplay = primaryDisplay;
+  let closestDistance = Number.POSITIVE_INFINITY;
+
+  for (const display of displays) {
+    const displayCenterX = display.bounds.x + display.bounds.width / 2;
+    const displayCenterY = display.bounds.y + display.bounds.height / 2;
+    const dx = centerPoint.x - displayCenterX;
+    const dy = centerPoint.y - displayCenterY;
+    const distance = dx * dx + dy * dy;
+
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closestDisplay = display;
+    }
+  }
+
+  return closestDisplay;
+}
+
+function emitOverlayBoundsChanged(id: string, bounds: Electron.Rectangle): void {
+  const display = getDisplayForBounds(bounds);
+  const payload = {
+    id,
+    x: bounds.x - display.bounds.x,
+    y: bounds.y - display.bounds.y,
+    displayId: display.id,
+  };
+
+  BrowserWindow.getAllWindows().forEach((win) => {
+    if (!win.isDestroyed()) {
+      win.webContents.send("overlay:boundsChanged", payload);
+    }
+  });
 }
 
 function getOpenNonOverlayChildWindowCount(): number {
@@ -361,6 +421,27 @@ const createOverlayWindow = (
     childWindows.delete(id);
   });
 
+  win.on("move", () => {
+    if (suppressOverlayMoveEvents.has(id)) {
+      suppressOverlayMoveEvents.delete(id);
+      return;
+    }
+
+    const currentBounds = win.getBounds();
+    const targetDisplay = getDisplayForBounds(currentBounds);
+    const clampedBounds = clampBoundsToDisplay(currentBounds, targetDisplay.bounds);
+    const didClamp =
+      clampedBounds.x !== currentBounds.x ||
+      clampedBounds.y !== currentBounds.y;
+
+    if (didClamp) {
+      suppressOverlayMoveEvents.add(id);
+      win.setBounds(clampedBounds);
+    }
+
+    emitOverlayBoundsChanged(id, didClamp ? clampedBounds : currentBounds);
+  });
+
   childWindows.set(id, win);
   return win;
 };
@@ -389,10 +470,10 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
         "OVERLAY-CONTROL",
         "overlay-control",
         {
-          width: 1000,
-          height: 700,
-          minWidth: 800,
-          minHeight: 500,
+          width: 1240,
+          height: 760,
+          minWidth: 1180,
+          minHeight: 680,
           title: "RaceDirector | Overlay Control",
         },
         mainWindow

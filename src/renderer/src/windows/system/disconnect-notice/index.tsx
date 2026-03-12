@@ -1,5 +1,5 @@
 import React from "react";
-import { WifiOff, ArrowLeft, X } from "lucide-react";
+import { WifiOff, X } from "lucide-react";
 
 const DisconnectNotice = (): React.ReactElement => {
   return (
@@ -9,25 +9,9 @@ const DisconnectNotice = (): React.ReactElement => {
     >
       <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-rd-warning/25 bg-rd-surface shadow-2xl">
         <div
-          className="flex items-center gap-3 border-b border-rd-border px-4 py-3"
+          className="flex items-start justify-between gap-4 border-b border-rd-border px-6 py-5"
           style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
         >
-          <button
-            aria-label="Dismiss notice"
-            onClick={async () => {
-              await globalThis.api.system.ackDisconnect();
-            }}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rd-border bg-rd-elevated text-rd-subtle transition-colors hover:border-rd-muted hover:text-rd-text"
-            style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
-          >
-            <X size={15} />
-          </button>
-          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-rd-warning">
-            Connection Lost
-          </p>
-        </div>
-
-        <div className="border-b border-rd-border px-6 py-5">
           <div className="flex items-center gap-4">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rd-warning/15 text-rd-warning">
               <WifiOff size={22} />
@@ -41,12 +25,22 @@ const DisconnectNotice = (): React.ReactElement => {
               </h1>
             </div>
           </div>
+          <button
+            aria-label="Dismiss notice"
+            onClick={async () => {
+              await globalThis.api.system.ackDisconnect();
+            }}
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rd-border bg-rd-elevated text-rd-subtle transition-colors hover:border-rd-muted hover:text-rd-text"
+            style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+          >
+            <X size={15} />
+          </button>
         </div>
 
         {/* Body */}
-        <div className="px-6 py-5">
+        <div className="flex-1 px-6 py-5">
           <p className="text-sm leading-6 text-rd-muted">
-            RaceDirector lost connection to the LMU REST API. Please reconnect and reopen the overlays.
+            RaceDirector lost connection to the API. Please reconnect.
           </p>
         </div>
 
@@ -61,8 +55,7 @@ const DisconnectNotice = (): React.ReactElement => {
             }}
             className="inline-flex items-center gap-2 rounded-lg border border-rd-warning/30 bg-rd-warning/10 px-4 py-2 text-sm font-semibold text-rd-warning transition-colors hover:bg-rd-warning/20"
           >
-            <ArrowLeft size={15} />
-            Return to Dashboard
+            Continue
           </button>
         </div>
       </div>

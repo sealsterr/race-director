@@ -122,6 +122,16 @@ const api = {
       ipcRenderer.invoke("overlay:getBounds", id),
     broadcastConfig: (config: unknown) =>
       ipcRenderer.invoke("overlay:broadcastConfig", config),
+    onBoundsChanged: (
+      cb: (payload: { id: string; x: number; y: number; displayId: number }) => void
+    ) => {
+      const handler = (
+        _e: Electron.IpcRendererEvent,
+        payload: { id: string; x: number; y: number; displayId: number }
+      ): void => cb(payload);
+      ipcRenderer.on("overlay:boundsChanged", handler);
+      return () => ipcRenderer.removeListener("overlay:boundsChanged", handler);
+    },
     onConfigUpdate: (cb: (config: unknown) => void) => {
       const handler = (_e: unknown, config: unknown): void => cb(config);
       ipcRenderer.on("overlay:configUpdate", handler);

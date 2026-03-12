@@ -33,6 +33,7 @@ import type {
     SectorSettings,
 } from "../../store/overlayStore";
 import { useRaceStore } from "../../store/raceStore";
+import type { CarClass } from "../../types/lmu";
 
 // -- overlay metadata --
 interface OverlayMeta {
@@ -87,6 +88,67 @@ const OVERLAY_META: OverlayMeta[] = [
         defaultSize: { w: 420, h: 80 },
     },
 ];
+
+type TowerSelectableClass = Exclude<CarClass, "UNKNOWN">;
+
+const TOWER_CLASS_ORDER: TowerSelectableClass[] = [
+    "HYPERCAR",
+    "LMP2",
+    "LMP3",
+    "LMGT3",
+    "GTE",
+];
+
+const TOWER_CLASS_LABELS: Record<TowerSelectableClass, string> = {
+    HYPERCAR: "Hypercar",
+    LMP2: "LMP2",
+    LMP3: "LMP3",
+    LMGT3: "LMGT3",
+    GTE: "GTE",
+};
+
+function getAvailableTowerClasses(classes: CarClass[]): TowerSelectableClass[] {
+    const present = new Set(
+        classes.filter((carClass): carClass is TowerSelectableClass => carClass !== "UNKNOWN")
+    );
+    return TOWER_CLASS_ORDER.filter((carClass) => present.has(carClass));
+}
+
+function isTowerSelectableClass(value: CarClass | null | undefined): value is TowerSelectableClass {
+    return value !== undefined && value !== null && value !== "UNKNOWN";
+}
+
+function getTargetDisplay(
+    cfg: OverlayConfig,
+    displays: DisplayInfo[]
+): DisplayInfo | null {
+    if (displays.length === 0) return null;
+    return (
+        displays.find((display) => display.id === cfg.displayId) ??
+        displays.find((display) => display.isPrimary) ??
+        displays[0] ??
+        null
+    );
+}
+
+function getOverlayWindowBounds(
+    cfg: OverlayConfig,
+    meta: OverlayMeta,
+    displays: DisplayInfo[]
+): { x: number; y: number; width: number; height: number } | null {
+    const display = getTargetDisplay(cfg, displays);
+    if (!display) return null;
+
+    const width = Math.max(1, Math.round(meta.defaultSize.w * cfg.scale));
+    const height = Math.max(1, Math.round(meta.defaultSize.h * cfg.scale));
+
+    return {
+        x: Math.round(display.bounds.x + cfg.x),
+        y: Math.round(display.bounds.y + cfg.y),
+        width,
+        height,
+    };
+}
 
 // -- helpers --
 const cls = (...classes: (string | false | undefined | null)[]): string =>
@@ -275,23 +337,16 @@ const TowerSettingsPanel = ({
         <div className="flex flex-col gap-3">
             {/* layout */}
             <PanelSection title="Layout" />
-            <Select
-                label="View layout"
-                value={s.viewLayout}
-                options={[
-                    { label: "Per class",  value: "PER_CLASS"  },
-                    { label: "Mixed top",  value: "MIXED_TOP"  },
-                ]}
-                onChange={(v) => set({ viewLayout: v as TowerViewLayout })}
-            />
-            <Slider
-                label="Max rows per class"
-                value={s.maxRowsPerClass}
-                min={3}
-                max={20}
-                step={1}
-                onChange={(v) => set({ maxRowsPerClass: v })}
-            />
+            {(s.viewLayout === "MIXED_TOP") && (
+                <Slider
+                    label="Top rows per class"
+                    value={s.maxRowsPerClass}
+                    min={3}
+                    max={20}
+                    step={1}
+                    onChange={(v) => set({ maxRowsPerClass: v })}
+                />
+            )}
             <Toggle
                 label="Show car number"
                 value={s.showCarNumber}
@@ -695,9 +750,67 @@ const OverlayCard = ({
 }: OverlayCardProps): React.ReactElement => {
     const Icon = meta.icon;
     const session = useRaceStore((s) => s.session);
+    const standings = useRaceStore((s) => s.standings);
     const isQualiSession =
         session?.sessionType === "PRACTICE" ||
         session?.sessionType === "QUALIFYING";
+    const availableTowerClasses = getAvailableTowerClasses(
+        standings.map((standing) => standing.carClass)
+    );
+    const isTowerCard = meta.id === "OVERLAY-TOWER";
+    const towerCfg = isTowerCard ? (cfg.settings as TowerSettings) : null;
+    const normalizedViewLayout =
+        towerCfg?.viewLayout === "PER_CLASS" || towerCfg?.viewLayout === "EVERYONE_TOP"
+            ? "MIXED_TOP"
+            : towerCfg?.viewLayout;
+    const towerModeValue = towerCfg
+        ? (isQualiSession ? towerCfg.qualiMode : towerCfg.raceMode)
+        : null;
+    const selectedTowerClass =
+        towerCfg &&
+        isTowerSelectableClass(towerCfg.specificClass) &&
+        availableTowerClasses.includes(towerCfg.specificClass)
+            ? towerCfg.specificClass
+            : availableTowerClasses[0] ?? null;
+    const towerScopeValue =
+        normalizedViewLayout === "CLASS_ONLY" && selectedTowerClass
+            ? `CLASS_ONLY:${selectedTowerClass}`
+            : normalizedViewLayout === "CLASS_ONLY"
+                ? "MIXED_TOP"
+                : normalizedViewLayout;
+
+    const handleTowerModeChange = (nextValue: string): void => {
+        if (!towerCfg) return;
+
+        if (isQualiSession) {
+            onSettingsChange("OVERLAY-TOWER", {
+                qualiMode: nextValue as TowerQualiMode,
+            });
+            return;
+        }
+
+        onSettingsChange("OVERLAY-TOWER", {
+            raceMode: nextValue as TowerRaceMode,
+        });
+    };
+
+    const handleTowerScopeChange = (nextValue: string): void => {
+        if (!towerCfg) return;
+
+        if (nextValue.startsWith("CLASS_ONLY:")) {
+            const nextClass = nextValue.replace("CLASS_ONLY:", "") as CarClass;
+            onSettingsChange("OVERLAY-TOWER", {
+                viewLayout: "CLASS_ONLY" as TowerViewLayout,
+                specificClass: nextClass,
+            });
+            return;
+        }
+
+        onSettingsChange("OVERLAY-TOWER", {
+            viewLayout: nextValue as TowerViewLayout,
+            specificClass: towerCfg.specificClass,
+        });
+    };
 
     return (
         <motion.div
@@ -718,16 +831,74 @@ const OverlayCard = ({
             )}
 
             {/* top section: icon + name */}
-            <div className="flex items-center gap-3 px-4 pt-4 pb-3 pr-8">
+            <div className="flex items-start gap-3 px-4 pt-4 pb-3 pr-8">
                 <div className={cls(
                     "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
                     cfg.enabled ? "bg-rd-accent/20 text-rd-accent" : "bg-rd-border/40 text-rd-muted"
                 )}>
                     <Icon size={17} />
                 </div>
-                <div className="min-w-0">
-                    <p className="text-sm font-semibold text-rd-text leading-tight">{meta.label}</p>
-                    <p className="text-[11px] text-rd-subtle leading-tight">{meta.description}</p>
+                <div className="min-w-0 flex-1">
+                    {isTowerCard && towerCfg ? (
+                        <div className="flex items-center gap-3 pr-3">
+                            <div className="shrink-0">
+                                <p className="text-sm font-semibold text-rd-text leading-tight">
+                                    {meta.label}
+                                </p>
+                            </div>
+                            <div className="h-5 w-px shrink-0 bg-rd-border/80" />
+                            <div className="flex min-w-0 items-center gap-2 rounded-lg border border-rd-border/70 bg-rd-surface/55 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+                                <select
+                                    value={towerModeValue ?? ""}
+                                    onChange={(e) => {
+                                        handleTowerModeChange(e.target.value);
+                                        e.currentTarget.blur();
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="h-8 min-w-[84px] rounded-md border border-rd-border bg-rd-elevated px-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-rd-text outline-none transition-colors hover:border-rd-muted hover:bg-rd-surface focus:border-rd-accent cursor-pointer"
+                                    title="Data mode"
+                                >
+                                    {isQualiSession ? (
+                                        <>
+                                            <option value="QUALI_GAP">Gap</option>
+                                            <option value="QUALI_TIMES">Time</option>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <option value="GAP_AHEAD">Int</option>
+                                            <option value="GAP_LEADER">Lead</option>
+                                            <option value="PITS">Pits</option>
+                                            <option value="FUEL">Fuel</option>
+                                            <option value="TYRES">Tyres</option>
+                                            <option value="POSITIONS">Gain</option>
+                                        </>
+                                    )}
+                                </select>
+                                <select
+                                    value={towerScopeValue ?? "MIXED_TOP"}
+                                    onChange={(e) => {
+                                        handleTowerScopeChange(e.target.value);
+                                        e.currentTarget.blur();
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="h-8 min-w-[148px] rounded-md border border-rd-border bg-rd-elevated px-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-rd-text outline-none transition-colors hover:border-rd-muted hover:bg-rd-surface focus:border-rd-accent cursor-pointer"
+                                    title="Display scope"
+                                >
+                                    {availableTowerClasses.map((carClass) => (
+                                        <option key={carClass} value={`CLASS_ONLY:${carClass}`}>
+                                            {TOWER_CLASS_LABELS[carClass]}
+                                        </option>
+                                    ))}
+                                    <option value="MIXED_TOP">Mixed</option>
+                                </select>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <p className="text-sm font-semibold text-rd-text leading-tight">{meta.label}</p>
+                            <p className="text-[11px] text-rd-subtle leading-tight">{meta.description}</p>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -746,55 +917,6 @@ const OverlayCard = ({
 
             {/* action row */}
             <div className="flex items-stretch bg-rd-surface/40">
-                {meta.id === "OVERLAY-TOWER" && (() => {
-                    const towerCfg = cfg.settings as TowerSettings;
-                    const value = isQualiSession
-                        ? towerCfg.qualiMode
-                        : towerCfg.raceMode;
-
-                    return (
-                        <div className="flex items-center px-3 py-2 bg-rd-surface/50">
-                            <select
-                                value={value}
-                                onChange={(e) => {
-                                    const nextValue = e.target.value;
-
-                                    if (isQualiSession) {
-                                        onSettingsChange("OVERLAY-TOWER", {
-                                            qualiMode: nextValue as TowerQualiMode,
-                                        });
-                                    } else {
-                                        onSettingsChange("OVERLAY-TOWER", {
-                                            raceMode: nextValue as TowerRaceMode,
-                                        });
-                                    }
-
-                                    e.currentTarget.blur();
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                                className="h-8 min-w-[138px] rounded-md border border-rd-border bg-rd-elevated px-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-rd-text outline-none transition-colors hover:border-rd-muted hover:bg-rd-surface focus:border-rd-accent cursor-pointer"
-                                title="Data mode"
-                            >
-                                {isQualiSession ? (
-                                    <>
-                                        <option value="QUALI_GAP">Q GAP</option>
-                                        <option value="QUALI_TIMES">Q TIME</option>
-                                    </>
-                                ) : (
-                                    <>
-                                        <option value="GAP_AHEAD">INT</option>
-                                        <option value="GAP_LEADER">LEAD</option>
-                                        <option value="PITS">PITS</option>
-                                        <option value="FUEL">FUEL</option>
-                                        <option value="TYRES">TYRES</option>
-                                        <option value="POSITIONS">GAIN</option>
-                                    </>
-                                )}
-                            </select>
-                        </div>
-                    );
-                })()}
-
                 {/* on/off */}
                 <button
                     onClick={onToggleEnabled}
@@ -858,6 +980,7 @@ const OverlayControl = (): React.ReactElement => {
     const { overlays, savePath, setOverlayConfig, setOverlaySettings, setSavePath, loadFromPreset } =
         useOverlayStore();
     const connection = useRaceStore((s) => s.connection);
+    const standings = useRaceStore((s) => s.standings);
 
     const [displays, setDisplays] = useState<DisplayInfo[]>([]);
     const [openSettings, setOpenSettings] = useState<OverlayId | null>(null);
@@ -898,6 +1021,88 @@ const OverlayControl = (): React.ReactElement => {
             }
         })();
     }, []);
+
+    useEffect(() => {
+        const towerCfg = overlays.find((overlay) => overlay.id === "OVERLAY-TOWER");
+        if (!towerCfg) return;
+
+        const settings = towerCfg.settings as TowerSettings;
+        const availableClasses = getAvailableTowerClasses(
+            standings.map((standing) => standing.carClass)
+        );
+        const normalizedViewLayout =
+            settings.viewLayout === "PER_CLASS" || settings.viewLayout === "EVERYONE_TOP"
+                ? "MIXED_TOP"
+                : settings.viewLayout;
+
+        if (normalizedViewLayout !== settings.viewLayout) {
+            setOverlaySettings("OVERLAY-TOWER", {
+                viewLayout: normalizedViewLayout,
+            });
+            return;
+        }
+
+        if (
+            normalizedViewLayout === "CLASS_ONLY" &&
+            availableClasses.length > 0 &&
+            (
+                !isTowerSelectableClass(settings.specificClass) ||
+                !availableClasses.includes(settings.specificClass)
+            )
+        ) {
+            setOverlaySettings("OVERLAY-TOWER", {
+                specificClass: availableClasses[0],
+            });
+        }
+    }, [overlays, setOverlaySettings, standings]);
+
+    useEffect(() => {
+        const unsubscribe = globalThis.api.overlay.onBoundsChanged?.((payload) => {
+            const overlayId = payload.id as OverlayId;
+            const currentOverlay = overlays.find((overlay) => overlay.id === overlayId);
+            if (!currentOverlay) return;
+
+            if (
+                currentOverlay.x === payload.x &&
+                currentOverlay.y === payload.y &&
+                currentOverlay.displayId === payload.displayId
+            ) {
+                return;
+            }
+
+            setOverlayConfig(overlayId, {
+                x: payload.x,
+                y: payload.y,
+                displayId: payload.displayId,
+            });
+        });
+
+        return () => {
+            unsubscribe?.();
+        };
+    }, [overlays, setOverlayConfig]);
+
+    useEffect(() => {
+        if (displays.length === 0) return;
+
+        for (const cfg of overlays) {
+            if (!cfg.enabled) continue;
+
+            const meta = OVERLAY_META.find((item) => item.id === cfg.id);
+            if (!meta) continue;
+
+            const bounds = getOverlayWindowBounds(cfg, meta, displays);
+            if (!bounds) continue;
+
+            void globalThis.api.overlay.updateBounds(
+                cfg.id,
+                bounds.x,
+                bounds.y,
+                bounds.width,
+                bounds.height
+            );
+        }
+    }, [displays, overlays]);
 
     // -- auto-save on overlay change --
     const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -954,11 +1159,25 @@ const OverlayControl = (): React.ReactElement => {
     // -- overlay actions --
     const handleToggleEnabled = async (id: OverlayId): Promise<void> => {
         const cfg = overlays.find((o) => o.id === id);
+        const meta = OVERLAY_META.find((item) => item.id === id);
         if (!cfg) return;
         const next = !cfg.enabled;
         setOverlayConfig(id, { enabled: next });
         if (next) {
             await globalThis.api.windows.open(id);
+            if (meta) {
+                const bounds = getOverlayWindowBounds(cfg, meta, displays);
+                if (bounds) {
+                    await globalThis.api.overlay.updateBounds(
+                        id,
+                        bounds.x,
+                        bounds.y,
+                        bounds.width,
+                        bounds.height
+                    );
+                }
+            }
+            await globalThis.api.overlay.setDragMode(id, cfg.dragMode);
         } else {
             await globalThis.api.windows.close(id);
         }

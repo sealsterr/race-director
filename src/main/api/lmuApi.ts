@@ -104,13 +104,24 @@ const mapFlagState = (yellowFlagState: string, sectorFlags: string[]): FlagState
   return map[upper] ?? "NONE";
 };
 
-const mapCarClass = (vehicleClass: string): CarClass => {
-  const upper = vehicleClass.toUpperCase().trim();
-  const normalized = upper.replace(/[^A-Z0-9]/g, "");
-  const map: Record<string, CarClass> = {
+const normalizeClassToken = (value: string): string =>
+  value.toUpperCase().trim().replace(/[^A-Z0-9]/g, "");
+
+const mapCarClass = (
+  vehicleClass: string,
+  vehicleName: string,
+  vehicleFilename: string
+): CarClass => {
+  const candidates = [vehicleClass, vehicleName, vehicleFilename]
+    .map(normalizeClassToken)
+    .filter(Boolean);
+
+  const exactMap: Record<string, CarClass> = {
     HYPER: "HYPERCAR",
     HYPERCAR: "HYPERCAR",
     LMH: "HYPERCAR",
+    LMHYPERCAR: "HYPERCAR",
+    LMDH: "HYPERCAR",
     LMP2: "LMP2",
     LMP2PRO: "LMP2",
     LMP2PROAM: "LMP2",
@@ -120,7 +131,51 @@ const mapCarClass = (vehicleClass: string): CarClass => {
     LMGT3: "LMGT3",
     GTE: "GTE",
   };
-  return map[normalized] ?? map[upper] ?? "UNKNOWN";
+
+  for (const candidate of candidates) {
+    const exact = exactMap[candidate];
+    if (exact) return exact;
+  }
+
+  for (const candidate of candidates) {
+    if (
+      candidate.includes("HYPER") ||
+      candidate.includes("LMH") ||
+      candidate.includes("LMDH") ||
+      candidate.includes("499P") ||
+      candidate.includes("963") ||
+      candidate.includes("9X8") ||
+      candidate.includes("GR010") ||
+      candidate.includes("VALKYRIE") ||
+      candidate.includes("VSERIESR") ||
+      candidate.includes("MHYBRIDV8") ||
+      candidate.includes("A424")
+    ) {
+      return "HYPERCAR";
+    }
+
+    if (
+      candidate.includes("LMP2") ||
+      candidate.includes("ORECA07") ||
+      candidate.includes("ORECA")
+    ) {
+      return "LMP2";
+    }
+
+    if (candidate.includes("LMP3")) {
+      return "LMP3";
+    }
+
+    if (candidate.includes("LMGT3") || candidate.includes("GT3")) {
+      return "LMGT3";
+    }
+
+    if (candidate.includes("GTE")) {
+      return "GTE";
+    }
+  }
+
+  return "UNKNOWN";
 };
 
 // -- tyre compound not available via REST yet --
@@ -231,7 +286,7 @@ const transformVehicle = (raw: RawVehicleStanding): DriverStanding => ({
   carNumber: extractCarNumber(raw),
   driverName: raw.driverName,
   teamName: raw.fullTeamName,
-  carClass: mapCarClass(raw.carClass),
+  carClass: mapCarClass(raw.carClass, raw.vehicleName, raw.vehicleFilename),
   carName: cleanCarName(raw.vehicleName),
   lastLapTime: raw.lastLapTime > 0 ? raw.lastLapTime : null,
   bestLapTime: raw.bestLapTime > 0 ? raw.bestLapTime : null,

@@ -110,6 +110,23 @@ export function useTowerData({
         return CLASS_ORDER.filter((c) => present.has(c));
     }, [activeStandings]);
 
+    const effectiveViewLayout = useMemo(() => {
+        return settings.viewLayout === "PER_CLASS" || settings.viewLayout === "EVERYONE_TOP"
+            ? "MIXED_TOP"
+            : settings.viewLayout;
+    }, [settings.viewLayout]);
+
+    const effectiveSpecificClass = useMemo(() => {
+        if (
+            settings.specificClass &&
+            activeClasses.includes(settings.specificClass)
+        ) {
+            return settings.specificClass;
+        }
+
+        return activeClasses[0] ?? null;
+    }, [activeClasses, settings.specificClass]);
+
     // group standings by class
     const byClass = useMemo(() => {
         const map = new Map<CarClass, DriverStanding[]>();
@@ -234,8 +251,25 @@ export function useTowerData({
     }
 
     const sections = useMemo<TowerSection[]>(() => {
-        if (settings.viewLayout === "PER_CLASS") {
-            return activeClasses.map((carClass) => {
+        const visibleClasses =
+            effectiveViewLayout === "CLASS_ONLY" && effectiveSpecificClass
+                ? [effectiveSpecificClass]
+                : activeClasses;
+
+        if (effectiveViewLayout === "MIXED_TOP") {
+            return visibleClasses.map((carClass) => {
+                const classStandings = byClass.get(carClass) ?? [];
+                const sliced = classStandings.slice(0, settings.maxRowsPerClass);
+                const leaderBestLapTime =
+                    getFirstValidBestLapTime(classStandings);
+                const rows = sliced.map((s, i) =>
+                    buildRow(s, i + 1, leaderBestLapTime)
+                );
+                return { carClass, rows };
+            });
+        }
+
+        return visibleClasses.map((carClass) => {
                 const classStandings = byClass.get(carClass) ?? [];
                 const leaderBestLapTime =
                     getFirstValidBestLapTime(classStandings);
@@ -244,23 +278,11 @@ export function useTowerData({
                 );
                 return { carClass, rows };
             });
-        }
-
-        // MIXED_TOP: top N per class, all shown together under class headers
-        return activeClasses.map((carClass) => {
-            const classStandings = byClass.get(carClass) ?? [];
-            const sliced = classStandings.slice(0, settings.maxRowsPerClass);
-            const leaderBestLapTime =
-                getFirstValidBestLapTime(classStandings);
-            const rows = sliced.map((s, i) =>
-                buildRow(s, i + 1, leaderBestLapTime)
-            );
-            return { carClass, rows };
-        });
     }, [
         activeClasses,
         byClass,
-        settings.viewLayout,
+        effectiveSpecificClass,
+        effectiveViewLayout,
         settings.raceMode,
         settings.qualiMode,
         settings.maxRowsPerClass,
