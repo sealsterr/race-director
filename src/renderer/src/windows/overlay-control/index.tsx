@@ -150,6 +150,41 @@ function getOverlayWindowBounds(
     };
 }
 
+function getOverlayPositionFromBounds(
+    bounds: { x: number; y: number; width: number; height: number },
+    displays: DisplayInfo[]
+): Pick<OverlayConfig, "x" | "y" | "displayId"> | null {
+    if (displays.length === 0) return null;
+
+    const centerX = bounds.x + bounds.width / 2;
+    const centerY = bounds.y + bounds.height / 2;
+
+    const targetDisplay =
+        displays.find((display) =>
+            centerX >= display.bounds.x &&
+            centerX <= display.bounds.x + display.bounds.width &&
+            centerY >= display.bounds.y &&
+            centerY <= display.bounds.y + display.bounds.height
+        ) ??
+        displays.reduce((closest, display) => {
+            const displayCenterX = display.bounds.x + display.bounds.width / 2;
+            const displayCenterY = display.bounds.y + display.bounds.height / 2;
+            const closestCenterX = closest.bounds.x + closest.bounds.width / 2;
+            const closestCenterY = closest.bounds.y + closest.bounds.height / 2;
+            const currentDistance =
+                (centerX - displayCenterX) ** 2 + (centerY - displayCenterY) ** 2;
+            const closestDistance =
+                (centerX - closestCenterX) ** 2 + (centerY - closestCenterY) ** 2;
+            return currentDistance < closestDistance ? display : closest;
+        }, displays[0]);
+
+    return {
+        x: Math.round(bounds.x - targetDisplay.bounds.x),
+        y: Math.round(bounds.y - targetDisplay.bounds.y),
+        displayId: targetDisplay.id,
+    };
+}
+
 // -- helpers --
 const cls = (...classes: (string | false | undefined | null)[]): string =>
   classes.filter(Boolean).join(" ");
@@ -977,7 +1012,15 @@ const OverlayCard = ({
 
 // -- main component --
 const OverlayControl = (): React.ReactElement => {
-    const { overlays, savePath, setOverlayConfig, setOverlaySettings, setSavePath, loadFromPreset } =
+    const {
+        overlays,
+        savePath,
+        setOverlayConfig,
+        setOverlayRuntimePosition,
+        setOverlaySettings,
+        setSavePath,
+        loadFromPreset,
+    } =
         useOverlayStore();
     const connection = useRaceStore((s) => s.connection);
     const standings = useRaceStore((s) => s.standings);
@@ -1057,36 +1100,11 @@ const OverlayControl = (): React.ReactElement => {
     }, [overlays, setOverlaySettings, standings]);
 
     useEffect(() => {
-        const unsubscribe = globalThis.api.overlay.onBoundsChanged?.((payload) => {
-            const overlayId = payload.id as OverlayId;
-            const currentOverlay = overlays.find((overlay) => overlay.id === overlayId);
-            if (!currentOverlay) return;
-
-            if (
-                currentOverlay.x === payload.x &&
-                currentOverlay.y === payload.y &&
-                currentOverlay.displayId === payload.displayId
-            ) {
-                return;
-            }
-
-            setOverlayConfig(overlayId, {
-                x: payload.x,
-                y: payload.y,
-                displayId: payload.displayId,
-            });
-        });
-
-        return () => {
-            unsubscribe?.();
-        };
-    }, [overlays, setOverlayConfig]);
-
-    useEffect(() => {
         if (displays.length === 0) return;
 
         for (const cfg of overlays) {
             if (!cfg.enabled) continue;
+            if (cfg.dragMode) continue;
 
             const meta = OVERLAY_META.find((item) => item.id === cfg.id);
             if (!meta) continue;
@@ -1187,8 +1205,22 @@ const OverlayControl = (): React.ReactElement => {
         const cfg = overlays.find((o) => o.id === id);
         if (!cfg) return;
         const next = !cfg.dragMode;
-        setOverlayConfig(id, { dragMode: next });
-        await globalThis.api.overlay.setDragMode(id, next);
+        if (next) {
+            setOverlayConfig(id, { dragMode: true });
+            await globalThis.api.overlay.setDragMode(id, true);
+            return;
+        }
+
+        const bounds = await globalThis.api.overlay.getBounds(id);
+        if (bounds) {
+            const nextPosition = getOverlayPositionFromBounds(bounds, displays);
+            if (nextPosition) {
+                setOverlayRuntimePosition(id, nextPosition);
+            }
+        }
+
+        setOverlayConfig(id, { dragMode: false });
+        await globalThis.api.overlay.setDragMode(id, false);
     };
 
     const openSettingsMeta = openSettings

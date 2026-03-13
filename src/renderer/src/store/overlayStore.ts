@@ -232,6 +232,10 @@ interface OverlayStore {
 
     // actions
     setOverlayConfig: (id: OverlayId, partial: Partial<OverlayConfig>) => void;
+    setOverlayRuntimePosition: (
+        id: OverlayId,
+        position: Pick<OverlayConfig, "x" | "y" | "displayId">
+    ) => void;
     setOverlaySettings: (id: OverlayId, settings: Partial<OverlaySpecificSettings>) => void;
     setSavePath: (path: string) => void;
     getOverlay: (id: OverlayId) => OverlayConfig | undefined;
@@ -251,6 +255,13 @@ export const useOverlayStore = create<OverlayStore>((set, get) => ({
         const updated = get().overlays.find((o) => o.id === id);
         if (updated) globalThis.api?.overlay?.broadcastConfig?.(updated);
     },
+
+    setOverlayRuntimePosition: (id, position) =>
+        set((state) => ({
+            overlays: state.overlays.map((o) =>
+                o.id === id ? { ...o, ...position } : o
+            ),
+        })),
 
     setOverlaySettings: (id, settings) => {
         set((state) => ({

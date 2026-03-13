@@ -88,22 +88,6 @@ function getDisplayForBounds(bounds: Electron.Rectangle): Electron.Display {
   return closestDisplay;
 }
 
-function emitOverlayBoundsChanged(id: string, bounds: Electron.Rectangle): void {
-  const display = getDisplayForBounds(bounds);
-  const payload = {
-    id,
-    x: bounds.x - display.bounds.x,
-    y: bounds.y - display.bounds.y,
-    displayId: display.id,
-  };
-
-  BrowserWindow.getAllWindows().forEach((win) => {
-    if (!win.isDestroyed()) {
-      win.webContents.send("overlay:boundsChanged", payload);
-    }
-  });
-}
-
 function getOpenNonOverlayChildWindowCount(): number {
   return Array.from(childWindows.entries()).filter(([id, win]) => {
     return !isOverlayWindowId(id) && !win.isDestroyed();
@@ -438,8 +422,20 @@ const createOverlayWindow = (
       suppressOverlayMoveEvents.add(id);
       win.setBounds(clampedBounds);
     }
+  });
 
-    emitOverlayBoundsChanged(id, didClamp ? clampedBounds : currentBounds);
+  (win as any).on("will-move", (event: { preventDefault: () => void }, newBounds: Electron.Rectangle) => {
+    const targetDisplay = getDisplayForBounds(newBounds);
+    const clampedBounds = clampBoundsToDisplay(newBounds, targetDisplay.bounds);
+    const didClamp =
+      clampedBounds.x !== newBounds.x ||
+      clampedBounds.y !== newBounds.y;
+
+    if (!didClamp) return;
+
+    event.preventDefault();
+    suppressOverlayMoveEvents.add(id);
+    win.setBounds(clampedBounds);
   });
 
   childWindows.set(id, win);
