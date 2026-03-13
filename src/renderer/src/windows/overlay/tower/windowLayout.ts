@@ -4,6 +4,7 @@ import type { TowerSettings } from "../../../store/overlayStore";
 export const TOWER_SECTION_CHROME_HEIGHT = 55;
 export const TOWER_ROW_HEIGHT = 36;
 export const TOWER_VERTICAL_PADDING = 16;
+export const TOWER_FIGHT_BADGE_HEIGHT = 20;
 
 function getActiveStandings(standings: DriverStanding[]): DriverStanding[] {
     return standings.filter(
@@ -43,7 +44,13 @@ export function getTowerBaseHeight(
     );
 
     const contentHeight = visibleClassRows.reduce((total, rowCount) => {
-        return total + TOWER_SECTION_CHROME_HEIGHT + rowCount * TOWER_ROW_HEIGHT;
+        const fightBadgeReserve = settings.fightEnabled ? TOWER_FIGHT_BADGE_HEIGHT : 0;
+        return (
+            total +
+            TOWER_SECTION_CHROME_HEIGHT +
+            fightBadgeReserve +
+            rowCount * TOWER_ROW_HEIGHT
+        );
     }, 0);
 
     return TOWER_VERTICAL_PADDING + contentHeight;

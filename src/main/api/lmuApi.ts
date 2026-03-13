@@ -12,7 +12,12 @@ import type {
   ConnectionStatus,
   SectorTime,
   Penalty,
+  TyreSet,
 } from "../../shared/types";
+import {
+  telemetryBridge,
+  type TelemetryDriverSnapshot,
+} from "./lmuTelemetryBridge";
 
 // -- raw API shapes --
 // -- these match what the LMU REST API actually returns --
@@ -178,8 +183,14 @@ const mapCarClass = (
   return "UNKNOWN";
 };
 
-// -- tyre compound not available via REST yet --
-const mapTyreCompound = (): TyreCompound => "UNKNOWN";
+const mapTyreCompound = (value?: string | null): TyreCompound => {
+  const upper = (value ?? "").toUpperCase();
+  if (upper.includes("SOFT") || upper === "S") return "SOFT";
+  if (upper.includes("MEDIUM") || upper.includes("MED") || upper === "M") return "MEDIUM";
+  if (upper.includes("HARD") || upper === "H") return "HARD";
+  if (upper.includes("WET") || upper.includes("INTER") || upper === "W") return "WET";
+  return "UNKNOWN";
+};
 
 const mapDriverStatus = (v: RawVehicleStanding): DriverStatus => {
   const finish = v.finishStatus.toUpperCase();
@@ -209,6 +220,82 @@ const cleanCarName = (vehicleName: string): string => {
   // -- strip the "#xxx:XX" suffix --
   return vehicleName.replace(/#\w+.*$/, "").trim();
 };
+
+const normalizeLookup = (value: string): string =>
+  value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+const buildTyreSet = (
+  front: TyreCompound,
+  rear: TyreCompound
+): TyreSet | null => {
+  if (front === "UNKNOWN" && rear === "UNKNOWN") {
+    return null;
+  }
+
+  return {
+    frontLeft: front,
+    frontRight: front,
+    rearLeft: rear,
+    rearRight: rear,
+  };
+};
+
+function createTelemetryLookup(
+  telemetryCars: TelemetryDriverSnapshot[]
+): {
+  byDriverAndCar: Map<string, TelemetryDriverSnapshot>;
+  byVehicle: Map<string, TelemetryDriverSnapshot>;
+  byCarNumber: Map<string, TelemetryDriverSnapshot[]>;
+} {
+  const byDriverAndCar = new Map<string, TelemetryDriverSnapshot>();
+  const byVehicle = new Map<string, TelemetryDriverSnapshot>();
+  const byCarNumber = new Map<string, TelemetryDriverSnapshot[]>();
+
+  for (const car of telemetryCars) {
+    const driverAndCarKey = `${normalizeLookup(car.driverName)}:${normalizeLookup(car.carNumber)}`;
+    if (normalizeLookup(car.driverName) && normalizeLookup(car.carNumber)) {
+      byDriverAndCar.set(driverAndCarKey, car);
+    }
+
+    const vehicleKey = normalizeLookup(cleanCarName(car.vehicleName));
+    if (vehicleKey) {
+      byVehicle.set(vehicleKey, car);
+    }
+
+    const carNumberKey = normalizeLookup(car.carNumber);
+    if (carNumberKey) {
+      const matches = byCarNumber.get(carNumberKey) ?? [];
+      matches.push(car);
+      byCarNumber.set(carNumberKey, matches);
+    }
+  }
+
+  return { byDriverAndCar, byVehicle, byCarNumber };
+}
+
+function findTelemetryMatch(
+  raw: RawVehicleStanding,
+  lookup: ReturnType<typeof createTelemetryLookup>
+): TelemetryDriverSnapshot | null {
+  const carNumber = normalizeLookup(extractCarNumber(raw));
+  const driverAndCarKey = `${normalizeLookup(raw.driverName)}:${carNumber}`;
+  const directMatch = lookup.byDriverAndCar.get(driverAndCarKey);
+  if (directMatch) {
+    return directMatch;
+  }
+
+  const byVehicle = lookup.byVehicle.get(normalizeLookup(cleanCarName(raw.vehicleName)));
+  if (byVehicle) {
+    return byVehicle;
+  }
+
+  const byCarNumber = lookup.byCarNumber.get(carNumber);
+  if (byCarNumber?.length === 1) {
+    return byCarNumber[0];
+  }
+
+  return null;
+}
 
 const mapSectorTime = (s1: number, s2: number): SectorTime => ({
   sector1: s1 > 0 ? s1 : null,
@@ -281,29 +368,43 @@ const transformSession = (
   };
 };
 
-const transformVehicle = (raw: RawVehicleStanding): DriverStanding => ({
-  position: raw.position,
-  carNumber: extractCarNumber(raw),
-  driverName: raw.driverName,
-  teamName: raw.fullTeamName,
-  carClass: mapCarClass(raw.carClass, raw.vehicleName, raw.vehicleFilename),
-  carName: cleanCarName(raw.vehicleName),
-  lastLapTime: raw.lastLapTime > 0 ? raw.lastLapTime : null,
-  bestLapTime: raw.bestLapTime > 0 ? raw.bestLapTime : null,
-  currentSectors: mapSectorTime(raw.currentSectorTime1, raw.currentSectorTime2),
-  bestSectors: mapSectorTime(raw.bestSectorTime1, raw.bestSectorTime2),
-  gapToLeader: raw.timeBehindLeader > 0 ? raw.timeBehindLeader : null,
-  intervalToAhead: raw.timeBehindNext > 0 ? raw.timeBehindNext : null,
-  lapsCompleted: raw.lapsCompleted,
-  lapsDown: raw.lapsBehindLeader,
-  fuel: raw.fuelFraction * 100,
-  tyreCompound: mapTyreCompound(),
-  pitStopCount: raw.pitstops,
-  penalties: mapPenalties(raw.penalties),
-  status: mapDriverStatus(raw),
-  isPlayer: raw.player || raw.hasFocus,
-  slotId: raw.slotID,
-});
+const transformVehicle = (
+  raw: RawVehicleStanding,
+  telemetry: TelemetryDriverSnapshot | null
+): DriverStanding => {
+  const frontTyreCompound = mapTyreCompound(telemetry?.frontTyreCompound);
+  const rearTyreCompound = mapTyreCompound(telemetry?.rearTyreCompound);
+  const tyreSet = buildTyreSet(frontTyreCompound, rearTyreCompound);
+  const unifiedTyreCompound =
+    tyreSet && frontTyreCompound === rearTyreCompound
+      ? frontTyreCompound
+      : "UNKNOWN";
+
+  return {
+    position: raw.position,
+    carNumber: extractCarNumber(raw),
+    driverName: raw.driverName,
+    teamName: raw.fullTeamName,
+    carClass: mapCarClass(raw.carClass, raw.vehicleName, raw.vehicleFilename),
+    carName: cleanCarName(raw.vehicleName),
+    lastLapTime: raw.lastLapTime > 0 ? raw.lastLapTime : null,
+    bestLapTime: raw.bestLapTime > 0 ? raw.bestLapTime : null,
+    currentSectors: mapSectorTime(raw.currentSectorTime1, raw.currentSectorTime2),
+    bestSectors: mapSectorTime(raw.bestSectorTime1, raw.bestSectorTime2),
+    gapToLeader: raw.timeBehindLeader > 0 ? raw.timeBehindLeader : null,
+    intervalToAhead: raw.timeBehindNext > 0 ? raw.timeBehindNext : null,
+    lapsCompleted: raw.lapsCompleted,
+    lapsDown: raw.lapsBehindLeader,
+    fuel: telemetry?.fuelPercentage ?? raw.fuelFraction * 100,
+    tyreCompound: unifiedTyreCompound,
+    tyreSet,
+    pitStopCount: raw.pitstops,
+    penalties: mapPenalties(raw.penalties),
+    status: mapDriverStatus(raw),
+    isPlayer: raw.player || raw.hasFocus,
+    slotId: raw.slotID,
+  };
+};
 
 // -- LmuApiClient --
 
@@ -314,6 +415,8 @@ export class LmuApiClient {
   private baseUrl: string = "http://localhost:6397";
   private pollRate: number = 200;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private pollInFlight = false;
+  private consecutivePollFailures = 0;
   private currentState: AppState = {
     connection: "DISCONNECTED",
     session: null,
@@ -345,6 +448,7 @@ export class LmuApiClient {
 
   public async connect(): Promise<void> {
     this.emitConnection("CONNECTING");
+    this.consecutivePollFailures = 0;
     const alive = await this.ping();
     if (!alive) {
       this.emitConnection("ERROR");
@@ -352,6 +456,7 @@ export class LmuApiClient {
       return;
     }
     this.emitConnection("CONNECTED");
+    telemetryBridge.start(this.pollRate);
     this.startPolling();
   }
 
@@ -374,6 +479,8 @@ export class LmuApiClient {
 
   public disconnect(): void {
     this.stopPolling();
+    this.consecutivePollFailures = 0;
+    telemetryBridge.stop();
     this.currentState = {
       ...this.currentState,
       session: null,
@@ -410,9 +517,16 @@ export class LmuApiClient {
       clearInterval(this.pollTimer);
       this.pollTimer = null;
     }
+    this.pollInFlight = false;
   }
 
   private async poll(): Promise<void> {
+    if (this.pollInFlight) {
+      return;
+    }
+
+    this.pollInFlight = true;
+
     try {
       const [sessionRes, standingsRes] = await Promise.all([
         fetch(`${this.baseUrl}/rest/watch/sessionInfo`),
@@ -420,29 +534,43 @@ export class LmuApiClient {
       ]);
 
       if (!sessionRes.ok || !standingsRes.ok) {
-        this.handlePollError();
+        this.handlePollFailure();
         return;
       }
 
       const rawSession = (await sessionRes.json()) as RawSessionInfo;
       const rawVehicles = (await standingsRes.json()) as RawVehicleStanding[];
+      const telemetryLookup = createTelemetryLookup(
+        telemetryBridge.getLatestSnapshot().cars
+      );
 
       const newState: AppState = {
         connection: "CONNECTED",
         session: transformSession(rawSession, rawVehicles),
-        standings: rawVehicles.map(transformVehicle),
+        standings: rawVehicles.map((vehicle) =>
+          transformVehicle(vehicle, findTelemetryMatch(vehicle, telemetryLookup))
+        ),
         lastUpdated: Date.now(),
       };
 
+      this.consecutivePollFailures = 0;
       this.currentState = newState;
       this.onStateUpdate?.(newState);
     } catch {
-      this.handlePollError();
+      this.handlePollFailure();
+    } finally {
+      this.pollInFlight = false;
     }
   }
 
-  private handlePollError(): void {
+  private handlePollFailure(): void {
+    this.consecutivePollFailures += 1;
+    if (this.consecutivePollFailures < 5) {
+      return;
+    }
+
     this.stopPolling();
+    telemetryBridge.stop();
     this.emitConnection("ERROR");
     setTimeout(() => this.emitConnection("DISCONNECTED"), 3000);
   }

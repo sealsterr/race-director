@@ -417,6 +417,15 @@ const TowerSettingsPanel = ({
         <div className="flex flex-col gap-3">
             {/* layout */}
             <PanelSection title="Layout" />
+            <Slider
+                label="Standings refresh"
+                value={s.standingsRefreshMs}
+                min={250}
+                max={5000}
+                step={50}
+                unit="ms"
+                onChange={(v) => set({ standingsRefreshMs: v })}
+            />
             {(s.viewLayout === "MIXED_TOP") && (
                 <Slider
                     label="Top rows per class"
@@ -452,14 +461,27 @@ const TowerSettingsPanel = ({
 
             {/* fight detection */}
             <PanelSection title="Fight detection" />
+            <Toggle
+                label="Enable fight detection"
+                value={s.fightEnabled}
+                onChange={(v) => set({ fightEnabled: v })}
+            />
             <Slider
                 label="Fight threshold"
                 value={s.fightThresholdSeconds}
-                min={0.2}
-                max={5}
-                step={0.1}
+                min={0.05}
+                max={1}
+                step={0.01}
                 unit="s"
                 onChange={(v) => set({ fightThresholdSeconds: v })}
+            />
+            <Slider
+                label="Disable for opening laps"
+                value={s.fightDisabledLaps}
+                min={0}
+                max={10}
+                step={1}
+                onChange={(v) => set({ fightDisabledLaps: v })}
             />
 
             {/* class colors */}

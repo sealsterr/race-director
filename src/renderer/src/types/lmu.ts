@@ -46,6 +46,13 @@ export type TyreCompound =
     | "WET"
     | "UNKNOWN";
 
+export interface TyreSet {
+    frontLeft: TyreCompound;
+    frontRight: TyreCompound;
+    rearLeft: TyreCompound;
+    rearRight: TyreCompound;
+}
+
 //  -- custom detect -- 
 export type DriverStatus =  
     | "RACING"
@@ -81,6 +88,7 @@ export interface DriverStanding {
     lapsDown: number; // compared to class leader, 0 on lead lap
     fuel: number | null; // percentage
     tyreCompound: TyreCompound;
+    tyreSet: TyreSet | null;
     pitStopCount: number;
     penalties: Penalty[];
     status: DriverStatus;

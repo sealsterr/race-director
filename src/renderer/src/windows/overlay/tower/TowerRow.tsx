@@ -1,25 +1,15 @@
-import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { TowerSettings } from "../../../store/overlayStore";
 import type { SectorTime } from "../../../types/lmu";
+import { getClassColor, ANIMATION_DURATION } from "./constants";
 import type { TowerRow as TowerRowData } from "./useTowerData";
-import { formatLapTime } from "./useTowerData";
-import {
-    getClassColor,
-    getTyreColor,
-    normalizeTyreCompound,
-    TYRE_INFO,
-    ANIMATION_DURATION,
-} from "./constants";
-import SectorBar from "./SectorBar";
-import StatusEar, {
-    type StatusEarVariant,
-} from "./StatusEar";
+import StatusEar, { type StatusEarVariant } from "./StatusEar";
+import TowerRowValue from "./TowerRowValue";
+import { useLapHighlight } from "./useLapHighlight";
 
 interface TowerRowProps {
     readonly row: TowerRowData;
     readonly settings: TowerSettings;
-    readonly isFighting: boolean;
     readonly isOvertaking: "gained" | "lost" | null;
     readonly sessionBestSectors: SectorTime;
     readonly isQuali: boolean;
@@ -30,38 +20,6 @@ function ordinal(n: number): string {
     const s = ["th", "st", "nd", "rd"];
     const v = n % 100;
     return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]);
-}
-
-function TyreColumn({
-    row,
-    settings,
-}: {
-    readonly row: TowerRowData;
-    readonly settings: TowerSettings;
-}) {
-    const compound = normalizeTyreCompound(row.standing.tyreCompound);
-    const color = getTyreColor(compound, settings);
-    const initial = TYRE_INFO[compound].initial;
-
-    return (
-        <span
-            style={{
-                fontWeight: 800,
-                fontSize: 14,
-                color,
-                letterSpacing: "0.06em",
-            }}
-        >
-            {initial}
-        </span>
-    );
-}
-
-function resolvePositionColor(isLeader: boolean, change: number | null): string {
-    if (isLeader) return "#f59e0b";
-    if (change !== null && change > 0) return "#4ade80";
-    if (change !== null && change < 0) return "#f87171";
-    return "#e2e8f0";
 }
 
 function resolveFlashBackground(overtaking: "gained" | "lost" | null): string {
@@ -79,138 +37,19 @@ function getStatusEarConfig(
     variant: StatusEarVariant;
 } | null {
     if (status === "PITTING") {
-        return {
-            accentColor: settings.colorPitBadge,
-            label: "PIT",
-            variant: "pit",
-        };
+        return { accentColor: settings.colorPitBadge, label: "PIT", variant: "pit" };
     }
 
     if (status === "FINISHED") {
-        return {
-            accentColor: settings.colorFinishBadge,
-            label: "FIN",
-            variant: "finish",
-        };
+        return { accentColor: settings.colorFinishBadge, label: "FIN", variant: "finish" };
     }
 
     return null;
 }
 
-const LAP_HIGHLIGHT_MS = 4000;
-
-function resolveLapHighlightColor(
-    lastLapTime: number | null,
-    bestLapTime: number | null,
-    classBestLapTime: number | null
-): string {
-    if (lastLapTime === null) return "#f1f5f9";
-
-    const isClassBestLap =
-        classBestLapTime === null ? false : lastLapTime <= classBestLapTime;
-    if (isClassBestLap) {
-        return "#9333ea";
-    }
-
-    const isPersonalBest =
-        bestLapTime === null ? false : lastLapTime <= bestLapTime;
-    if (isPersonalBest) {
-        return "#16a34a";
-    }
-
-    return "#d97706";
-}
-
-function ValueColumn({
-    row,
-    settings,
-    sessionBestSectors,
-    isQuali,
-    animDuration,
-    lapHighlightTime,
-    lapHighlightColor,
-}: {
-    readonly row: TowerRowData;
-    readonly settings: TowerSettings;
-    readonly sessionBestSectors: SectorTime;
-    readonly isQuali: boolean;
-    readonly animDuration: number;
-    readonly lapHighlightTime: number | null;
-    readonly lapHighlightColor: string;
-}) {
-    if (isQuali) {
-        const qualiDisplay =
-            lapHighlightTime === null
-                ? {
-                    text: row.displayValue,
-                    color: "#f1f5f9",
-                }
-                : {
-                    text: formatLapTime(lapHighlightTime),
-                    color: lapHighlightColor,
-                };
-
-        return (
-            <div
-                style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "flex-end",
-                    gap: 3,
-                }}
-            >
-                <span
-                    style={{
-                        fontSize: 13,
-                        fontWeight: 700,
-                        color: qualiDisplay.color,
-                        letterSpacing: "0.03em",
-                        fontVariantNumeric: "tabular-nums",
-                    }}
-                >
-                    {qualiDisplay.text}
-                </span>
-                <SectorBar
-                    currentSectors={row.standing.currentSectors}
-                    bestSectors={row.standing.bestSectors}
-                    sessionBestSectors={sessionBestSectors}
-                    width={88}
-                    animationDuration={animDuration}
-                />
-            </div>
-        );
-    }
-
-    if (settings.raceMode === "TYRES") {
-        return <TyreColumn row={row} settings={settings} />;
-    }
-
-    const isLeader = row.displayValue === "LEADER";
-
-
-
-    const valueColor = resolvePositionColor(isLeader, row.positionsChange);
-
-    return (
-        <span
-            style={{
-                fontSize: isLeader ? 10 : 13,
-                fontWeight: isLeader ? 800 : 500,
-                color: valueColor,
-                letterSpacing: isLeader ? "0.1em" : "0.03em",
-                whiteSpace: "nowrap",
-                fontVariantNumeric: "tabular-nums",
-            }}
-        >
-            {row.displayValue}
-        </span>
-    );
-}
-
 export default function TowerRow({
     row,
     settings,
-    isFighting,
     isOvertaking,
     sessionBestSectors,
     isQuali,
@@ -219,97 +58,32 @@ export default function TowerRow({
     const { standing } = row;
     const animDuration = ANIMATION_DURATION[settings.animationSpeed];
     const classColor = getClassColor(standing.carClass, settings);
-
-    const flashBg = resolveFlashBackground(isOvertaking);
     const statusEar = getStatusEarConfig(settings, standing.status);
-
     const surname = standing.driverName.split(" ").pop() ?? standing.driverName;
-
-    const [lapHighlightTime, setLapHighlightTime] = useState<number | null>(null);
-    const [lapHighlightColor, setLapHighlightColor] = useState("#f1f5f9");
-    const prevLastLapRef = useRef<number | null>(standing.lastLapTime);
-    const lapHighlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    useEffect(() => {
-        const previousLastLap = prevLastLapRef.current;
-        const nextLastLap = standing.lastLapTime;
-
-        if (
-            isQuali &&
-            nextLastLap !== null &&
-            nextLastLap > 0 &&
-            nextLastLap !== previousLastLap
-        ) {
-            setLapHighlightTime(nextLastLap);
-            setLapHighlightColor(
-                resolveLapHighlightColor(
-                    nextLastLap,
-                    standing.bestLapTime,
-                    classBestLapTime
-                )
-            );
-
-            if (lapHighlightTimerRef.current) {
-                clearTimeout(lapHighlightTimerRef.current);
-            }
-
-            lapHighlightTimerRef.current = setTimeout(() => {
-                setLapHighlightTime(null);
-                lapHighlightTimerRef.current = null;
-            }, LAP_HIGHLIGHT_MS);
-        }
-
-        prevLastLapRef.current = nextLastLap;
-    }, [isQuali, standing.lastLapTime, standing.bestLapTime, classBestLapTime]);
-
-    useEffect(() => {
-        return () => {
-            if (lapHighlightTimerRef.current) {
-                clearTimeout(lapHighlightTimerRef.current);
-            }
-        };
-    }, []);
+    const { lapHighlightTime, lapHighlightColor } = useLapHighlight({
+        enabled: isQuali,
+        lastLapTime: standing.lastLapTime,
+        bestLapTime: standing.bestLapTime,
+        classBestLapTime,
+    });
 
     return (
         <motion.div
-                layout
-                layoutId={row.key}
-                transition={{ duration: animDuration }}
-                style={{
-                    display: "flex",
-                    alignItems: "center",
-                    height: 36,
-                    width: "100%",
-                    backgroundColor: flashBg,
-                    borderRadius: 3,
-                    overflow: "visible",
-                    position: "relative",
-                    zIndex: 1,
-                }}
+            layout
+            layoutId={row.key}
+            transition={{ duration: animDuration }}
+            style={{
+                display: "flex",
+                alignItems: "center",
+                height: 36,
+                width: "100%",
+                backgroundColor: resolveFlashBackground(isOvertaking),
+                borderRadius: 3,
+                overflow: "visible",
+                position: "relative",
+                zIndex: 1,
+            }}
         >
-            {/* fight pulse ring */}
-            <AnimatePresence>
-                {isFighting && (
-                    <motion.div
-                        key="fight-ring"
-                        animate={{ opacity: [0.7, 0.15, 0.7] }}
-                        transition={{
-                            duration: 1.4,
-                            repeat: Infinity,
-                            ease: "easeInOut",
-                        }}
-                        style={{
-                            position: "absolute",
-                            inset: 0,
-                            border: "1px solid #f59e0b",
-                            borderRadius: 3,
-                            pointerEvents: "none",
-                        }}
-                    />
-                )}
-            </AnimatePresence>
-
-            {/* class color bar */}
             {settings.showClassBar && (
                 <div
                     style={{
@@ -322,7 +96,6 @@ export default function TowerRow({
                 />
             )}
 
-            {/* position */}
             <div
                 style={{
                     width: 38,
@@ -337,7 +110,6 @@ export default function TowerRow({
                 {ordinal(row.classPosition)}
             </div>
 
-            {/* car number */}
             {settings.showCarNumber && (
                 <div
                     style={{
@@ -353,16 +125,15 @@ export default function TowerRow({
                 </div>
             )}
 
-            {/* driver surname */}
             <div
                 style={{
                     flex: 1,
                     fontSize: 14,
                     fontWeight: 700,
                     color: "#f8fafc",
-                    overflow: "visible",
                     whiteSpace: "nowrap",
                     textOverflow: "ellipsis",
+                    overflow: "hidden",
                     paddingRight: 6,
                     textTransform: "uppercase",
                     letterSpacing: "0.06em",
@@ -371,16 +142,8 @@ export default function TowerRow({
                 {surname}
             </div>
 
-            {/* value column */}
-            <div
-                style={{
-                    minWidth: 88,
-                    textAlign: "right",
-                    paddingRight: 10,
-                    flexShrink: 0,
-                }}
-            >
-                <ValueColumn
+            <div style={{ minWidth: 88, textAlign: "right", paddingRight: 10, flexShrink: 0 }}>
+                <TowerRowValue
                     row={row}
                     settings={settings}
                     sessionBestSectors={sessionBestSectors}

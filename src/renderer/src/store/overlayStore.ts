@@ -33,7 +33,10 @@ export interface TowerSettings {
     raceMode: TowerRaceMode;
     qualiMode: TowerQualiMode;
     maxRowsPerClass: number;
+    standingsRefreshMs: number;
+    fightEnabled: boolean;
     fightThresholdSeconds: number;
+    fightDisabledLaps: number;
     showCarNumber: boolean;
     showClassBar: boolean;
     animationSpeed: "slow" | "normal" | "fast";
@@ -128,7 +131,10 @@ const DEFAULT_CONFIGS: OverlayConfig[] = [
             raceMode: "GAP_AHEAD",
             qualiMode: "QUALI_GAP",
             maxRowsPerClass: 5,
-            fightThresholdSeconds: 1,
+            standingsRefreshMs: 1000,
+            fightEnabled: true,
+            fightThresholdSeconds: 0.25,
+            fightDisabledLaps: 3,
             showCarNumber: true,
             showClassBar: true,
             animationSpeed: "normal",

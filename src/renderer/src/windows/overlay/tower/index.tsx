@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { AppState, SectorTime, DriverStanding } from "../../../types/lmu";
+import type { SectorTime, DriverStanding } from "../../../types/lmu";
 import { useOverlayStore } from "../../../store/overlayStore";
 import type { OverlayConfig, TowerSettings } from "../../../store/overlayStore";
 import { useTowerData } from "./useTowerData";
@@ -7,6 +7,7 @@ import { useFightDetection } from "./useFightDetection";
 
 import TowerSection from "./TowerSection";
 import { useTowerWindowAutosize } from "./useTowerWindowAutosize";
+import { useBufferedAppState } from "./useBufferedAppState";
 
 // -- empty sector time sentinel --
 const EMPTY_SECTORS: SectorTime = {
@@ -73,13 +74,6 @@ function applyOvertakeFlash(
 }
 
 export default function TowerOverlay() {
-    const [appState, setAppState] = useState<AppState>({
-        connection: "DISCONNECTED",
-        session: null,
-        standings: [],
-        lastUpdated: null,
-    });
-
     const storeConfig = useOverlayStore((s) =>
         s.getOverlay("OVERLAY-TOWER") as OverlayConfig<TowerSettings> | undefined
     );
@@ -92,6 +86,32 @@ export default function TowerOverlay() {
     }, [storeConfig]);
 
     const settings = overlayConfig?.settings;
+    const towerSettings = settings ?? {
+        viewLayout: "MIXED_TOP" as const,
+        specificClass: null,
+        raceMode: "GAP_AHEAD" as const,
+        qualiMode: "QUALI_GAP" as const,
+        maxRowsPerClass: 5,
+        standingsRefreshMs: 1000,
+        fightEnabled: true,
+        fightThresholdSeconds: 0.25,
+        fightDisabledLaps: 3,
+        showCarNumber: true,
+        showClassBar: true,
+        animationSpeed: "normal" as const,
+        colorHypercar: "#E4002B",
+        colorLMP2: "#0057A8",
+        colorLMP3: "#FFD700",
+        colorLMGT3: "#00A651",
+        colorGTE: "#FF6600",
+        colorHard: "#FFFFFF",
+        colorMedium: "#FFD700",
+        colorSoft: "#E4002B",
+        colorWet: "#0099FF",
+        colorPitBadge: "#F59E0B",
+        colorFinishBadge: "#E5E7EB",
+    };
+    const appState = useBufferedAppState(towerSettings.standingsRefreshMs);
 
     // -- start positions: captured once at race start, never reset mid-race --
     const startPositionsRef = useRef<Map<number, number>>(new Map());
@@ -118,17 +138,8 @@ export default function TowerOverlay() {
             }
         });
 
-        globalThis.api.getState().then((state) => {
-            setAppState(state);
-        }).catch(() => undefined);
-
-        const unsub = globalThis.api.onStateUpdate((state) => {
-            setAppState(state);
-        });
-
         return () => {
             unsubConfig?.();
-            unsub();
         };
     }, []);
 
@@ -196,29 +207,6 @@ export default function TowerOverlay() {
         };
     }, []);
 
-    const towerSettings = settings ?? {
-        viewLayout: "MIXED_TOP" as const,
-        specificClass: null,
-        raceMode: "GAP_AHEAD" as const,
-        qualiMode: "QUALI_GAP" as const,
-        maxRowsPerClass: 5,
-        fightThresholdSeconds: 1,
-        showCarNumber: true,
-        showClassBar: true,
-        animationSpeed: "normal" as const,
-        colorHypercar: "#E4002B",
-        colorLMP2: "#0057A8",
-        colorLMP3: "#FFD700",
-        colorLMGT3: "#00A651",
-        colorGTE: "#FF6600",
-        colorHard: "#FFFFFF",
-        colorMedium: "#FFD700",
-        colorSoft: "#E4002B",
-        colorWet: "#0099FF",
-        colorPitBadge: "#F59E0B",
-        colorFinishBadge: "#E5E7EB",
-    };
-
     const { sections, isQuali, isRace } = useTowerData({
         standings: appState.standings,
         session: appState.session,
@@ -226,10 +214,15 @@ export default function TowerOverlay() {
         startPositions: startPositionsRef.current,
     });
 
+    const fightEnabled =
+        isRace &&
+        towerSettings.fightEnabled &&
+        (appState.session?.currentLap ?? 0) > towerSettings.fightDisabledLaps;
+
     const fightGroups = useFightDetection({
         sections,
         thresholdSeconds: towerSettings.fightThresholdSeconds,
-        enabled: isRace,
+        enabled: fightEnabled,
     });
 
     const sessionBestSectors = isQuali
