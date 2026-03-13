@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 96">
+  <rect width="220" height="96" rx="16" fill="#0b0e15"/>
+  <path d="M42 12h40l10 12-6 34-24 22-24-22-6-34z" fill="#facc15" stroke="#ffe38a" stroke-width="3"/>
+  <text x="62" y="49" text-anchor="middle" fill="#111827" font-size="20" font-family="Arial" font-weight="700">FR</text>
+  <text x="110" y="44" fill="#f8fafc" font-size="20" font-family="Arial" font-weight="700">Ferrari</text>
+  <text x="110" y="66" fill="#9ca3af" font-size="13" font-family="Arial">499P / 296 LMGT3</text>
+</svg>

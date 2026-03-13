@@ -6,9 +6,7 @@ export type OverlayId =
     | "OVERLAY-TOWER"
     | "OVERLAY-DRIVER"
     | "OVERLAY-GAP"
-    | "OVERLAY-SESSION"
-    | "OVERLAY-PITS"
-    | "OVERLAY-SECTOR";
+    | "OVERLAY-SESSION";
 
 // -- specific settings --
 export type TowerRaceMode =
@@ -20,6 +18,9 @@ export type TowerRaceMode =
     | "POSITIONS";
 
 export type TowerQualiMode = "QUALI_GAP" | "QUALI_TIMES";
+
+export type DriverCardMode = "AUTO" | "PRACTICE_QUALI" | "RACE";
+export type DriverSectorLabelMode = "LABELS" | "TIMES";
 
 export type TowerViewLayout =
     | "CLASS_ONLY"
@@ -63,11 +64,23 @@ export interface TowerSettings {
 }
 
 export interface DriverSettings {
-    showFuel: boolean;
-    showTyres: boolean;
+    mode: DriverCardMode;
+    sectorLabelMode: DriverSectorLabelMode;
+    showFullName: boolean;
+    showNationality: boolean;
+    showCarNumber: boolean;
+    showPosition: boolean;
+    showClass: boolean;
+    showCarLogo: boolean;
+    showCarModel: boolean;
+    showSectorStrip: boolean;
+    showLapTimer: boolean;
     showBestLap: boolean;
-    showCurrentLap: boolean;
-    showTeam: boolean;
+    showLastLap: boolean;
+    colorSessionBest: string;
+    colorPersonalBest: string;
+    colorCompleted: string;
+    colorPending: string;
 }
 
 export interface GapSettings {
@@ -84,26 +97,11 @@ export interface SessionSettings {
     colorScheme: "default" | "minimal" | "bold";
 }
 
-export interface PitsSettings {
-    maxRows: number;
-    showStopTimer: boolean;
-    showCarNumber: boolean;
-    showCarLogos: boolean;
-}
-
-export interface SectorSettings {
-    showTimeToBeat: boolean;
-    showAllSectors: boolean;
-    flashOnPersonalBest: boolean;
-}
-
 export type OverlaySpecificSettings =
     | TowerSettings
     | DriverSettings
     | GapSettings
-    | SessionSettings
-    | PitsSettings
-    | SectorSettings;
+    | SessionSettings;
 
 // -- base config --
 export interface OverlayConfig<T extends OverlaySpecificSettings = OverlaySpecificSettings> {
@@ -169,11 +167,23 @@ const DEFAULT_CONFIGS: OverlayConfig[] = [
         displayId: 0,
         dragMode: false,
         settings: {
-            showFuel: true,
-            showTyres: true,
+            mode: "AUTO",
+            sectorLabelMode: "LABELS",
+            showFullName: true,
+            showNationality: true,
+            showCarNumber: true,
+            showPosition: true,
+            showClass: true,
+            showCarLogo: true,
+            showCarModel: true,
+            showSectorStrip: true,
+            showLapTimer: true,
             showBestLap: true,
-            showCurrentLap: true,
-            showTeam: true,
+            showLastLap: true,
+            colorSessionBest: "#7c3aed",
+            colorPersonalBest: "#22c55e",
+            colorCompleted: "#f59e0b",
+            colorPending: "#475569",
         } satisfies DriverSettings,
     },
     {
@@ -207,37 +217,6 @@ const DEFAULT_CONFIGS: OverlayConfig[] = [
             showFlagState: true,
             colorScheme: "default",
         } satisfies SessionSettings,
-    },
-    {
-        id: "OVERLAY-PITS",
-        enabled: false,
-        opacity: 90,
-        scale: 1,
-        x: 1820,
-        y: 160,
-        displayId: 0,
-        dragMode: false,
-        settings: {
-            maxRows: 8,
-            showStopTimer: true,
-            showCarNumber: true,
-            showCarLogos: true,
-        } satisfies PitsSettings,
-    },
-    {
-        id: "OVERLAY-SECTOR",
-        enabled: false,
-        opacity: 90,
-        scale: 1,
-        x: 760,
-        y: 20,
-        displayId: 0,
-        dragMode: false,
-        settings: {
-            showTimeToBeat: true,
-            showAllSectors: true,
-            flashOnPersonalBest: true,
-        } satisfies SectorSettings,
     },
 ];
 

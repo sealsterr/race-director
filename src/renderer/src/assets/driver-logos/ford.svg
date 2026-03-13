@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 96">
+  <rect width="220" height="96" rx="16" fill="#0b0e15"/>
+  <rect x="34" y="24" width="54" height="48" rx="24" fill="#2563eb" stroke="#93c5fd" stroke-width="3"/>
+  <text x="61" y="54" text-anchor="middle" fill="#eff6ff" font-size="18" font-family="Arial" font-weight="700">FD</text>
+  <text x="102" y="44" fill="#f8fafc" font-size="20" font-family="Arial" font-weight="700">Ford</text>
+  <text x="102" y="66" fill="#9ca3af" font-size="13" font-family="Arial">Mustang GT3</text>
+</svg>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 96">
+  <rect width="220" height="96" rx="16" fill="#0b0e15"/>
+  <path d="M36 66c16-28 29-38 50-40-8 8-12 17-15 28 10-3 18-1 24 4-15 10-33 12-59 8z" fill="#f97316"/>
+  <text x="102" y="44" fill="#f8fafc" font-size="20" font-family="Arial" font-weight="700">McLaren</text>
+  <text x="102" y="66" fill="#9ca3af" font-size="13" font-family="Arial">720S GT3 Evo</text>
+</svg>

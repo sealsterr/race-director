@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 96">
+  <rect width="220" height="96" rx="16" fill="#0b0e15"/>
+  <polygon points="61,16 85,30 77,70 45,70 37,30" fill="#e5e7eb" stroke="#f8fafc" stroke-width="3"/>
+  <text x="61" y="52" text-anchor="middle" fill="#111827" font-size="16" font-family="Arial" font-weight="700">PG</text>
+  <text x="102" y="44" fill="#f8fafc" font-size="20" font-family="Arial" font-weight="700">Peugeot</text>
+  <text x="102" y="66" fill="#9ca3af" font-size="13" font-family="Arial">9X8</text>
+</svg>

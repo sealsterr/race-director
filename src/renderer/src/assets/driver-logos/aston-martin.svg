@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 96">
+  <rect width="220" height="96" rx="16" fill="#0b0e15"/>
+  <path d="M30 48l18-14h26l18 14-18 14H48z" fill="#22c55e" stroke="#86efac" stroke-width="3"/>
+  <text x="61" y="53" text-anchor="middle" fill="#052e16" font-size="16" font-family="Arial" font-weight="700">AM</text>
+  <text x="102" y="44" fill="#f8fafc" font-size="20" font-family="Arial" font-weight="700">Aston Martin</text>
+  <text x="102" y="66" fill="#9ca3af" font-size="13" font-family="Arial">Valkyrie / Vantage</text>
+</svg>

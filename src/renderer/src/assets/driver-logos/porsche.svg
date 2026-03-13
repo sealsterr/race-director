@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 96">
+  <rect width="220" height="96" rx="16" fill="#0b0e15"/>
+  <path d="M40 12h42l8 12-6 34-23 22-23-22-6-34z" fill="#f59e0b" stroke="#fde68a" stroke-width="3"/>
+  <text x="61" y="49" text-anchor="middle" fill="#111827" font-size="18" font-family="Arial" font-weight="700">PO</text>
+  <text x="110" y="44" fill="#f8fafc" font-size="20" font-family="Arial" font-weight="700">Porsche</text>
+  <text x="110" y="66" fill="#9ca3af" font-size="13" font-family="Arial">963 / 911 GT3 R</text>
+</svg>

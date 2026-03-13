@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 96">
+  <rect width="220" height="96" rx="16" fill="#0b0e15"/>
+  <circle cx="61" cy="48" r="25" fill="#ef4444" stroke="#fca5a5" stroke-width="3"/>
+  <text x="61" y="54" text-anchor="middle" fill="#fff" font-size="18" font-family="Arial" font-weight="700">TY</text>
+  <text x="102" y="44" fill="#f8fafc" font-size="20" font-family="Arial" font-weight="700">Toyota</text>
+  <text x="102" y="66" fill="#9ca3af" font-size="13" font-family="Arial">GR010 Hybrid</text>
+</svg>

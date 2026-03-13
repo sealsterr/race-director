@@ -14,8 +14,6 @@ import {
     User,
     Gauge,
     Timer,
-    ParkingSquare,
-    SplitSquareHorizontal,
 } from "lucide-react";
 import { useOverlayStore } from "../../store/overlayStore";
 import type {
@@ -26,11 +24,11 @@ import type {
     TowerRaceMode,
     TowerQualiMode,
     TowerViewLayout,
+    DriverCardMode,
+    DriverSectorLabelMode,
     DriverSettings,
     GapSettings,
     SessionSettings,
-    PitsSettings,
-    SectorSettings,
 } from "../../store/overlayStore";
 import { useRaceStore } from "../../store/raceStore";
 import type { CarClass, DriverStanding } from "../../types/lmu";
@@ -62,7 +60,7 @@ const OVERLAY_META: OverlayMeta[] = [
         label: "Driver Card",
         description: "Driver information",
         icon: User,
-        defaultSize: { w: 540, h: 120 },
+        defaultSize: { w: 872, h: 286 },
     },
     {
         id: "OVERLAY-GAP",
@@ -77,20 +75,6 @@ const OVERLAY_META: OverlayMeta[] = [
         description: "Session information",
         icon: Timer,
         defaultSize: { w: 1920, h: 60 },
-    },
-    {
-        id: "OVERLAY-PITS",
-        label: "Pits",
-        description: "Number of pits",
-        icon: ParkingSquare,
-        defaultSize: { w: 300, h: 500 },
-    },
-    {
-        id: "OVERLAY-SECTOR",
-        label: "Sectors",
-        description: "Sector information",
-        icon: SplitSquareHorizontal,
-        defaultSize: { w: 420, h: 80 },
     },
 ];
 
@@ -551,11 +535,45 @@ const DriverSettingsPanel = ({
 
     return (
         <div className="flex flex-col gap-3">
-            <Toggle label="Show team name" value={s.showTeam} onChange={(v) => set({ showTeam: v })} />
+            <PanelSection title="Mode" />
+            <Select
+                label="Display mode"
+                value={s.mode}
+                options={[
+                    { label: "Auto", value: "AUTO" },
+                    { label: "Practice / Quali", value: "PRACTICE_QUALI" },
+                    { label: "Race", value: "RACE" },
+                ]}
+                onChange={(v) => set({ mode: v as DriverCardMode })}
+            />
+            <Select
+                label="Sector headers"
+                value={s.sectorLabelMode}
+                options={[
+                    { label: "S1 / S2 / S3", value: "LABELS" },
+                    { label: "Sector times", value: "TIMES" },
+                ]}
+                onChange={(v) => set({ sectorLabelMode: v as DriverSectorLabelMode })}
+            />
+
+            <PanelSection title="Displayed data" />
+            <Toggle label="Show full name" value={s.showFullName} onChange={(v) => set({ showFullName: v })} />
+            <Toggle label="Show nationality" value={s.showNationality} onChange={(v) => set({ showNationality: v })} />
+            <Toggle label="Show car number" value={s.showCarNumber} onChange={(v) => set({ showCarNumber: v })} />
+            <Toggle label="Show position" value={s.showPosition} onChange={(v) => set({ showPosition: v })} />
+            <Toggle label="Show class" value={s.showClass} onChange={(v) => set({ showClass: v })} />
+            <Toggle label="Show car logo" value={s.showCarLogo} onChange={(v) => set({ showCarLogo: v })} />
+            <Toggle label="Show car model" value={s.showCarModel} onChange={(v) => set({ showCarModel: v })} />
+            <Toggle label="Show sector strip" value={s.showSectorStrip} onChange={(v) => set({ showSectorStrip: v })} />
+            <Toggle label="Show lap timer" value={s.showLapTimer} onChange={(v) => set({ showLapTimer: v })} />
+            <Toggle label="Show last lap" value={s.showLastLap} onChange={(v) => set({ showLastLap: v })} />
             <Toggle label="Show best lap" value={s.showBestLap} onChange={(v) => set({ showBestLap: v })} />
-            <Toggle label="Show current lap" value={s.showCurrentLap} onChange={(v) => set({ showCurrentLap: v })} />
-            <Toggle label="Show fuel" value={s.showFuel} onChange={(v) => set({ showFuel: v })} />
-            <Toggle label="Show tyres" value={s.showTyres} onChange={(v) => set({ showTyres: v })} />
+
+            <PanelSection title="Sector colors" />
+            <ColorPicker label="Session best" value={s.colorSessionBest} onChange={(v) => set({ colorSessionBest: v })} />
+            <ColorPicker label="Personal best" value={s.colorPersonalBest} onChange={(v) => set({ colorPersonalBest: v })} />
+            <ColorPicker label="Completed" value={s.colorCompleted} onChange={(v) => set({ colorCompleted: v })} />
+            <ColorPicker label="Pending" value={s.colorPending} onChange={(v) => set({ colorPending: v })} />
         </div>
     );
 };
@@ -623,52 +641,6 @@ const SessionSettingsPanel = ({
     );
 };
 
-const PitsSettingsPanel = ({
-    cfg,
-}: {
-    cfg: OverlayConfig;
-}): React.ReactElement => {
-    const { setOverlaySettings } = useOverlayStore();
-    const s = cfg.settings as PitsSettings;
-    const set = (partial: Partial<PitsSettings>): void =>
-        setOverlaySettings(cfg.id, partial);
-
-    return (
-        <div className="flex flex-col gap-3">
-            <Slider
-                label="Max rows"
-                value={s.maxRows}
-                min={2}
-                max={15}
-                step={1}
-                onChange={(v) => set({ maxRows: v })}
-            />
-            <Toggle label="Show stop timer" value={s.showStopTimer} onChange={(v) => set({ showStopTimer: v })} />
-            <Toggle label="Show car number" value={s.showCarNumber} onChange={(v) => set({ showCarNumber: v })} />
-            <Toggle label="Show car logos" value={s.showCarLogos} onChange={(v) => set({ showCarLogos: v })} />
-        </div>
-    );
-};
-
-const SectorSettingsPanel = ({
-    cfg,
-}: {
-    cfg: OverlayConfig;
-}): React.ReactElement => {
-    const { setOverlaySettings } = useOverlayStore();
-    const s = cfg.settings as SectorSettings;
-    const set = (partial: Partial<SectorSettings>): void =>
-        setOverlaySettings(cfg.id, partial);
-
-    return (
-        <div className="flex flex-col gap-3">
-            <Toggle label="Show time to beat" value={s.showTimeToBeat} onChange={(v) => set({ showTimeToBeat: v })} />
-            <Toggle label="Show all sectors" value={s.showAllSectors} onChange={(v) => set({ showAllSectors: v })} />
-            <Toggle label="Flash on personal best" value={s.flashOnPersonalBest} onChange={(v) => set({ flashOnPersonalBest: v })} />
-        </div>
-    );
-};
-
 const SPECIFIC_PANELS: Record<
     OverlayId,
     (props: { cfg: OverlayConfig }) => React.ReactElement
@@ -677,8 +649,6 @@ const SPECIFIC_PANELS: Record<
     "OVERLAY-DRIVER": DriverSettingsPanel,
     "OVERLAY-GAP": GapSettingsPanel,
     "OVERLAY-SESSION": SessionSettingsPanel,
-    "OVERLAY-PITS": PitsSettingsPanel,
-    "OVERLAY-SECTOR": SectorSettingsPanel,
 };
 
 // -- settings drawer --
@@ -889,7 +859,9 @@ const OverlayCard = ({
         standings.map((standing) => standing.carClass)
     );
     const isTowerCard = meta.id === "OVERLAY-TOWER";
+    const isDriverCard = meta.id === "OVERLAY-DRIVER";
     const towerCfg = isTowerCard ? (cfg.settings as TowerSettings) : null;
+    const driverCfg = isDriverCard ? (cfg.settings as DriverSettings) : null;
     const normalizedViewLayout =
         towerCfg?.viewLayout === "PER_CLASS" || towerCfg?.viewLayout === "EVERYONE_TOP"
             ? "MIXED_TOP"
@@ -940,6 +912,22 @@ const OverlayCard = ({
         onSettingsChange("OVERLAY-TOWER", {
             viewLayout: nextValue as TowerViewLayout,
             specificClass: towerCfg.specificClass,
+        });
+    };
+
+    const handleDriverModeChange = (nextValue: string): void => {
+        if (!driverCfg) return;
+
+        onSettingsChange("OVERLAY-DRIVER", {
+            mode: nextValue as DriverCardMode,
+        });
+    };
+
+    const handleDriverSectorModeChange = (nextValue: string): void => {
+        if (!driverCfg) return;
+
+        onSettingsChange("OVERLAY-DRIVER", {
+            sectorLabelMode: nextValue as DriverSectorLabelMode,
         });
     };
 
@@ -1021,6 +1009,44 @@ const OverlayCard = ({
                                         </option>
                                     ))}
                                     <option value="MIXED_TOP">Mixed</option>
+                                </select>
+                            </div>
+                        </div>
+                    ) : isDriverCard && driverCfg ? (
+                        <div className="flex items-center gap-3 pr-3">
+                            <div className="shrink-0">
+                                <p className="text-sm font-semibold text-rd-text leading-tight">
+                                    {meta.label}
+                                </p>
+                            </div>
+                            <div className="h-5 w-px shrink-0 bg-rd-border/80" />
+                            <div className="flex min-w-0 items-center gap-2 rounded-lg border border-rd-border/70 bg-rd-surface/55 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+                                <select
+                                    value={driverCfg.mode}
+                                    onChange={(e) => {
+                                        handleDriverModeChange(e.target.value);
+                                        e.currentTarget.blur();
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="h-8 min-w-[122px] rounded-md border border-rd-border bg-rd-elevated px-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-rd-text outline-none transition-colors hover:border-rd-muted hover:bg-rd-surface focus:border-rd-accent cursor-pointer"
+                                    title="Display mode"
+                                >
+                                    <option value="AUTO">Auto</option>
+                                    <option value="PRACTICE_QUALI">P / Q</option>
+                                    <option value="RACE">Race</option>
+                                </select>
+                                <select
+                                    value={driverCfg.sectorLabelMode}
+                                    onChange={(e) => {
+                                        handleDriverSectorModeChange(e.target.value);
+                                        e.currentTarget.blur();
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="h-8 min-w-[138px] rounded-md border border-rd-border bg-rd-elevated px-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-rd-text outline-none transition-colors hover:border-rd-muted hover:bg-rd-surface focus:border-rd-accent cursor-pointer"
+                                    title="Sector headings"
+                                >
+                                    <option value="LABELS">S1 / S2 / S3</option>
+                                    <option value="TIMES">Sector Times</option>
                                 </select>
                             </div>
                         </div>

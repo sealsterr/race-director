@@ -29,8 +29,6 @@ const OVERLAY_WINDOW_IDS = new Set<string>([
   "OVERLAY-DRIVER",
   "OVERLAY-GAP",
   "OVERLAY-SESSION",
-  "OVERLAY-PITS",
-  "OVERLAY-SECTOR",
 ]);
 
 function isOverlayWindowId(id: string): boolean {
@@ -483,11 +481,9 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
       { route: string; w: number; h: number }
     > = {
       "OVERLAY-TOWER":   { route: "overlay/tower",   w: 400,  h: 700 },
-      "OVERLAY-DRIVER":  { route: "overlay/driver",  w: 540,  h: 120 },
+      "OVERLAY-DRIVER":  { route: "overlay/driver",  w: 872,  h: 286 },
       "OVERLAY-GAP":     { route: "overlay/gap",     w: 460,  h: 100 },
       "OVERLAY-SESSION": { route: "overlay/session", w: 1920, h: 60  },
-      "OVERLAY-PITS":    { route: "overlay/pits",    w: 300,  h: 500 },
-      "OVERLAY-SECTOR":  { route: "overlay/sector",  w: 420,  h: 80  },
     };
 
     const def = OVERLAY_SIZES[id];
