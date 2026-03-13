@@ -477,16 +477,12 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
       return true;
     }
 
-    if (id === "OVERLAY-TOWER") {
-      createOverlayWindow("OVERLAY-TOWER", "overlay/tower", 0, 0, 360, 700);
-    }
-
     // -- overlay windows --
     const OVERLAY_SIZES: Record<
       string,
       { route: string; w: number; h: number }
     > = {
-      "OVERLAY-TOWER":   { route: "overlay/tower",   w: 360,  h: 700 },
+      "OVERLAY-TOWER":   { route: "overlay/tower",   w: 400,  h: 700 },
       "OVERLAY-DRIVER":  { route: "overlay/driver",  w: 540,  h: 120 },
       "OVERLAY-GAP":     { route: "overlay/gap",     w: 460,  h: 100 },
       "OVERLAY-SESSION": { route: "overlay/session", w: 1920, h: 60  },

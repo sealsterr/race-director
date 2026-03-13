@@ -155,7 +155,7 @@ export const FIGHT_CLEAR_POLLS = 5;
     default overlay dimensions
     width 360 fits: pos(30) + car#(40) + name(160) + value(90) + bar(3) + padding
     height 700 fits ~20 rows comfortably
-*/
+ */
 
 export const TOWER_DEFAULT_WIDTH = 400;
 export const TOWER_DEFAULT_HEIGHT = 700;

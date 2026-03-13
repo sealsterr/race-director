@@ -12,6 +12,9 @@ import {
     ANIMATION_DURATION,
 } from "./constants";
 import SectorBar from "./SectorBar";
+import StatusEar, {
+    type StatusEarVariant,
+} from "./StatusEar";
 
 interface TowerRowProps {
     readonly row: TowerRowData;
@@ -67,72 +70,31 @@ function resolveFlashBackground(overtaking: "gained" | "lost" | null): string {
     return "transparent";
 }
 
-function PitEar({
-    animDuration,
-    accentColor,
-}: {
-    readonly animDuration: number;
-    readonly accentColor: string;
-}) {
-    return (
-        <motion.div
-            initial={{ x: -14, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -14, opacity: 0 }}
-            transition={{ duration: animDuration, ease: "easeOut" }}
-            style={{
-                position: "absolute",
-                top: "50%",
-                left: "calc(100% + 4px)",
-                transform: "translateY(-50%)",
-                height: 18,
-                minWidth: 42,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "0 9px 0 10px",
-                borderRadius: 4,
-                border: "1px solid rgba(255,255,255,0.08)",
-                background: "rgba(8, 9, 14, 0.82)",
-                backdropFilter: "blur(18px) saturate(1.35) brightness(0.72)",
-                WebkitBackdropFilter: "blur(18px) saturate(1.35) brightness(0.72)",
-                color: accentColor,
-                fontSize: 9,
-                fontWeight: 800,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                lineHeight: 1,
-                boxShadow:
-                    "0 4px 18px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)",
-                pointerEvents: "none",
-                zIndex: 2,
-                overflow: "hidden",
-            }}
-        >
-            <span
-                style={{
-                    position: "absolute",
-                    left: 0,
-                    top: 3,
-                    bottom: 3,
-                    width: 2,
-                    borderRadius: 999,
-                    background: accentColor,
-                    boxShadow: `0 0 10px ${accentColor}66`,
-                    pointerEvents: "none",
-                }}
-            />
-            <span
-                style={{
-                    position: "relative",
-                    top: -0.5,
-                    textShadow: `0 0 10px ${accentColor}22`,
-                }}
-            >
-                PIT
-            </span>
-        </motion.div>
-    );
+function getStatusEarConfig(
+    settings: TowerSettings,
+    status: string
+): {
+    accentColor: string;
+    label: string;
+    variant: StatusEarVariant;
+} | null {
+    if (status === "PITTING") {
+        return {
+            accentColor: settings.colorPitBadge,
+            label: "PIT",
+            variant: "pit",
+        };
+    }
+
+    if (status === "FINISHED") {
+        return {
+            accentColor: settings.colorFinishBadge,
+            label: "FIN",
+            variant: "finish",
+        };
+    }
+
+    return null;
 }
 
 const LAP_HIGHLIGHT_MS = 4000;
@@ -259,7 +221,7 @@ export default function TowerRow({
     const classColor = getClassColor(standing.carClass, settings);
 
     const flashBg = resolveFlashBackground(isOvertaking);
-    const showPitBadge = standing.status === "PITTING";
+    const statusEar = getStatusEarConfig(settings, standing.status);
 
     const surname = standing.driverName.split(" ").pop() ?? standing.driverName;
 
@@ -430,13 +392,15 @@ export default function TowerRow({
             </div>
 
             <AnimatePresence>
-                {showPitBadge && (
-                    <PitEar
+                {statusEar && (
+                    <StatusEar
                         animDuration={animDuration}
-                        accentColor={settings.colorPitBadge}
+                        accentColor={statusEar.accentColor}
+                        label={statusEar.label}
+                        variant={statusEar.variant}
                     />
                 )}
             </AnimatePresence>
-            </motion.div>
+        </motion.div>
     );
 }

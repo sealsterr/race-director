@@ -6,6 +6,7 @@ import { useTowerData } from "./useTowerData";
 import { useFightDetection } from "./useFightDetection";
 
 import TowerSection from "./TowerSection";
+import { useTowerWindowAutosize } from "./useTowerWindowAutosize";
 
 // -- empty sector time sentinel --
 const EMPTY_SECTORS: SectorTime = {
@@ -106,6 +107,7 @@ export default function TowerOverlay() {
     const overtakeTimersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(
         new Map()
     );
+    const contentRef = useRef<HTMLDivElement>(null);
 
     // -- self-hydrate on mount --
     useEffect(() => {
@@ -214,6 +216,7 @@ export default function TowerOverlay() {
         colorSoft: "#E4002B",
         colorWet: "#0099FF",
         colorPitBadge: "#F59E0B",
+        colorFinishBadge: "#E5E7EB",
     };
 
     const { sections, isQuali, isRace } = useTowerData({
@@ -236,6 +239,13 @@ export default function TowerOverlay() {
     const opacity = (overlayConfig?.opacity ?? 100) / 100;
     const scale = overlayConfig?.scale ?? 1;
     const dragMode = overlayConfig?.dragMode ?? false;
+
+    useTowerWindowAutosize({
+        enabled: appState.connection === "CONNECTED",
+        overlayId: "OVERLAY-TOWER",
+        scale,
+        targetRef: contentRef,
+    });
 
     if (appState.connection !== "CONNECTED") {
         return (
@@ -278,6 +288,7 @@ export default function TowerOverlay() {
             } as React.CSSProperties}
         >
             <div
+                ref={contentRef}
                 style={{
                     opacity,
                     transform: `scale(${scale})`,
@@ -285,7 +296,7 @@ export default function TowerOverlay() {
                     fontFamily:
                         "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
                     padding: "8px 0",
-                    minWidth: 300,
+                    minWidth: 320,
                     pointerEvents: dragMode ? "auto" : "none",
                     WebkitAppRegion: dragMode ? "drag" : "no-drag",
                     cursor: dragMode ? "grab" : "default",

@@ -52,6 +52,7 @@ export interface TowerSettings {
     colorWet: string;
     
     colorPitBadge: string;
+    colorFinishBadge: string;
 }
 
 export interface DriverSettings {
@@ -141,6 +142,7 @@ const DEFAULT_CONFIGS: OverlayConfig[] = [
             colorSoft: "#E4002B",
             colorWet: "#0099FF",
             colorPitBadge: "#F59E0B",
+            colorFinishBadge: "#E5E7EB",
         } satisfies TowerSettings,
     },
     {
@@ -225,6 +227,46 @@ const DEFAULT_CONFIGS: OverlayConfig[] = [
     },
 ];
 
+function cloneConfig<T extends OverlaySpecificSettings>(
+    config: OverlayConfig<T>
+): OverlayConfig<T> {
+    return {
+        ...config,
+        settings: { ...config.settings },
+    };
+}
+
+function createDefaultConfigMap(): Map<OverlayId, OverlayConfig> {
+    return new Map(
+        DEFAULT_CONFIGS.map((config) => [config.id, cloneConfig(config)])
+    );
+}
+
+export function normalizeOverlayConfigs(
+    overlays: OverlayConfig[]
+): OverlayConfig[] {
+    const defaults = createDefaultConfigMap();
+
+    for (const overlay of overlays) {
+        const base = defaults.get(overlay.id);
+        if (!base) continue;
+
+        defaults.set(overlay.id, {
+            ...base,
+            ...overlay,
+            settings: {
+                ...base.settings,
+                ...overlay.settings,
+            },
+        });
+    }
+
+    return DEFAULT_CONFIGS.map((config) => {
+        const normalized = defaults.get(config.id);
+        return normalized ? cloneConfig(normalized) : cloneConfig(config);
+    });
+}
+
 // -- store shape
 interface OverlayStore {
     overlays: OverlayConfig[];
@@ -239,11 +281,11 @@ interface OverlayStore {
     setOverlaySettings: (id: OverlayId, settings: Partial<OverlaySpecificSettings>) => void;
     setSavePath: (path: string) => void;
     getOverlay: (id: OverlayId) => OverlayConfig | undefined;
-    loadFromPreset: (overlays: OverlayConfig[], savePath: string) => void;
+    loadFromPreset: (overlays: OverlayConfig[], savePath: string) => OverlayConfig[];
 }
 
 export const useOverlayStore = create<OverlayStore>((set, get) => ({
-    overlays: DEFAULT_CONFIGS,
+    overlays: normalizeOverlayConfigs(DEFAULT_CONFIGS),
     savePath: "",
 
     setOverlayConfig: (id, partial) => {
@@ -279,5 +321,12 @@ export const useOverlayStore = create<OverlayStore>((set, get) => ({
 
     getOverlay: (id) => get().overlays.find((o) => o.id === id),
 
-    loadFromPreset: (overlays, savePath) => set({ overlays, savePath }),
+    loadFromPreset: (overlays, savePath) => {
+        const normalized = normalizeOverlayConfigs(overlays);
+        set({ overlays: normalized, savePath });
+        normalized.forEach((overlay) => {
+            globalThis.api?.overlay?.broadcastConfig?.(overlay);
+        });
+        return normalized;
+    },
 }));

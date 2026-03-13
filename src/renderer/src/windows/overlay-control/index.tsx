@@ -33,7 +33,12 @@ import type {
     SectorSettings,
 } from "../../store/overlayStore";
 import { useRaceStore } from "../../store/raceStore";
-import type { CarClass } from "../../types/lmu";
+import type { CarClass, DriverStanding } from "../../types/lmu";
+import {
+    TOWER_DEFAULT_WIDTH,
+    TOWER_DEFAULT_HEIGHT,
+} from "../overlay/tower/constants";
+import { getTowerBaseHeight } from "../overlay/tower/windowLayout";
 
 // -- overlay metadata --
 interface OverlayMeta {
@@ -50,7 +55,7 @@ const OVERLAY_META: OverlayMeta[] = [
         label: "Live Standings",
         description: "",
         icon: LayoutList,
-        defaultSize: { w: 340, h: 600 },
+        defaultSize: { w: TOWER_DEFAULT_WIDTH, h: TOWER_DEFAULT_HEIGHT },
     },
     {
         id: "OVERLAY-DRIVER",
@@ -134,13 +139,25 @@ function getTargetDisplay(
 function getOverlayWindowBounds(
     cfg: OverlayConfig,
     meta: OverlayMeta,
-    displays: DisplayInfo[]
+    displays: DisplayInfo[],
+    standings: DriverStanding[] = []
 ): { x: number; y: number; width: number; height: number } | null {
     const display = getTargetDisplay(cfg, displays);
     if (!display) return null;
 
+    const defaultHeight =
+        cfg.id === "OVERLAY-TOWER"
+            ? Math.max(
+                meta.defaultSize.h,
+                getTowerBaseHeight(
+                    standings,
+                    cfg.settings as TowerSettings
+                )
+            )
+            : meta.defaultSize.h;
+
     const width = Math.max(1, Math.round(meta.defaultSize.w * cfg.scale));
-    const height = Math.max(1, Math.round(meta.defaultSize.h * cfg.scale));
+    const height = Math.max(1, Math.round(defaultHeight * cfg.scale));
 
     return {
         x: Math.round(display.bounds.x + cfg.x),
@@ -148,6 +165,34 @@ function getOverlayWindowBounds(
         width,
         height,
     };
+}
+
+async function applyOverlayWindowState(
+    cfg: OverlayConfig,
+    meta: OverlayMeta,
+    displays: DisplayInfo[],
+    standings: DriverStanding[]
+): Promise<void> {
+    if (!cfg.enabled) {
+        await globalThis.api.windows.close(cfg.id);
+        return;
+    }
+
+    await globalThis.api.windows.open(cfg.id);
+
+    const bounds = getOverlayWindowBounds(cfg, meta, displays, standings);
+    if (bounds) {
+        await globalThis.api.overlay.updateBounds(
+            cfg.id,
+            bounds.x,
+            bounds.y,
+            bounds.width,
+            bounds.height
+        );
+    }
+
+    await globalThis.api.overlay.setDragMode(cfg.id, cfg.dragMode);
+    await globalThis.api.overlay.broadcastConfig(cfg);
 }
 
 function getOverlayPositionFromBounds(
@@ -439,6 +484,11 @@ const TowerSettingsPanel = ({
                 value={s.colorPitBadge}
                 onChange={(v) => set({ colorPitBadge: v })}
             />
+            <ColorPicker
+                label="Finish badge"
+                value={s.colorFinishBadge}
+                onChange={(v) => set({ colorFinishBadge: v })}
+            />
         </div>
     );
 };
@@ -612,7 +662,7 @@ const SettingsDrawer = ({
     const drawerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        function onClick(e: MouseEvent) {
+        function onClick(e: MouseEvent): void {
             const target = e.target;
             if (
                 target instanceof Element &&
@@ -1109,7 +1159,7 @@ const OverlayControl = (): React.ReactElement => {
             const meta = OVERLAY_META.find((item) => item.id === cfg.id);
             if (!meta) continue;
 
-            const bounds = getOverlayWindowBounds(cfg, meta, displays);
+            const bounds = getOverlayWindowBounds(cfg, meta, displays, standings);
             if (!bounds) continue;
 
             void globalThis.api.overlay.updateBounds(
@@ -1120,7 +1170,7 @@ const OverlayControl = (): React.ReactElement => {
                 bounds.height
             );
         }
-    }, [displays, overlays]);
+    }, [displays, overlays, standings]);
 
     // -- auto-save on overlay change --
     const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1167,7 +1217,12 @@ const OverlayControl = (): React.ReactElement => {
         if (!pick.ok || !pick.path) return;
         const r = await globalThis.api.overlay.loadPreset(pick.path);
         if (r.ok && r.data) {
-            loadFromPreset(r.data.overlays, pick.path);
+            const loadedOverlays = loadFromPreset(r.data.overlays, pick.path);
+            for (const cfg of loadedOverlays) {
+                const meta = OVERLAY_META.find((item) => item.id === cfg.id);
+                if (!meta) continue;
+                await applyOverlayWindowState(cfg, meta, displays, standings);
+            }
             pushToast(setToasts, "success", "Preset loaded!");
         } else {
             pushToast(setToasts, "error", `Load failed: ${r.error}`);
@@ -1182,20 +1237,13 @@ const OverlayControl = (): React.ReactElement => {
         const next = !cfg.enabled;
         setOverlayConfig(id, { enabled: next });
         if (next) {
-            await globalThis.api.windows.open(id);
-            if (meta) {
-                const bounds = getOverlayWindowBounds(cfg, meta, displays);
-                if (bounds) {
-                    await globalThis.api.overlay.updateBounds(
-                        id,
-                        bounds.x,
-                        bounds.y,
-                        bounds.width,
-                        bounds.height
-                    );
-                }
-            }
-            await globalThis.api.overlay.setDragMode(id, cfg.dragMode);
+            if (!meta) return;
+            await applyOverlayWindowState(
+                { ...cfg, enabled: true },
+                meta,
+                displays,
+                standings
+            );
         } else {
             await globalThis.api.windows.close(id);
         }
