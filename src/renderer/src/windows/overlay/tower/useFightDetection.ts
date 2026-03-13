@@ -1,117 +1,137 @@
 import { useEffect, useRef, useState } from "react";
 import type { TowerSection } from "./useTowerData";
-import { FIGHT_CLEAR_POLLS, FIGHT_TIMEOUT_MS, getFightLabel, } from "./constants";
+import { FIGHT_CLEAR_POLLS, FIGHT_TIMEOUT_MS, getFightLabel } from "./constants";
 import type { FightLabel } from "./constants";
 
-// -- types --
 export interface FightGroup {
-    /* unique identifier: slotIds joined "12-7-99" */
     id: string;
-    /* slotIds of all cars involved */
     slotIds: number[];
-    /* class positions involved */
     classPositions: number[];
-    /* display label */
     label: FightLabel;
-    /* timestamp when fight was first detected (ms) */
     startedAt: number;
-    /* how many consecutive polls interval was above threshold */
     clearPollCount: number;
 }
 
-// -- hook --
 interface UseFightDetectionOptions {
     sections: TowerSection[];
     thresholdSeconds: number;
+    holdSeconds: number;
+    requireSameLap: boolean;
+    ignorePitAndFinished: boolean;
     enabled: boolean;
 }
 
-// -- pure helpers --
-
-function getFightingIndices(
-    rows: TowerSection["rows"],
-    thresholdSeconds: number
-): number[] {
-    const set = new Set<number>();
-    for (let i = 1; i < rows.length; i++) {
-        const interval = rows[i].intervalSeconds;
-        if (interval !== null && interval <= thresholdSeconds) {
-            set.add(i - 1);
-            set.add(i);
-        }
-    }
-    return Array.from(set).sort((a, b) => a - b);
+interface TrackedFight extends FightGroup {
+    firstSeenAt: number;
 }
 
-function mergeIntoGroups(indices: number[]): number[][] {
-    if (indices.length === 0) return [];
-    const groups: number[][] = [];
-    let current: number[] = [indices[0]];
-    for (let k = 1; k < indices.length; k++) {
-        if (indices[k] === indices[k - 1] + 1) {
-            current.push(indices[k]);
-        } else {
-            groups.push(current);
-            current = [indices[k]];
-        }
-    }
-    groups.push(current);
-    return groups;
+function isEligibleStatus(status: TowerSection["rows"][number]["standing"]["status"]): boolean {
+    return status !== "PITTING" && status !== "FINISHED";
 }
 
-function detectSectionFights(
+function detectFightPairs(
     rows: TowerSection["rows"],
     thresholdSeconds: number,
-    now: number,
-    existing: Map<string, FightGroup>,
-    out: Map<string, FightGroup>
-): void {
-    if (rows.length < 2) return;
+    requireSameLap: boolean,
+    ignorePitAndFinished: boolean
+): FightGroup[] {
+    const pairs: FightGroup[] = [];
 
-    const indices = getFightingIndices(rows, thresholdSeconds);
-    const groups = mergeIntoGroups(indices);
+    for (let index = 1; index < rows.length; index += 1) {
+        const ahead = rows[index - 1];
+        const behind = rows[index];
+        const interval = behind.intervalSeconds;
 
-    for (const group of groups) {
-        const involvedRows = group.map((i) => rows[i]);
-        const slotIds = involvedRows.map((r) => r.standing.slotId);
-        const classPositions = involvedRows.map((r) => r.classPosition);
-        const id = slotIds.join("-");
-        const prev = existing.get(id);
+        if (interval === null || interval > thresholdSeconds) {
+            continue;
+        }
 
-        if (prev && now - prev.startedAt >= FIGHT_TIMEOUT_MS) continue;
+        if (
+            ignorePitAndFinished &&
+            (!isEligibleStatus(ahead.standing.status) ||
+                !isEligibleStatus(behind.standing.status))
+        ) {
+            continue;
+        }
 
-        out.set(id, {
-            id,
-            slotIds,
-            classPositions,
-            label: getFightLabel(classPositions[0]),
-            startedAt: prev?.startedAt ?? now,
+        if (
+            requireSameLap &&
+            ahead.standing.lapsDown !== behind.standing.lapsDown
+        ) {
+            continue;
+        }
+
+        pairs.push({
+            id: `${ahead.standing.slotId}-${behind.standing.slotId}`,
+            slotIds: [ahead.standing.slotId, behind.standing.slotId],
+            classPositions: [ahead.classPosition, behind.classPosition],
+            label: getFightLabel(ahead.classPosition),
+            startedAt: 0,
             clearPollCount: 0,
         });
     }
+
+    return pairs;
 }
 
-function expireOldFights(
-    existing: Map<string, FightGroup>,
-    out: Map<string, FightGroup>
-): void {
-    for (const [id, fight] of existing.entries()) {
-        if (out.has(id)) continue;
-        const updated = { ...fight, clearPollCount: fight.clearPollCount + 1 };
+function trackFights(
+    detected: FightGroup[],
+    existing: Map<string, TrackedFight>,
+    holdMs: number,
+    now: number
+): Map<string, TrackedFight> {
+    const next = new Map<string, TrackedFight>();
+
+    for (const fight of detected) {
+        const previous = existing.get(fight.id);
+        const firstSeenAt = previous?.firstSeenAt ?? now;
+        const becameActive =
+            previous?.startedAt && previous.startedAt > 0
+                ? previous.startedAt
+                : now - firstSeenAt >= holdMs
+                    ? now
+                    : 0;
+
+        if (previous?.startedAt && now - previous.startedAt >= FIGHT_TIMEOUT_MS) {
+            continue;
+        }
+
+        next.set(fight.id, {
+            ...fight,
+            firstSeenAt,
+            startedAt: previous?.startedAt && previous.startedAt > 0 ? previous.startedAt : becameActive,
+            clearPollCount: 0,
+        });
+    }
+
+    for (const [id, trackedFight] of existing.entries()) {
+        if (next.has(id) || trackedFight.startedAt === 0) {
+            continue;
+        }
+
+        const updated = {
+            ...trackedFight,
+            clearPollCount: trackedFight.clearPollCount + 1,
+        };
+
         if (updated.clearPollCount < FIGHT_CLEAR_POLLS) {
-            out.set(id, updated);
+            next.set(id, updated);
         }
     }
+
+    return next;
 }
 
 export function useFightDetection({
     sections,
     thresholdSeconds,
+    holdSeconds,
+    requireSameLap,
+    ignorePitAndFinished,
     enabled,
 }: UseFightDetectionOptions): FightGroup[] {
     const [fights, setFights] = useState<FightGroup[]>([]);
-    // track existing fights by id for timeout/cooldown logic
-    const fightsRef = useRef<Map<string, FightGroup>>(new Map());
+    const fightsRef = useRef<Map<string, TrackedFight>>(new Map());
 
     useEffect(() => {
         if (!enabled) {
@@ -121,23 +141,34 @@ export function useFightDetection({
         }
 
         const now = Date.now();
-        const newFightMap = new Map<string, FightGroup>();
-
-        for (const section of sections) {
-            detectSectionFights(
+        const detected = sections.flatMap((section) =>
+            detectFightPairs(
                 section.rows,
                 thresholdSeconds,
-                now,
-                fightsRef.current,
-                newFightMap
-            );
-        }
+                requireSameLap,
+                ignorePitAndFinished
+            )
+        );
 
-        expireOldFights(fightsRef.current, newFightMap);
+        const tracked = trackFights(
+            detected,
+            fightsRef.current,
+            holdSeconds * 1000,
+            now
+        );
 
-        fightsRef.current = newFightMap;
-        setFights(Array.from(newFightMap.values()));
-    }, [sections, thresholdSeconds, enabled]);
+        fightsRef.current = tracked;
+        setFights(
+            Array.from(tracked.values()).filter((fight) => fight.startedAt > 0)
+        );
+    }, [
+        enabled,
+        holdSeconds,
+        ignorePitAndFinished,
+        requireSameLap,
+        sections,
+        thresholdSeconds,
+    ]);
 
     return fights;
 }

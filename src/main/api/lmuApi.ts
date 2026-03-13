@@ -251,7 +251,7 @@ function createTelemetryLookup(
   const byVehicle = new Map<string, TelemetryDriverSnapshot>();
   const byCarNumber = new Map<string, TelemetryDriverSnapshot[]>();
 
-  for (const car of telemetryCars) {
+  for (const car of telemetryCars ?? []) {
     const driverAndCarKey = `${normalizeLookup(car.driverName)}:${normalizeLookup(car.carNumber)}`;
     if (normalizeLookup(car.driverName) && normalizeLookup(car.carNumber)) {
       byDriverAndCar.set(driverAndCarKey, car);
@@ -555,7 +555,7 @@ export class LmuApiClient {
 
       this.consecutivePollFailures = 0;
       this.currentState = newState;
-      this.onStateUpdate?.(newState);
+      this.emitStateUpdate(newState);
     } catch {
       this.handlePollFailure();
     } finally {
@@ -577,7 +577,19 @@ export class LmuApiClient {
 
   private emitConnection(status: ConnectionStatus): void {
     this.currentState = { ...this.currentState, connection: status };
-    this.onConnectionChange?.(status);
+    try {
+      this.onConnectionChange?.(status);
+    } catch (error) {
+      console.warn("Failed to deliver connection update:", error);
+    }
+  }
+
+  private emitStateUpdate(state: AppState): void {
+    try {
+      this.onStateUpdate?.(state);
+    } catch (error) {
+      console.warn("Failed to deliver LMU state update:", error);
+    }
   }
 }
 

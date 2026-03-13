@@ -94,8 +94,12 @@ export default function TowerOverlay() {
         maxRowsPerClass: 5,
         standingsRefreshMs: 1000,
         fightEnabled: true,
+        fightOnlyInIntervalMode: true,
         fightThresholdSeconds: 0.25,
+        fightHoldSeconds: 3,
         fightDisabledLaps: 3,
+        fightRequireSameLap: true,
+        fightIgnorePitAndFinished: true,
         showCarNumber: true,
         showClassBar: true,
         animationSpeed: "normal" as const,
@@ -217,11 +221,16 @@ export default function TowerOverlay() {
     const fightEnabled =
         isRace &&
         towerSettings.fightEnabled &&
+        (!towerSettings.fightOnlyInIntervalMode ||
+            towerSettings.raceMode === "GAP_AHEAD") &&
         (appState.session?.currentLap ?? 0) > towerSettings.fightDisabledLaps;
 
     const fightGroups = useFightDetection({
         sections,
         thresholdSeconds: towerSettings.fightThresholdSeconds,
+        holdSeconds: towerSettings.fightHoldSeconds,
+        requireSameLap: towerSettings.fightRequireSameLap,
+        ignorePitAndFinished: towerSettings.fightIgnorePitAndFinished,
         enabled: fightEnabled,
     });
 

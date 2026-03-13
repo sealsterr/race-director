@@ -12,6 +12,18 @@ export const registerIpcHandlers = (
 ): void => {
   let previousStatus: ConnectionStatus = lmuClient.getState().connection;
 
+  const safeSend = (win: BrowserWindow, channel: string, payload: unknown): void => {
+    try {
+      if (win.isDestroyed() || win.webContents.isDestroyed()) {
+        return;
+      }
+
+      win.webContents.send(channel, payload);
+    } catch (error) {
+      console.warn(`Failed to send ${channel} to renderer:`, error);
+    }
+  };
+
   // -- lmu:connect --
   // -- renderer calls: await window.api.connect(url, pollRate) --
   ipcMain.handle(
@@ -22,18 +34,14 @@ export const registerIpcHandlers = (
       // -- when state updates arrive from polling loop, push to renderer -- 
       lmuClient.setStateUpdateCallback((state: AppState) => {
         BrowserWindow.getAllWindows().forEach((win) => {
-          if (!win.isDestroyed()) {
-            win.webContents.send("lmu:stateUpdate", state);
-          }
+          safeSend(win, "lmu:stateUpdate", state);
         });
       });
 
       // -- when connection status changes, push that too --
       lmuClient.setConnectionCallback((status: ConnectionStatus) => {
         BrowserWindow.getAllWindows().forEach((win) => {
-          if (!win.isDestroyed()) {
-            win.webContents.send("lmu:connectionChange", status);
-          }
+          safeSend(win, "lmu:connectionChange", status);
         });
 
         const lostConnection =

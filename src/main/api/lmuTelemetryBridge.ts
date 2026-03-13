@@ -19,6 +19,15 @@ interface TelemetrySnapshot {
     error: string | null;
 }
 
+interface RawTelemetrySnapshot {
+    timestamp?: number;
+    cars?: TelemetryDriverSnapshot[];
+    error?: string | null;
+    Timestamp?: number;
+    Cars?: TelemetryDriverSnapshot[];
+    Error?: string | null;
+}
+
 const EMPTY_SNAPSHOT: TelemetrySnapshot = {
     timestamp: 0,
     cars: [],
@@ -94,7 +103,11 @@ export class LmuTelemetryBridge {
     }
 
     public getLatestSnapshot(): TelemetrySnapshot {
-        return this.latestSnapshot;
+        return {
+            timestamp: this.latestSnapshot.timestamp ?? 0,
+            cars: Array.isArray(this.latestSnapshot.cars) ? this.latestSnapshot.cars : [],
+            error: this.latestSnapshot.error ?? null,
+        };
     }
 
     private consumeStdoutBuffer(): void {
@@ -108,7 +121,12 @@ export class LmuTelemetryBridge {
             }
 
             try {
-                this.latestSnapshot = JSON.parse(trimmed) as TelemetrySnapshot;
+                const parsed = JSON.parse(trimmed) as RawTelemetrySnapshot;
+                this.latestSnapshot = {
+                    timestamp: parsed.timestamp ?? parsed.Timestamp ?? 0,
+                    cars: parsed.cars ?? parsed.Cars ?? [],
+                    error: parsed.error ?? parsed.Error ?? null,
+                };
             } catch {
                 continue;
             }

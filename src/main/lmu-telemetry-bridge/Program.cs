@@ -6,10 +6,14 @@ using rF2SharedMemoryNet.RF2Data.Structs;
 
 var intervalMs = ParseInterval(args);
 using var reader = new RF2MemoryReader(enableDMA: true);
+var jsonOptions = new JsonSerializerOptions
+{
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+};
 
 while (true)
 {
-    Console.WriteLine(JsonSerializer.Serialize(ReadSnapshot(reader)));
+    Console.WriteLine(JsonSerializer.Serialize(ReadSnapshot(reader), jsonOptions));
     await Task.Delay(intervalMs);
 }
 

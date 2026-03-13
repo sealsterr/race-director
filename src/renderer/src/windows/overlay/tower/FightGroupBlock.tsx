@@ -27,8 +27,18 @@ export default function FightGroupBlock({
 }: FightGroupBlockProps) {
     return (
         <div style={{ marginBottom: 2 }}>
-            <FightBadge label={group.label} />
             <div style={{ position: "relative", borderRadius: 4, overflow: "visible" }}>
+                <div
+                    style={{
+                        position: "absolute",
+                        top: -10,
+                        left: 8,
+                        zIndex: 3,
+                        pointerEvents: "none",
+                    }}
+                >
+                    <FightBadge label={group.label} />
+                </div>
                 <AnimatePresence>
                     <motion.div
                         key={group.id}
@@ -37,6 +47,7 @@ export default function FightGroupBlock({
                         style={{
                             position: "absolute",
                             inset: -1,
+                            zIndex: 2,
                             border: "2px solid #facc15",
                             borderRadius: 4,
                             pointerEvents: "none",

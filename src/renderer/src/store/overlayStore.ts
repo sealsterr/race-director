@@ -35,8 +35,12 @@ export interface TowerSettings {
     maxRowsPerClass: number;
     standingsRefreshMs: number;
     fightEnabled: boolean;
+    fightOnlyInIntervalMode: boolean;
     fightThresholdSeconds: number;
+    fightHoldSeconds: number;
     fightDisabledLaps: number;
+    fightRequireSameLap: boolean;
+    fightIgnorePitAndFinished: boolean;
     showCarNumber: boolean;
     showClassBar: boolean;
     animationSpeed: "slow" | "normal" | "fast";
@@ -133,8 +137,12 @@ const DEFAULT_CONFIGS: OverlayConfig[] = [
             maxRowsPerClass: 5,
             standingsRefreshMs: 1000,
             fightEnabled: true,
+            fightOnlyInIntervalMode: true,
             fightThresholdSeconds: 0.25,
+            fightHoldSeconds: 3,
             fightDisabledLaps: 3,
+            fightRequireSameLap: true,
+            fightIgnorePitAndFinished: true,
             showCarNumber: true,
             showClassBar: true,
             animationSpeed: "normal",

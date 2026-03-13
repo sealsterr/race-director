@@ -22,7 +22,6 @@ export default function FightBadge({ label }: FightBadgeProps) {
                     borderRadius: 3,
                     backgroundColor: "#1e1e2e",
                     border: "1px solid #facc15",
-                    marginBottom: 2,
                 }}
             >
                 <motion.span

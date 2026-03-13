@@ -32,7 +32,7 @@ function TyreGlyph({
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                borderRadius: compact ? 3 : 4,
+                borderRadius: compact ? 3 : "999px",
                 backgroundColor: `${color}22`,
                 border: `1px solid ${color}55`,
                 color,

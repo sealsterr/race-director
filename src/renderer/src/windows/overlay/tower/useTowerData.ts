@@ -46,6 +46,67 @@ function formatFuel(fuel: number | null): string {
     return `${Math.round(fuel)}%`;
 }
 
+function formatLapDelta(lapsDown: number): string {
+    if (lapsDown <= 0) return "â€”";
+    return lapsDown === 1 ? "+1 LAP" : `+${lapsDown} LAPS`;
+}
+
+function resolveGapToClassLeader(
+    standing: DriverStanding,
+    classLeader: DriverStanding
+): number | null {
+    if (standing.slotId === classLeader.slotId) {
+        return null;
+    }
+
+    if (standing.lapsDown > classLeader.lapsDown) {
+        return null;
+    }
+
+    if (standing.gapToLeader !== null && classLeader.gapToLeader !== null) {
+        return Math.max(0, standing.gapToLeader - classLeader.gapToLeader);
+    }
+
+    if (standing.gapToLeader !== null && classLeader.gapToLeader === null) {
+        return standing.gapToLeader;
+    }
+
+    return null;
+}
+
+function buildClassGapMap(standings: DriverStanding[]): Map<number, number | null> {
+    const gapBySlotId = new Map<number, number | null>();
+    let cumulativeGap = 0;
+    let hasGapData = true;
+    const classLeader = standings[0];
+
+    if (!classLeader) {
+        return gapBySlotId;
+    }
+
+    gapBySlotId.set(classLeader.slotId, 0);
+
+    for (let index = 1; index < standings.length; index += 1) {
+        const standing = standings[index];
+
+        if (standing.lapsDown > classLeader.lapsDown) {
+            gapBySlotId.set(standing.slotId, null);
+            continue;
+        }
+
+        if (hasGapData && standing.intervalToAhead !== null) {
+            cumulativeGap += standing.intervalToAhead;
+            gapBySlotId.set(standing.slotId, cumulativeGap);
+            continue;
+        }
+
+        hasGapData = false;
+        gapBySlotId.set(standing.slotId, null);
+    }
+
+    return gapBySlotId;
+}
+
 function getFirstValidBestLapTime(
     standings: DriverStanding[]
 ): number | null {
@@ -141,7 +202,9 @@ export function useTowerData({
     function buildRow(
         standing: DriverStanding,
         classPosition: number,
-        leaderBestLapTime: number | null
+        leaderBestLapTime: number | null,
+        classLeader: DriverStanding,
+        classGapSeconds: number | null
     ): TowerRow {
         const base: Omit<TowerRow, never> = {
             key: `row-${standing.slotId}`,
@@ -192,13 +255,21 @@ export function useTowerData({
             };
         }
         
-        return buildRaceRow(base, standing, classPosition);
+        return buildRaceRow(
+            base,
+            standing,
+            classPosition,
+            classLeader,
+            classGapSeconds
+        );
     }
 
     function buildRaceRow(
         base: Omit<TowerRow, "displayValue">,
         standing: DriverStanding,
-        classPosition: number
+        classPosition: number,
+        classLeader: DriverStanding,
+        classGapSeconds: number | null
     ): TowerRow {
         const mode = settings.raceMode;
 
@@ -211,11 +282,28 @@ export function useTowerData({
         }
 
         if (mode === "GAP_LEADER") {
+            if (classPosition === 1) {
+                return {
+                    ...base,
+                    displayValue: "LEADER",
+                };
+            }
+
+            if (standing.lapsDown > classLeader.lapsDown) {
+                return {
+                    ...base,
+                    displayValue: formatLapDelta(
+                        standing.lapsDown - classLeader.lapsDown
+                    ),
+                };
+            }
+
             return {
                 ...base,
                 displayValue: formatGap(
-                    classPosition === 1 ? null : standing.gapToLeader,
-                    classPosition === 1
+                    classGapSeconds ??
+                        resolveGapToClassLeader(standing, classLeader),
+                    false
                 ),
             };
         }
@@ -262,8 +350,17 @@ export function useTowerData({
                 const sliced = classStandings.slice(0, settings.maxRowsPerClass);
                 const leaderBestLapTime =
                     getFirstValidBestLapTime(classStandings);
+                const classLeader = classStandings[0];
+                const classGapMap = buildClassGapMap(classStandings);
+                if (!classLeader) return { carClass, rows: [] };
                 const rows = sliced.map((s, i) =>
-                    buildRow(s, i + 1, leaderBestLapTime)
+                    buildRow(
+                        s,
+                        i + 1,
+                        leaderBestLapTime,
+                        classLeader,
+                        classGapMap.get(s.slotId) ?? null
+                    )
                 );
                 return { carClass, rows };
             });
@@ -273,8 +370,17 @@ export function useTowerData({
                 const classStandings = byClass.get(carClass) ?? [];
                 const leaderBestLapTime =
                     getFirstValidBestLapTime(classStandings);
+                const classLeader = classStandings[0];
+                const classGapMap = buildClassGapMap(classStandings);
+                if (!classLeader) return { carClass, rows: [] };
                 const rows = classStandings.map((s, i) =>
-                    buildRow(s, i + 1, leaderBestLapTime)
+                    buildRow(
+                        s,
+                        i + 1,
+                        leaderBestLapTime,
+                        classLeader,
+                        classGapMap.get(s.slotId) ?? null
+                    )
                 );
                 return { carClass, rows };
             });

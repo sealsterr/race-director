@@ -466,6 +466,11 @@ const TowerSettingsPanel = ({
                 value={s.fightEnabled}
                 onChange={(v) => set({ fightEnabled: v })}
             />
+            <Toggle
+                label="Only on INT mode"
+                value={s.fightOnlyInIntervalMode}
+                onChange={(v) => set({ fightOnlyInIntervalMode: v })}
+            />
             <Slider
                 label="Fight threshold"
                 value={s.fightThresholdSeconds}
@@ -476,12 +481,31 @@ const TowerSettingsPanel = ({
                 onChange={(v) => set({ fightThresholdSeconds: v })}
             />
             <Slider
+                label="Hold time"
+                value={s.fightHoldSeconds}
+                min={0}
+                max={10}
+                step={0.5}
+                unit="s"
+                onChange={(v) => set({ fightHoldSeconds: v })}
+            />
+            <Slider
                 label="Disable for opening laps"
                 value={s.fightDisabledLaps}
                 min={0}
                 max={10}
                 step={1}
                 onChange={(v) => set({ fightDisabledLaps: v })}
+            />
+            <Toggle
+                label="Same lap only"
+                value={s.fightRequireSameLap}
+                onChange={(v) => set({ fightRequireSameLap: v })}
+            />
+            <Toggle
+                label="Ignore pit/finish"
+                value={s.fightIgnorePitAndFinished}
+                onChange={(v) => set({ fightIgnorePitAndFinished: v })}
             />
 
             {/* class colors */}
@@ -1102,25 +1126,30 @@ const OverlayControl = (): React.ReactElement => {
     const [toasts, setToasts] = useState<Toast[]>([]);
     const [isSaving, setIsSaving] = useState(false);
 
-    // -- hydrate --
+    // -- overlay control does not need the full live push stream; pull snapshots instead
     useEffect(() => {
-        globalThis.api.getState().then((s) => {
-            useRaceStore.getState().setSession(s.session);
-            useRaceStore.getState().setStandings(s.standings);
-            useRaceStore.getState().setConnection(s.connection);
-        });
+        let cancelled = false;
 
-        const unsub1 = globalThis.api.onStateUpdate((s) => {
-            useRaceStore.getState().setSession(s.session);
-            useRaceStore.getState().setStandings(s.standings);
-        });
-        const unsub2 = globalThis.api.onConnectionChange((c) => {
-            useRaceStore.getState().setConnection(c);
-        });
+        const syncState = async (): Promise<void> => {
+            try {
+                const state = await globalThis.api.getState();
+                if (cancelled) return;
+                useRaceStore.getState().setSession(state.session);
+                useRaceStore.getState().setStandings(state.standings);
+                useRaceStore.getState().setConnection(state.connection);
+            } catch {
+                if (cancelled) return;
+            }
+        };
+
+        void syncState();
+        const timer = globalThis.setInterval(() => {
+            void syncState();
+        }, 1000);
 
         return () => {
-            unsub1();
-            unsub2();
+            cancelled = true;
+            globalThis.clearInterval(timer);
         };
     }, []);
 
