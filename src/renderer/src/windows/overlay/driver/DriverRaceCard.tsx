@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import type { DriverSettings } from "../../../store/overlayStore";
 import type { DriverStanding } from "../../../types/lmu";
 import { DriverCardShell } from "./DriverCardShell";
-import { FlagTag, MetricBadge } from "./DriverCardBits";
+import { BrandFlagTag, MetricBadge } from "./DriverCardBits";
 import { DriverLeftPanel } from "./DriverLeftPanel";
 import { DriverPanelFrame } from "./DriverPanelFrame";
 import { DriverRightPanel } from "./DriverRightPanel";
@@ -22,6 +22,8 @@ interface DriverRaceCardProps {
     readonly nameParts: { first: string; last: string };
     readonly brandMark: BrandMark;
     readonly nationalityMark: NationalityMark;
+    readonly isPreview: boolean;
+    readonly disableEnterAnimation?: boolean;
 }
 
 export function DriverRaceCard({
@@ -30,6 +32,8 @@ export function DriverRaceCard({
     nameParts,
     brandMark,
     nationalityMark,
+    isPreview,
+    disableEnterAnimation = false,
 }: DriverRaceCardProps): ReactElement {
     const classAccent = getClassAccent(driver.carClass);
     const hasVisibleParts =
@@ -43,7 +47,7 @@ export function DriverRaceCard({
         <DriverCardShell>
             <AnimatePresence initial={false} mode="popLayout">
                 {settings.showPart1 && (
-                    <DriverPanelFrame key="part1" width={208}>
+                    <DriverPanelFrame key="part1" width={208} disableEnterAnimation={disableEnterAnimation}>
                         <DriverLeftPanel
                             accent={classAccent}
                             accentGradient={getClassGradient(driver.carClass)}
@@ -59,7 +63,7 @@ export function DriverRaceCard({
                     </DriverPanelFrame>
                 )}
                 {settings.showPart2 && (
-                    <DriverPanelFrame key="part2" width={458}>
+                    <DriverPanelFrame key="part2" width={458} disableEnterAnimation={disableEnterAnimation}>
                         <motion.div
                             layout
                             style={{
@@ -77,14 +81,13 @@ export function DriverRaceCard({
                         >
                             <div>
                                 <div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}>
-                                    <div />
+                                    <div style={{ paddingTop: 2 }}>
+                                        <BrandFlagTag brandMark={brandMark} nationalityMark={nationalityMark} />
+                                    </div>
                                     <div style={{ display: "flex", gap: 10 }}>
                                         <MetricBadge label="LAST LAP" value={formatLapTime(driver.lastLapTime)} width={114} />
                                         <MetricBadge label="BEST LAP" value={formatLapTime(driver.bestLapTime)} width={114} />
                                     </div>
-                                </div>
-                                <div style={{ marginTop: 16 }}>
-                                    <FlagTag mark={nationalityMark} />
                                 </div>
                                 <div style={{ marginTop: 16 }}>
                                     <div style={firstNameStyle}>{nameParts.first}</div>
@@ -99,13 +102,8 @@ export function DriverRaceCard({
                     </DriverPanelFrame>
                 )}
                 {settings.showPart3 && (
-                    <DriverPanelFrame key="part3" width={182}>
-                        <DriverRightPanel
-                            brandMark={brandMark}
-                            modelName={driver.carName}
-                            showCarLogo={true}
-                            showCarModel={true}
-                        />
+                    <DriverPanelFrame key="part3" width={182} disableEnterAnimation={disableEnterAnimation}>
+                        <DriverRightPanel driver={driver} isPreview={isPreview} />
                     </DriverPanelFrame>
                 )}
             </AnimatePresence>

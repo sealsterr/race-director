@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import type { DriverSettings } from "../../../store/overlayStore";
 import type { DriverStanding, SectorTime } from "../../../types/lmu";
 import { DriverCardShell } from "./DriverCardShell";
-import { FlagTag } from "./DriverCardBits";
+import { BrandFlagTag } from "./DriverCardBits";
 import { DriverLeftPanel } from "./DriverLeftPanel";
 import { DriverPanelFrame } from "./DriverPanelFrame";
 import { DriverRightPanel } from "./DriverRightPanel";
@@ -25,6 +25,8 @@ interface DriverPracticeQualiCardProps {
     readonly nameParts: { first: string; last: string };
     readonly brandMark: BrandMark;
     readonly nationalityMark: NationalityMark;
+    readonly isPreview: boolean;
+    readonly disableEnterAnimation?: boolean;
 }
 
 export function DriverPracticeQualiCard({
@@ -35,6 +37,8 @@ export function DriverPracticeQualiCard({
     nameParts,
     brandMark,
     nationalityMark,
+    isPreview,
+    disableEnterAnimation = false,
 }: DriverPracticeQualiCardProps): ReactElement {
     const classAccent = getClassAccent(driver.carClass);
     const hasVisibleParts =
@@ -48,7 +52,7 @@ export function DriverPracticeQualiCard({
         <DriverCardShell>
             <AnimatePresence initial={false} mode="popLayout">
                 {settings.showPart1 && (
-                    <DriverPanelFrame key="part1" width={208}>
+                    <DriverPanelFrame key="part1" width={208} disableEnterAnimation={disableEnterAnimation}>
                         <DriverLeftPanel
                             accent={classAccent}
                             accentGradient={getClassGradient(driver.carClass)}
@@ -64,7 +68,7 @@ export function DriverPracticeQualiCard({
                     </DriverPanelFrame>
                 )}
                 {settings.showPart2 && (
-                    <DriverPanelFrame key="part2" width={458}>
+                    <DriverPanelFrame key="part2" width={458} disableEnterAnimation={disableEnterAnimation}>
                         <motion.div
                             layout
                             style={{
@@ -82,10 +86,8 @@ export function DriverPracticeQualiCard({
                         >
                             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
-                                    <div>
-                                        <div style={{ paddingTop: 6 }}>
-                                            <FlagTag mark={nationalityMark} />
-                                        </div>
+                                    <div style={{ paddingTop: 6 }}>
+                                        <BrandFlagTag brandMark={brandMark} nationalityMark={nationalityMark} />
                                     </div>
                                     <div style={{ textAlign: "right" }}>
                                         <div style={timerLabelStyle}>LAP TIMER</div>
@@ -109,13 +111,8 @@ export function DriverPracticeQualiCard({
                     </DriverPanelFrame>
                 )}
                 {settings.showPart3 && (
-                    <DriverPanelFrame key="part3" width={182}>
-                        <DriverRightPanel
-                            brandMark={brandMark}
-                            modelName={driver.carName}
-                            showCarLogo={true}
-                            showCarModel={true}
-                        />
+                    <DriverPanelFrame key="part3" width={182} disableEnterAnimation={disableEnterAnimation}>
+                        <DriverRightPanel driver={driver} isPreview={isPreview} />
                     </DriverPanelFrame>
                 )}
             </AnimatePresence>

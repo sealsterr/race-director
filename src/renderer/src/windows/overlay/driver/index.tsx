@@ -1,4 +1,4 @@
-import { useRef, type CSSProperties, type ReactElement } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from "react";
 import { DriverPracticeQualiCard } from "./DriverPracticeQualiCard";
 import { DriverRaceCard } from "./DriverRaceCard";
 import { useDriverCardData } from "./useDriverCardData";
@@ -27,12 +27,25 @@ export default function DriverOverlay(): ReactElement {
         nameParts,
         brandMark,
         nationalityMark,
+        isConfigReady,
+        isPreview,
     } = useDriverCardData();
     const contentRef = useRef<HTMLDivElement>(null);
+    const [disableEnterAnimation, setDisableEnterAnimation] = useState(true);
     const hasVisibleParts =
         overlayConfig.settings.showPart1 ||
         overlayConfig.settings.showPart2 ||
         overlayConfig.settings.showPart3;
+
+    useEffect(() => {
+        const frameId = requestAnimationFrame(() => {
+            setDisableEnterAnimation(false);
+        });
+
+        return () => {
+            cancelAnimationFrame(frameId);
+        };
+    }, []);
 
     useTowerWindowAutosize({
         enabled: true,
@@ -53,7 +66,7 @@ export default function DriverOverlay(): ReactElement {
                 ref={contentRef}
                 style={{
                     position: "relative",
-                    opacity,
+                    opacity: isConfigReady ? opacity : 0,
                     transform: `scale(${scale})`,
                     transformOrigin: "top left",
                     pointerEvents: dragMode ? "auto" : "none",
@@ -71,6 +84,8 @@ export default function DriverOverlay(): ReactElement {
                             nameParts={nameParts}
                             brandMark={brandMark}
                             nationalityMark={nationalityMark}
+                            isPreview={isPreview}
+                            disableEnterAnimation={disableEnterAnimation}
                         />
                     ) : (
                         <DriverPracticeQualiCard
@@ -81,6 +96,8 @@ export default function DriverOverlay(): ReactElement {
                             nameParts={nameParts}
                             brandMark={brandMark}
                             nationalityMark={nationalityMark}
+                            isPreview={isPreview}
+                            disableEnterAnimation={disableEnterAnimation}
                         />
                     )
                 ) : (

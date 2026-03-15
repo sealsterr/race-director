@@ -29,6 +29,7 @@ interface DriverCardData {
     readonly nameParts: { first: string; last: string };
     readonly brandMark: ReturnType<typeof getBrandMark>;
     readonly nationalityMark: ReturnType<typeof getNationalityMark>;
+    readonly isConfigReady: boolean;
 }
 
 function findSpectatedDriver(standings: DriverStanding[]): DriverStanding | null {
@@ -52,6 +53,7 @@ export function useDriverCardData(): DriverCardData {
             settings: DRIVER_DEFAULT_SETTINGS,
         }
     );
+    const [isConfigReady, setIsConfigReady] = useState(false);
     const appState = useBufferedAppState(100);
     const lapTrackerRef = useRef<{
         slotId: number | null;
@@ -84,6 +86,12 @@ export function useDriverCardData(): DriverCardData {
                     ...incoming,
                     settings: { ...DRIVER_DEFAULT_SETTINGS, ...incoming.settings },
                 });
+                setIsConfigReady(true);
+            })
+            .finally(() => {
+                if (!cancelled) {
+                    setIsConfigReady(true);
+                }
             });
 
         const unsubscribe = globalThis.api?.overlay?.onConfigUpdate?.((raw: unknown) => {
@@ -93,6 +101,7 @@ export function useDriverCardData(): DriverCardData {
                     ...incoming,
                     settings: { ...DRIVER_DEFAULT_SETTINGS, ...incoming.settings },
                 });
+                setIsConfigReady(true);
             }
         });
 
@@ -179,5 +188,6 @@ export function useDriverCardData(): DriverCardData {
         nameParts: getDriverNameParts(driver.driverName),
         brandMark: getBrandMark(driver.carName),
         nationalityMark: getNationalityMark(driver.driverName),
+        isConfigReady,
     };
 }

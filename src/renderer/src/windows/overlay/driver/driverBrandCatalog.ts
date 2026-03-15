@@ -1,7 +1,7 @@
-import ferrariLogo from "../../../assets/driver-logos/ferrari.svg";
+import ferrariLogo from "../../../assets/driver-logos/ferrari-official.png";
 import porscheLogo from "../../../assets/driver-logos/porsche.svg";
-import toyotaLogo from "../../../assets/driver-logos/toyota.svg";
-import cadillacLogo from "../../../assets/driver-logos/cadillac.svg";
+import toyotaLogo from "../../../assets/driver-logos/toyota-official.svg";
+import cadillacLogo from "../../../assets/driver-logos/cadillac-official.png";
 import peugeotLogo from "../../../assets/driver-logos/peugeot.svg";
 import alpineLogo from "../../../assets/driver-logos/alpine.svg";
 import bmwLogo from "../../../assets/driver-logos/bmw.svg";
@@ -12,6 +12,7 @@ import lexusLogo from "../../../assets/driver-logos/lexus.svg";
 import corvetteLogo from "../../../assets/driver-logos/corvette.svg";
 import fordLogo from "../../../assets/driver-logos/ford.svg";
 import orecaLogo from "../../../assets/driver-logos/oreca.svg";
+import mercedesLogo from "../../../assets/driver-logos/mercedes.svg";
 import genericLogo from "../../../assets/driver-logos/generic.svg";
 
 export interface BrandMark {
@@ -38,6 +39,7 @@ export const BRAND_MARKS: Array<{ match: RegExp; brand: BrandMark }> = [
     { match: /lexus|rc f/i, brand: { label: "Lexus", shortLabel: "LX", accent: "#a855f7", countryCode: "JP", countryColors: ["#ffffff", "#ef4444", "#ffffff"], logoTint: "#a855f7", logoSrc: lexusLogo } },
     { match: /corvette|z06|c8\.r/i, brand: { label: "Corvette", shortLabel: "CV", accent: "#f59e0b", countryCode: "US", countryColors: ["#1d4ed8", "#ffffff", "#dc2626"], logoTint: "#f59e0b", logoSrc: corvetteLogo } },
     { match: /ford|mustang/i, brand: { label: "Ford", shortLabel: "FD", accent: "#2563eb", countryCode: "US", countryColors: ["#1d4ed8", "#ffffff", "#dc2626"], logoTint: "#2563eb", logoSrc: fordLogo } },
+    { match: /mercedes|amg/i, brand: { label: "Mercedes-AMG", shortLabel: "MB", accent: "#cbd5e1", countryCode: "DE", countryColors: ["#111827", "#dc2626", "#facc15"], logoTint: "#cbd5e1", logoSrc: mercedesLogo } },
     { match: /oreca|07|lmp2/i, brand: { label: "Oreca", shortLabel: "OR", accent: "#94a3b8", countryCode: "FR", countryColors: ["#1d4ed8", "#ffffff", "#dc2626"], logoTint: "#cbd5e1", logoSrc: orecaLogo } },
 ];
 
