@@ -12,7 +12,6 @@ import {
     getClassAccent,
     getClassGradient,
     getClassLabel,
-    type BrandMark,
     type NationalityMark,
 } from "./driverCardUtils";
 
@@ -20,7 +19,6 @@ interface DriverRaceCardProps {
     readonly driver: DriverStanding;
     readonly settings: DriverSettings;
     readonly nameParts: { first: string; last: string };
-    readonly brandMark: BrandMark;
     readonly nationalityMark: NationalityMark;
     readonly isPreview: boolean;
     readonly disableEnterAnimation?: boolean;
@@ -30,7 +28,6 @@ export function DriverRaceCard({
     driver,
     settings,
     nameParts,
-    brandMark,
     nationalityMark,
     isPreview,
     disableEnterAnimation = false,
@@ -82,7 +79,7 @@ export function DriverRaceCard({
                             <div>
                                 <div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}>
                                     <div style={{ paddingTop: 2 }}>
-                                        <BrandFlagTag brandMark={brandMark} nationalityMark={nationalityMark} />
+                                        <BrandFlagTag nationalityMark={nationalityMark} />
                                     </div>
                                     <div style={{ display: "flex", gap: 10 }}>
                                         <MetricBadge label="LAST LAP" value={formatLapTime(driver.lastLapTime)} width={114} />

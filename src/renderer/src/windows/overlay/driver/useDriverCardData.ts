@@ -5,7 +5,6 @@ import type { DriverSettings, OverlayConfig } from "../../../store/overlayStore"
 import { useBufferedAppState } from "../tower/useBufferedAppState";
 import {
     DRIVER_DEFAULT_SETTINGS,
-    getBrandMark,
     getDriverNameParts,
     getNationalityMark,
     getSessionBestSectors,
@@ -27,7 +26,6 @@ interface DriverCardData {
     readonly opacity: number;
     readonly scale: number;
     readonly nameParts: { first: string; last: string };
-    readonly brandMark: ReturnType<typeof getBrandMark>;
     readonly nationalityMark: ReturnType<typeof getNationalityMark>;
     readonly isConfigReady: boolean;
 }
@@ -186,7 +184,6 @@ export function useDriverCardData(): DriverCardData {
         opacity: overlayConfig.opacity / 100,
         scale: overlayConfig.scale,
         nameParts: getDriverNameParts(driver.driverName),
-        brandMark: getBrandMark(driver.carName),
         nationalityMark: getNationalityMark(driver.driverName),
         isConfigReady,
     };

@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactElement } from "react";
 import { motion } from "framer-motion";
-import type { BrandMark, NationalityMark } from "./driverCardUtils";
+import type { NationalityMark } from "./driverCardUtils";
 
 export function FlagTag({ mark }: { readonly mark: NationalityMark }): ReactElement {
     return (
@@ -27,10 +27,8 @@ export function FlagTag({ mark }: { readonly mark: NationalityMark }): ReactElem
 }
 
 export function BrandFlagTag({
-    brandMark,
     nationalityMark,
 }: {
-    readonly brandMark: BrandMark;
     readonly nationalityMark: NationalityMark;
 }): ReactElement {
     return (
@@ -40,15 +38,13 @@ export function BrandFlagTag({
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             style={{ display: "inline-flex", alignItems: "center", gap: 12 }}
         >
-            <img
-                src={brandMark.logoSrc}
-                alt={brandMark.label}
+            <span
                 style={{
                     width: 40,
                     height: 24,
-                    objectFit: "contain",
-                    objectPosition: "left center",
-                    filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.22))",
+                    borderRadius: 6,
+                    border: "1px dashed rgba(109,117,141,0.36)",
+                    background: "rgba(18,21,31,0.26)",
                 }}
             />
             <FlagTag mark={nationalityMark} />

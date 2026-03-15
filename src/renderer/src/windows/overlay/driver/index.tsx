@@ -25,7 +25,6 @@ export default function DriverOverlay(): ReactElement {
         opacity,
         scale,
         nameParts,
-        brandMark,
         nationalityMark,
         isConfigReady,
         isPreview,
@@ -82,7 +81,6 @@ export default function DriverOverlay(): ReactElement {
                             driver={driver}
                             settings={overlayConfig.settings}
                             nameParts={nameParts}
-                            brandMark={brandMark}
                             nationalityMark={nationalityMark}
                             isPreview={isPreview}
                             disableEnterAnimation={disableEnterAnimation}
@@ -94,7 +92,6 @@ export default function DriverOverlay(): ReactElement {
                             currentLapTime={currentLapTime}
                             sessionBestSectors={sessionBestSectors}
                             nameParts={nameParts}
-                            brandMark={brandMark}
                             nationalityMark={nationalityMark}
                             isPreview={isPreview}
                             disableEnterAnimation={disableEnterAnimation}

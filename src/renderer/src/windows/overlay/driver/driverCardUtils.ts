@@ -3,14 +3,6 @@ import type {
     DriverCardMode,
     DriverSettings,
 } from "../../../store/overlayStore";
-import {
-    BRAND_MARKS,
-    GENERIC_BRAND_MARK,
-    type BrandMark,
-} from "./driverBrandCatalog";
-import { CAR_VISUALS, type CarVisual } from "./driverCarCatalog";
-export type { BrandMark } from "./driverBrandCatalog";
-export type { CarVisual } from "./driverCarCatalog";
 
 export type DriverVisualMode = "PRACTICE_QUALI" | "RACE";
 type SectorKey = "sector1" | "sector2" | "sector3";
@@ -67,20 +59,6 @@ export function getDriverNameParts(driverName: string): { first: string; last: s
         first: parts.slice(0, -1).join(" "),
         last: parts[parts.length - 1].toUpperCase(),
     };
-}
-
-export function getBrandMark(carName: string): BrandMark {
-    const normalizedName = carName.trim();
-    return BRAND_MARKS.find((candidate) => candidate.match.test(normalizedName))?.brand ?? {
-        ...GENERIC_BRAND_MARK,
-        label: normalizedName || GENERIC_BRAND_MARK.label,
-        shortLabel: (normalizedName || "RD").slice(0, 2).toUpperCase(),
-    };
-}
-
-export function getCarVisual(carName: string): CarVisual | null {
-    const normalizedName = carName.trim();
-    return CAR_VISUALS.find((candidate) => candidate.match.test(normalizedName))?.visual ?? null;
 }
 
 export function getNationalityMark(driverName: string): NationalityMark {

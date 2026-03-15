@@ -13,7 +13,6 @@ import {
     getClassAccent,
     getClassGradient,
     getClassLabel,
-    type BrandMark,
     type NationalityMark,
 } from "./driverCardUtils";
 
@@ -23,7 +22,6 @@ interface DriverPracticeQualiCardProps {
     readonly currentLapTime: number | null;
     readonly sessionBestSectors: SectorTime;
     readonly nameParts: { first: string; last: string };
-    readonly brandMark: BrandMark;
     readonly nationalityMark: NationalityMark;
     readonly isPreview: boolean;
     readonly disableEnterAnimation?: boolean;
@@ -35,7 +33,6 @@ export function DriverPracticeQualiCard({
     currentLapTime,
     sessionBestSectors,
     nameParts,
-    brandMark,
     nationalityMark,
     isPreview,
     disableEnterAnimation = false,
@@ -87,7 +84,7 @@ export function DriverPracticeQualiCard({
                             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
                                     <div style={{ paddingTop: 6 }}>
-                                        <BrandFlagTag brandMark={brandMark} nationalityMark={nationalityMark} />
+                                        <BrandFlagTag nationalityMark={nationalityMark} />
                                     </div>
                                     <div style={{ textAlign: "right" }}>
                                         <div style={timerLabelStyle}>LAP TIMER</div>
