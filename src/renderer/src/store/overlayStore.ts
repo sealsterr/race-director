@@ -20,7 +20,6 @@ export type TowerRaceMode =
 export type TowerQualiMode = "QUALI_GAP" | "QUALI_TIMES";
 
 export type DriverCardMode = "AUTO" | "PRACTICE_QUALI" | "RACE";
-export type DriverSectorLabelMode = "LABELS" | "TIMES";
 
 export type TowerViewLayout =
     | "CLASS_ONLY"
@@ -65,18 +64,9 @@ export interface TowerSettings {
 
 export interface DriverSettings {
     mode: DriverCardMode;
-    sectorLabelMode: DriverSectorLabelMode;
-    showFullName: boolean;
-    showNationality: boolean;
-    showCarNumber: boolean;
-    showPosition: boolean;
-    showClass: boolean;
-    showCarLogo: boolean;
-    showCarModel: boolean;
-    showSectorStrip: boolean;
-    showLapTimer: boolean;
-    showBestLap: boolean;
-    showLastLap: boolean;
+    showPart1: boolean;
+    showPart2: boolean;
+    showPart3: boolean;
     colorSessionBest: string;
     colorPersonalBest: string;
     colorCompleted: string;
@@ -168,18 +158,9 @@ const DEFAULT_CONFIGS: OverlayConfig[] = [
         dragMode: false,
         settings: {
             mode: "AUTO",
-            sectorLabelMode: "LABELS",
-            showFullName: true,
-            showNationality: true,
-            showCarNumber: true,
-            showPosition: true,
-            showClass: true,
-            showCarLogo: true,
-            showCarModel: true,
-            showSectorStrip: true,
-            showLapTimer: true,
-            showBestLap: true,
-            showLastLap: true,
+            showPart1: true,
+            showPart2: true,
+            showPart3: true,
             colorSessionBest: "#7c3aed",
             colorPersonalBest: "#22c55e",
             colorCompleted: "#f59e0b",

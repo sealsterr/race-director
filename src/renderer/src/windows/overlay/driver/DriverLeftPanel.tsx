@@ -24,7 +24,7 @@ export function DriverLeftPanel({
     readonly showPosition: boolean;
 }): ReactElement {
     return (
-        <div style={{ display: "flex", height: "100%", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", width: "100%", height: "100%", flexDirection: "column", gap: 10 }}>
             <div
                 style={{
                     position: "relative",

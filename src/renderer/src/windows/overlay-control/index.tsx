@@ -25,7 +25,6 @@ import type {
     TowerQualiMode,
     TowerViewLayout,
     DriverCardMode,
-    DriverSectorLabelMode,
     DriverSettings,
     GapSettings,
     SessionSettings,
@@ -60,7 +59,7 @@ const OVERLAY_META: OverlayMeta[] = [
         label: "Driver Card",
         description: "Driver information",
         icon: User,
-        defaultSize: { w: 872, h: 286 },
+        defaultSize: { w: 896, h: 286 },
     },
     {
         id: "OVERLAY-GAP",
@@ -546,28 +545,10 @@ const DriverSettingsPanel = ({
                 ]}
                 onChange={(v) => set({ mode: v as DriverCardMode })}
             />
-            <Select
-                label="Sector headers"
-                value={s.sectorLabelMode}
-                options={[
-                    { label: "S1 / S2 / S3", value: "LABELS" },
-                    { label: "Sector times", value: "TIMES" },
-                ]}
-                onChange={(v) => set({ sectorLabelMode: v as DriverSectorLabelMode })}
-            />
-
-            <PanelSection title="Displayed data" />
-            <Toggle label="Show full name" value={s.showFullName} onChange={(v) => set({ showFullName: v })} />
-            <Toggle label="Show nationality" value={s.showNationality} onChange={(v) => set({ showNationality: v })} />
-            <Toggle label="Show car number" value={s.showCarNumber} onChange={(v) => set({ showCarNumber: v })} />
-            <Toggle label="Show position" value={s.showPosition} onChange={(v) => set({ showPosition: v })} />
-            <Toggle label="Show class" value={s.showClass} onChange={(v) => set({ showClass: v })} />
-            <Toggle label="Show car logo" value={s.showCarLogo} onChange={(v) => set({ showCarLogo: v })} />
-            <Toggle label="Show car model" value={s.showCarModel} onChange={(v) => set({ showCarModel: v })} />
-            <Toggle label="Show sector strip" value={s.showSectorStrip} onChange={(v) => set({ showSectorStrip: v })} />
-            <Toggle label="Show lap timer" value={s.showLapTimer} onChange={(v) => set({ showLapTimer: v })} />
-            <Toggle label="Show last lap" value={s.showLastLap} onChange={(v) => set({ showLastLap: v })} />
-            <Toggle label="Show best lap" value={s.showBestLap} onChange={(v) => set({ showBestLap: v })} />
+            <PanelSection title="Parts" />
+            <Toggle label="Part 1: Left shapes" value={s.showPart1} onChange={(v) => set({ showPart1: v })} />
+            <Toggle label="Part 2: Center data" value={s.showPart2} onChange={(v) => set({ showPart2: v })} />
+            <Toggle label="Part 3: Right container" value={s.showPart3} onChange={(v) => set({ showPart3: v })} />
 
             <PanelSection title="Sector colors" />
             <ColorPicker label="Session best" value={s.colorSessionBest} onChange={(v) => set({ colorSessionBest: v })} />
@@ -923,14 +904,6 @@ const OverlayCard = ({
         });
     };
 
-    const handleDriverSectorModeChange = (nextValue: string): void => {
-        if (!driverCfg) return;
-
-        onSettingsChange("OVERLAY-DRIVER", {
-            sectorLabelMode: nextValue as DriverSectorLabelMode,
-        });
-    };
-
     return (
         <motion.div
             layout
@@ -1034,19 +1007,6 @@ const OverlayCard = ({
                                     <option value="AUTO">Auto</option>
                                     <option value="PRACTICE_QUALI">P / Q</option>
                                     <option value="RACE">Race</option>
-                                </select>
-                                <select
-                                    value={driverCfg.sectorLabelMode}
-                                    onChange={(e) => {
-                                        handleDriverSectorModeChange(e.target.value);
-                                        e.currentTarget.blur();
-                                    }}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="h-8 min-w-[138px] rounded-md border border-rd-border bg-rd-elevated px-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-rd-text outline-none transition-colors hover:border-rd-muted hover:bg-rd-surface focus:border-rd-accent cursor-pointer"
-                                    title="Sector headings"
-                                >
-                                    <option value="LABELS">S1 / S2 / S3</option>
-                                    <option value="TIMES">Sector Times</option>
                                 </select>
                             </div>
                         </div>

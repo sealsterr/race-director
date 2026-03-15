@@ -1,7 +1,6 @@
 import type { CarClass, DriverStanding, SectorTime } from "../../../types/lmu";
 import type {
     DriverCardMode,
-    DriverSectorLabelMode,
     DriverSettings,
 } from "../../../store/overlayStore";
 import {
@@ -36,18 +35,9 @@ const CLASS_ACCENTS: Record<CarClass, string> = {
 
 export const DRIVER_DEFAULT_SETTINGS: DriverSettings = {
     mode: "AUTO",
-    sectorLabelMode: "LABELS",
-    showFullName: true,
-    showNationality: true,
-    showCarNumber: true,
-    showPosition: true,
-    showClass: true,
-    showCarLogo: true,
-    showCarModel: true,
-    showSectorStrip: true,
-    showLapTimer: true,
-    showBestLap: true,
-    showLastLap: true,
+    showPart1: true,
+    showPart2: true,
+    showPart3: true,
     colorSessionBest: "#7c3aed",
     colorPersonalBest: "#22c55e",
     colorCompleted: "#f59e0b",
@@ -116,18 +106,6 @@ export function formatLapTime(seconds: number | null): string {
     const minutes = Math.floor(seconds / 60);
     const remainder = seconds % 60;
     return `${minutes}:${remainder.toFixed(3).padStart(6, "0")}`;
-}
-
-export function formatSectorHeading(
-    key: SectorKey,
-    value: number | null,
-    labelMode: DriverSectorLabelMode
-): string {
-    if (labelMode === "TIMES" && value !== null) {
-        return value >= 60 ? formatLapTime(value) : value.toFixed(3);
-    }
-
-    return key.toUpperCase().replace("SECTOR", "S");
 }
 
 export function getSectorColor(

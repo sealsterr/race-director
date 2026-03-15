@@ -70,6 +70,22 @@ export function useDriverCardData(): DriverCardData {
     }, [storeConfig]);
 
     useEffect(() => {
+        let cancelled = false;
+
+        void globalThis.api?.overlay
+            ?.getConfig?.("OVERLAY-DRIVER")
+            .then((raw: unknown) => {
+                if (cancelled || !raw) return;
+
+                const incoming = raw as OverlayConfig<DriverSettings>;
+                if (incoming?.id !== "OVERLAY-DRIVER") return;
+
+                setOverlayConfig({
+                    ...incoming,
+                    settings: { ...DRIVER_DEFAULT_SETTINGS, ...incoming.settings },
+                });
+            });
+
         const unsubscribe = globalThis.api?.overlay?.onConfigUpdate?.((raw: unknown) => {
             const incoming = raw as OverlayConfig<DriverSettings>;
             if (incoming?.id === "OVERLAY-DRIVER") {
@@ -81,6 +97,7 @@ export function useDriverCardData(): DriverCardData {
         });
 
         return () => {
+            cancelled = true;
             unsubscribe?.();
         };
     }, []);

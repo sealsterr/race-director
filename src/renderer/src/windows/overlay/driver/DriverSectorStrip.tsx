@@ -34,7 +34,7 @@ export function DriverSectorStrip({
                         : currentValue.toFixed(3);
 
                 return (
-                    <div key={sectorKey} style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+                    <div key={sectorKey} style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
                         <div style={headStyle}>
                             {label}
                         </div>
@@ -67,7 +67,7 @@ export function DriverSectorStrip({
 }
 
 const headStyle = {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 600,
     color: "#b3b8c8",
     textAlign: "center" as const,

@@ -1,4 +1,5 @@
 import type { ReactElement, ReactNode } from "react";
+import { motion } from "framer-motion";
 
 export function DriverCardShell({
     children,
@@ -6,19 +7,22 @@ export function DriverCardShell({
     readonly children: ReactNode;
 }): ReactElement {
     return (
-        <div
+        <motion.div
+            layout
+            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
             style={{
                 position: "relative",
-                width: 872,
+                width: "fit-content",
                 minHeight: 272,
                 padding: 10,
                 borderRadius: 12,
                 overflow: "hidden",
+                display: "inline-block",
                 color: "#f8fafc",
                 background: "linear-gradient(180deg, rgba(12,14,20,0.985), rgba(8,10,15,0.99))",
                 border: "1px solid rgba(120,129,151,0.22)",
                 boxShadow:
-                    "0 18px 42px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.05), inset 0 0 0 1px rgba(255,255,255,0.018)",
+                    "inset 0 1px 0 rgba(255,255,255,0.05), inset 0 0 0 1px rgba(255,255,255,0.018)",
                 fontFamily: "'Oxanium', 'Inter', sans-serif",
             }}
         >
@@ -35,14 +39,15 @@ export function DriverCardShell({
                 style={{
                     position: "relative",
                     zIndex: 1,
-                    display: "grid",
-                    gridTemplateColumns: "208px minmax(0,1fr) 182px",
+                    display: "flex",
+                    alignItems: "stretch",
                     gap: 12,
                     minHeight: 248,
+                    width: "fit-content",
                 }}
             >
                 {children}
             </div>
-        </div>
+        </motion.div>
     );
 }

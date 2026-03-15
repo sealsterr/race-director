@@ -481,7 +481,7 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
       { route: string; w: number; h: number }
     > = {
       "OVERLAY-TOWER":   { route: "overlay/tower",   w: 400,  h: 700 },
-      "OVERLAY-DRIVER":  { route: "overlay/driver",  w: 872,  h: 286 },
+      "OVERLAY-DRIVER":  { route: "overlay/driver",  w: 896,  h: 286 },
       "OVERLAY-GAP":     { route: "overlay/gap",     w: 460,  h: 100 },
       "OVERLAY-SESSION": { route: "overlay/session", w: 1920, h: 60  },
     };

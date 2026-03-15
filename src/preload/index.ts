@@ -107,6 +107,9 @@ const api = {
     pickLoadPath: () =>
       ipcRenderer.invoke("overlay:pickLoadPath"),
 
+    getConfig: (id: string) =>
+      ipcRenderer.invoke("overlay:getConfig", id),
+
     updateBounds: (
       id: string,
       x: number,

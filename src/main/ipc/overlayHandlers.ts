@@ -25,6 +25,8 @@ const ensureDir = (filePath: string): void => {
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 };
 
+const overlayConfigCache = new Map<string, unknown>();
+
 export const registerOverlayHandlers = (): void => {
     ipcMain.handle("overlay:getDefaultSavePath", (): string => {
         return getDefaultSavePath();
@@ -108,7 +110,23 @@ export const registerOverlayHandlers = (): void => {
         }));
     });
 
+    ipcMain.handle("overlay:getConfig", (_e, id: string): unknown | null => {
+        return overlayConfigCache.get(id) ?? null;
+    });
+
     ipcMain.handle("overlay:broadcastConfig", (_e, config: unknown): void => {
+        const overlayId =
+            typeof config === "object" &&
+            config !== null &&
+            "id" in config &&
+            typeof (config as { id?: unknown }).id === "string"
+                ? (config as { id: string }).id
+                : null;
+
+        if (overlayId) {
+            overlayConfigCache.set(overlayId, config);
+        }
+
         BrowserWindow.getAllWindows().forEach((win) => {
             if (!win.isDestroyed()) {
                 win.webContents.send("overlay:configUpdate", config);
