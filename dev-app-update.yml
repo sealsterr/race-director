@@ -1,3 +1,5 @@
-provider: generic
-url: https://example.com/auto-updates
+provider: github
+owner: sealsterr
+repo: race-director
+releaseType: release
 updaterCacheDirName: race-director-updater

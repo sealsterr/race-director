@@ -3,6 +3,7 @@ import { autoUpdater } from "electron-updater";
 import type { AppUpdaterState } from "../shared/updater";
 
 const UPDATE_POLL_INTERVAL_MS = 15 * 60 * 1000;
+const STARTUP_RECHECK_DELAY_MS = 30 * 1000;
 
 const getInitialUpdaterState = (): AppUpdaterState => {
   const version = app.getVersion();
@@ -20,7 +21,13 @@ const getInitialUpdaterState = (): AppUpdaterState => {
 
 let updaterState: AppUpdaterState = getInitialUpdaterState();
 let pollTimer: NodeJS.Timeout | null = null;
+let startupRetryTimer: NodeJS.Timeout | null = null;
 let isInitialized = false;
+let onBeforeInstall: (() => void) | null = null;
+
+interface AutoUpdaterInitOptions {
+  onBeforeInstall?: () => void;
+}
 
 const normalizeError = (value: unknown): string => {
   if (value instanceof Error && value.message) {
@@ -83,7 +90,8 @@ export const downloadUpdate = async (): Promise<AppUpdaterState> => {
   }
 
   if (updaterState.downloaded) {
-    autoUpdater.quitAndInstall();
+    onBeforeInstall?.();
+    autoUpdater.quitAndInstall(false, true);
     return updaterState;
   }
 
@@ -105,9 +113,12 @@ export const downloadUpdate = async (): Promise<AppUpdaterState> => {
   return updaterState;
 };
 
-export const initializeAutoUpdater = (): void => {
+export const initializeAutoUpdater = (
+  options: AutoUpdaterInitOptions = {}
+): void => {
   if (isInitialized) return;
   isInitialized = true;
+  onBeforeInstall = options.onBeforeInstall ?? null;
 
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
@@ -171,6 +182,9 @@ export const initializeAutoUpdater = (): void => {
 
   if (app.isPackaged) {
     void checkForAppUpdates();
+    startupRetryTimer = setTimeout(() => {
+      void checkForAppUpdates();
+    }, STARTUP_RECHECK_DELAY_MS);
     pollTimer = setInterval(() => {
       void checkForAppUpdates();
     }, UPDATE_POLL_INTERVAL_MS);
@@ -184,6 +198,10 @@ export const initializeAutoUpdater = (): void => {
   }
 
   app.on("before-quit", () => {
+    if (startupRetryTimer) {
+      clearTimeout(startupRetryTimer);
+      startupRetryTimer = null;
+    }
     if (!pollTimer) return;
     clearInterval(pollTimer);
     pollTimer = null;

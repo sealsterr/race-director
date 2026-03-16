@@ -621,7 +621,12 @@ const bootstrap = async (): Promise<void> => {
     registerOverlayHandlers();
     registerWindowIpc(mainWindow);
     registerUpdaterHandlers();
-    initializeAutoUpdater();
+    initializeAutoUpdater({
+      onBeforeInstall: () => {
+        isAppQuitting = true;
+        closeAllManagedWindows();
+      },
+    });
 
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createMainWindow();

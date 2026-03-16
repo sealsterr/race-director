@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Download, Settings2 } from "lucide-react";
+import { Download, RotateCw, Settings2 } from "lucide-react";
 import type { AppUpdaterState } from "../../../types/updater";
 
 interface SidebarSettingsButtonProps {
@@ -11,31 +11,46 @@ interface SidebarSettingsButtonProps {
 
 interface UpdateActionState {
   title: string;
-  canDownload: boolean;
+  canClick: boolean;
+  mode: "download" | "apply";
 }
 
 const getUpdateActionState = (
   updaterState: AppUpdaterState | null
 ): UpdateActionState => {
-  const hasNewVersion = Boolean(
-    updaterState?.hasUpdate
-  );
-
-  if (hasNewVersion) {
-    const latestVersion = updaterState?.latestVersion;
+  if (updaterState?.hasUpdate && updaterState.downloading) {
     return {
-      title: `New version ${latestVersion ?? ""} is available.`,
-      canDownload: Boolean(
+      title: "Downloading update in background.",
+      canClick: false,
+      mode: "download",
+    };
+  }
+
+  if (updaterState?.hasUpdate && updaterState.downloaded) {
+    return {
+      title: "Update is ready. Click to apply and restart.",
+      canClick: true,
+      mode: "apply",
+    };
+  }
+
+  if (updaterState?.hasUpdate) {
+    const latestVersion = updaterState.latestVersion;
+    return {
+      title: `New version ${latestVersion ?? ""} is available. Click to download.`,
+      canClick: Boolean(
         updaterState &&
           !updaterState.checking &&
           !updaterState.downloading
       ),
+      mode: "download",
     };
   }
 
   return {
     title: "App is up to date.",
-    canDownload: false,
+    canClick: false,
+    mode: "download",
   };
 };
 
@@ -59,8 +74,8 @@ const SidebarSettingsButton = ({
         whileTap={{ scale: 0.985 }}
         onClick={onSettingsClick}
         className="
-          group flex min-w-0 flex-1 items-center gap-3 rounded border border-transparent
-          px-1.5 py-1 text-left transition-colors duration-150 hover:border-rd-border/70
+          group flex min-w-0 flex-1 items-center gap-3 rounded
+          px-1.5 py-1 text-left transition-colors duration-150
         "
       >
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-rd-border/50 text-rd-muted">
@@ -77,19 +92,23 @@ const SidebarSettingsButton = ({
       <button
         type="button"
         onClick={onDownloadUpdate}
-        disabled={!actionState.canDownload}
+        disabled={!actionState.canClick}
         title={actionState.title}
         className={`
           flex h-8 w-8 shrink-0 items-center justify-center rounded bg-transparent
           transition-colors duration-150
           ${
-            actionState.canDownload
+            actionState.canClick
               ? "cursor-pointer text-rd-gold hover:bg-rd-gold/10"
               : "cursor-not-allowed text-rd-subtle opacity-45"
           }
         `}
       >
-        <Download size={16} />
+        {actionState.mode === "apply" ? (
+          <RotateCw size={16} />
+        ) : (
+          <Download size={16} />
+        )}
       </button>
     </div>
   );
