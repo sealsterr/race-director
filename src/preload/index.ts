@@ -4,6 +4,7 @@ import type {
   AppState,
   TelemetrySnapshot,
 } from "../renderer/src/types/lmu";
+import type { AppUpdaterState } from "../shared/updater";
 
 const api = {
   // -- connection --
@@ -105,6 +106,30 @@ const api = {
 
     confirmQuit: (dontAskAgain: boolean): Promise<void> =>
       ipcRenderer.invoke("system:confirmQuit", dontAskAgain),
+  },
+
+  updater: {
+    getState: (): Promise<AppUpdaterState> =>
+      ipcRenderer.invoke("updater:getState"),
+
+    check: (): Promise<AppUpdaterState> =>
+      ipcRenderer.invoke("updater:check"),
+
+    download: (): Promise<AppUpdaterState> =>
+      ipcRenderer.invoke("updater:download"),
+
+    onStateChange: (
+      callback: (state: AppUpdaterState) => void
+    ): (() => void) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        state: AppUpdaterState
+      ): void => {
+        callback(state);
+      };
+      ipcRenderer.on("updater:state", handler);
+      return () => ipcRenderer.removeListener("updater:state", handler);
+    },
   },
 
   // -- overlay management --

@@ -4,6 +4,7 @@ import Sidebar, { WINDOW_DEFINITIONS } from "./components/Sidebar";
 import ConnectionPanel from "./components/ConnectionPanel";
 import SessionPanel from "./components/SessionPanel";
 import ActivityLog from "./components/ActivityLog";
+import useAppUpdater from "./hooks/useAppUpdater";
 import { useRaceStore } from "../../store/raceStore";
 import type {
   LogEntry,
@@ -50,6 +51,7 @@ const Dashboard = (): React.ReactElement => {
   const [windows, setWindows] = useState<WindowItem[]>(
     WINDOW_DEFINITIONS.map((def) => ({ ...def, isOpen: false }))
   );
+  const { updaterState, downloadUpdate } = useAppUpdater();
 
   const addLog = useCallback(
     (message: string, type: LogType = "INFO") => {
@@ -128,12 +130,22 @@ const Dashboard = (): React.ReactElement => {
     [windows, addLog]
   );
 
+  const handleSettingsClick = useCallback(() => {
+    addLog("Settings panel is coming soon.", "INFO");
+  }, [addLog]);
+
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-rd-bg">
       <TopBar connection={connection} />
 
       <div className="flex min-h-0 flex-1">
-        <Sidebar windows={windows} onLaunch={handleLaunch} />
+        <Sidebar
+          windows={windows}
+          onLaunch={handleLaunch}
+          onSettingsClick={handleSettingsClick}
+          updaterState={updaterState}
+          onDownloadUpdate={downloadUpdate}
+        />
 
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-4">
           <div className="grid grid-cols-2 gap-3">

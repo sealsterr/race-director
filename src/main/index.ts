@@ -4,6 +4,8 @@ import { dirname, join } from "node:path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import { registerIpcHandlers } from "./ipc/handlers";
 import { registerOverlayHandlers } from "./ipc/overlayHandlers";
+import { registerUpdaterHandlers } from "./ipc/updaterHandlers";
+import { initializeAutoUpdater } from "./updater";
 
 const DASHBOARD_WIDTH = 1100;
 const DASHBOARD_HEIGHT = 700;
@@ -618,6 +620,8 @@ const bootstrap = async (): Promise<void> => {
     registerIpcHandlers(mainWindow, handleConnectionLost);
     registerOverlayHandlers();
     registerWindowIpc(mainWindow);
+    registerUpdaterHandlers();
+    initializeAutoUpdater();
 
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createMainWindow();

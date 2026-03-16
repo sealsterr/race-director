@@ -8,10 +8,15 @@ import {
   Lock,
 } from "lucide-react";
 import type { WindowId, WindowItem } from "../../../types/dashboard";
+import type { AppUpdaterState } from "../../../types/updater";
+import SidebarSettingsButton from "./SidebarSettingsButton";
 
 interface SidebarProps {
   windows: WindowItem[];
   onLaunch: (id: WindowId) => void;
+  onSettingsClick?: () => void;
+  updaterState: AppUpdaterState | null;
+  onDownloadUpdate: () => void;
 }
 
 // -- icon map -- 
@@ -119,11 +124,17 @@ const WindowButton = ({ item, onLaunch }: WindowButtonProps): React.ReactElement
   );
 };
 
-const Sidebar = ({ windows, onLaunch }: SidebarProps): React.ReactElement => {
+const Sidebar = ({
+  windows,
+  onLaunch,
+  onSettingsClick,
+  updaterState,
+  onDownloadUpdate,
+}: SidebarProps): React.ReactElement => {
   return (
     <div
       className="
-        flex w-64 shrink-0 flex-col border-r border-rd-border
+        flex min-h-0 w-64 shrink-0 flex-col border-r border-rd-border
         bg-rd-surface
       "
     >
@@ -135,10 +146,20 @@ const Sidebar = ({ windows, onLaunch }: SidebarProps): React.ReactElement => {
       </div>
 
       {/* -- window buttons -- */}
-      <div className="flex flex-col gap-1.5 px-3">
-        {windows.map((item) => (
-          <WindowButton key={item.id} item={item} onLaunch={onLaunch} />
-        ))}
+      <div className="flex min-h-0 flex-1 flex-col px-3 pb-3">
+        <div className="flex flex-col gap-1.5">
+          {windows.map((item) => (
+            <WindowButton key={item.id} item={item} onLaunch={onLaunch} />
+          ))}
+        </div>
+
+        <div className="mt-auto pt-4">
+          <SidebarSettingsButton
+            onSettingsClick={onSettingsClick}
+            updaterState={updaterState}
+            onDownloadUpdate={onDownloadUpdate}
+          />
+        </div>
       </div>
     </div>
   );
