@@ -1,5 +1,9 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { ConnectionStatus, AppState } from "../renderer/src/types/lmu";
+import type {
+  ConnectionStatus,
+  AppState,
+  TelemetrySnapshot,
+} from "../renderer/src/types/lmu";
 
 const api = {
   // -- connection --
@@ -22,6 +26,9 @@ const api = {
   // -- state --
   getState: (): Promise<AppState> =>
     ipcRenderer.invoke("lmu:getState"),
+
+  getTelemetry: (): Promise<TelemetrySnapshot> =>
+    ipcRenderer.invoke("lmu:getTelemetry"),
 
   // -- event subscriptions --
   onStateUpdate: (
@@ -48,6 +55,19 @@ const api = {
     };
     ipcRenderer.on("lmu:connectionChange", handler);
     return () => ipcRenderer.removeListener("lmu:connectionChange", handler);
+  },
+
+  onTelemetryUpdate: (
+    callback: (snapshot: TelemetrySnapshot) => void
+  ): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      snapshot: TelemetrySnapshot
+    ): void => {
+      callback(snapshot);
+    };
+    ipcRenderer.on("lmu:telemetryUpdate", handler);
+    return () => ipcRenderer.removeListener("lmu:telemetryUpdate", handler);
   },
 
   // -- window management --

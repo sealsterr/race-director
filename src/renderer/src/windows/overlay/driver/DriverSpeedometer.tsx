@@ -23,12 +23,16 @@ export function DriverSpeedometer({
     brakeLevel,
 }: DriverSpeedometerProps): ReactElement {
     const progress = Math.max(0, Math.min(1, rpm / MAX_RPM));
+    const speedDisplay = Math.max(0, Math.round(speedKph));
+    const rpmDisplay = Math.max(0, Math.round(rpm));
+    const fuelDisplay = Math.max(0, Math.round(fuelLevel));
+    const veDisplay = Math.max(0, Math.round(veLevel));
 
     return (
         <div style={panelStyle}>
             <div style={topRowStyle}>
-                <TopMetric label="FUEL" value={`${fuelLevel}%`} tone="#f6ad2e" />
-                <TopMetric label="VE" value={`${veLevel}%`} tone="#5ad1c7" />
+                <TopMetric label="FUEL" value={`${fuelDisplay}%`} tone="#f6ad2e" />
+                <TopMetric label="VE" value={`${veDisplay}%`} tone="#5ad1c7" />
             </div>
             <div style={gaugeWrapStyle}>
                 <svg width="100%" height="122" viewBox="0 0 176 122" style={{ overflow: "visible" }}>
@@ -56,29 +60,21 @@ export function DriverSpeedometer({
                         pathLength={1}
                         initial={false}
                         animate={{ pathLength: progress }}
-                        transition={{ type: "spring", stiffness: 88, damping: 20 }}
+                        transition={{ duration: 0.06, ease: "linear" }}
                         style={{ filter: "drop-shadow(0 0 12px rgba(239,68,68,0.14))" }}
                     />
                 </svg>
                 <div style={readoutStyle}>
                     <motion.div
-                        key={speedKph}
-                        initial={{ opacity: 0.65, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                         style={speedValueStyle}
                     >
-                        {speedKph}
+                        {speedDisplay}
                     </motion.div>
                     <div style={speedUnitStyle}>KM/H</div>
                     <motion.div
-                        key={rpm}
-                        initial={{ opacity: 0.65, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                         style={rpmStyle}
                     >
-                        {rpm.toLocaleString()} RPM
+                        {rpmDisplay.toLocaleString()} RPM
                     </motion.div>
                 </div>
             </div>
@@ -99,13 +95,7 @@ function TopMetric({
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
             <span style={labelStyle}>{label}</span>
-            <motion.span
-                key={value}
-                initial={{ opacity: 0.7, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                style={{ ...valueStyle, color: tone }}
-            >
+            <motion.span style={{ ...valueStyle, color: tone }}>
                 {value}
             </motion.span>
         </div>

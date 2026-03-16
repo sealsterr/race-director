@@ -2,29 +2,16 @@ import { app } from "electron";
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import type { DriverTelemetrySnapshot, TelemetrySnapshot } from "../../shared/types";
 
-export interface TelemetryDriverSnapshot {
-    id: number;
-    driverName: string;
-    vehicleName: string;
-    carNumber: string;
-    fuelPercentage: number | null;
-    frontTyreCompound: string;
-    rearTyreCompound: string;
-}
-
-interface TelemetrySnapshot {
-    timestamp: number;
-    cars: TelemetryDriverSnapshot[];
-    error: string | null;
-}
+export type TelemetryDriverSnapshot = DriverTelemetrySnapshot;
 
 interface RawTelemetrySnapshot {
     timestamp?: number;
-    cars?: TelemetryDriverSnapshot[];
+    cars?: DriverTelemetrySnapshot[];
     error?: string | null;
     Timestamp?: number;
-    Cars?: TelemetryDriverSnapshot[];
+    Cars?: DriverTelemetrySnapshot[];
     Error?: string | null;
 }
 
@@ -38,6 +25,7 @@ export class LmuTelemetryBridge {
     private process: ChildProcess | null = null;
     private latestSnapshot: TelemetrySnapshot = EMPTY_SNAPSHOT;
     private stdoutBuffer = "";
+    private onSnapshot: ((snapshot: TelemetrySnapshot) => void) | null = null;
 
     public start(intervalMs: number): void {
         if (this.process) {
@@ -100,6 +88,7 @@ export class LmuTelemetryBridge {
         this.process = null;
         this.stdoutBuffer = "";
         this.latestSnapshot = EMPTY_SNAPSHOT;
+        this.onSnapshot?.(this.getLatestSnapshot());
     }
 
     public getLatestSnapshot(): TelemetrySnapshot {
@@ -108,6 +97,10 @@ export class LmuTelemetryBridge {
             cars: Array.isArray(this.latestSnapshot.cars) ? this.latestSnapshot.cars : [],
             error: this.latestSnapshot.error ?? null,
         };
+    }
+
+    public setSnapshotCallback(callback: ((snapshot: TelemetrySnapshot) => void) | null): void {
+        this.onSnapshot = callback;
     }
 
     private consumeStdoutBuffer(): void {
@@ -127,6 +120,7 @@ export class LmuTelemetryBridge {
                     cars: parsed.cars ?? parsed.Cars ?? [],
                     error: parsed.error ?? parsed.Error ?? null,
                 };
+                this.onSnapshot?.(this.getLatestSnapshot());
             } catch {
                 continue;
             }

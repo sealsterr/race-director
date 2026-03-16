@@ -75,6 +75,7 @@ export interface DriverStanding {
     position: number;
     carNumber: string;
     driverName: string;
+    nationalityCode: string | null;
     teamName: string;
     carClass: CarClass;
     carName: string;
@@ -92,8 +93,32 @@ export interface DriverStanding {
     pitStopCount: number;
     penalties: Penalty[];
     status: DriverStatus;
-    isPlayer: boolean; // is this the spectated car?
+    isPlayer: boolean; // is this the local player?
+    isFocused: boolean; // is this the currently spectated car?
     slotId: number;
+    telemetryId: number | null;
+}
+
+export interface DriverTelemetrySnapshot {
+    id: number;
+    driverName: string;
+    vehicleName: string;
+    carNumber: string;
+    fuelPercentage: number | null;
+    batteryChargePercentage: number | null;
+    engineMap: number | null;
+    speedKph: number | null;
+    rpm: number | null;
+    throttle: number | null;
+    brake: number | null;
+    frontTyreCompound: string;
+    rearTyreCompound: string;
+}
+
+export interface TelemetrySnapshot {
+    timestamp: number;
+    cars: DriverTelemetrySnapshot[];
+    error: string | null;
 }
 
 export type PenaltyType =

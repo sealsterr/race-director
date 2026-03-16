@@ -18,6 +18,7 @@ import {
   telemetryBridge,
   type TelemetryDriverSnapshot,
 } from "./lmuTelemetryBridge";
+import { loadPlayerProfile } from "./lmuPlayerProfile";
 
 // -- raw API shapes --
 // -- these match what the LMU REST API actually returns --
@@ -224,6 +225,8 @@ const cleanCarName = (vehicleName: string): string => {
 const normalizeLookup = (value: string): string =>
   value.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
+const playerProfile = loadPlayerProfile();
+
 const buildTyreSet = (
   front: TyreCompound,
   rear: TyreCompound
@@ -238,6 +241,26 @@ const buildTyreSet = (
     rearLeft: rear,
     rearRight: rear,
   };
+};
+
+const resolveDriverNationality = (raw: RawVehicleStanding): string | null => {
+  if (!playerProfile) {
+    return null;
+  }
+
+  const normalizedDriver = normalizeLookup(raw.driverName);
+  const normalizedCarNumber = normalizeLookup(extractCarNumber(raw));
+  const matchesPlayerName = normalizedDriver !== "" && (
+    normalizedDriver === normalizeLookup(playerProfile.playerName ?? "") ||
+    normalizedDriver === normalizeLookup(playerProfile.playerNick ?? "")
+  );
+  const matchesVehicleNumber =
+    normalizedCarNumber !== "" &&
+    normalizedCarNumber === normalizeLookup(playerProfile.vehicleNumber ?? "");
+
+  return matchesPlayerName || (raw.player && matchesVehicleNumber)
+    ? playerProfile.nationalityCode
+    : null;
 };
 
 function createTelemetryLookup(
@@ -384,6 +407,7 @@ const transformVehicle = (
     position: raw.position,
     carNumber: extractCarNumber(raw),
     driverName: raw.driverName,
+    nationalityCode: resolveDriverNationality(raw),
     teamName: raw.fullTeamName,
     carClass: mapCarClass(raw.carClass, raw.vehicleName, raw.vehicleFilename),
     carName: cleanCarName(raw.vehicleName),
@@ -401,8 +425,10 @@ const transformVehicle = (
     pitStopCount: raw.pitstops,
     penalties: mapPenalties(raw.penalties),
     status: mapDriverStatus(raw),
-    isPlayer: raw.player || raw.hasFocus,
+    isPlayer: raw.player,
+    isFocused: raw.focus || raw.hasFocus,
     slotId: raw.slotID,
+    telemetryId: telemetry?.id ?? null,
   };
 };
 
@@ -414,6 +440,7 @@ type ConnectionCallback = (status: ConnectionStatus) => void;
 export class LmuApiClient {
   private baseUrl: string = "http://localhost:6397";
   private pollRate: number = 200;
+  private telemetryRate: number = 33;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private pollInFlight = false;
   private consecutivePollFailures = 0;
@@ -456,7 +483,8 @@ export class LmuApiClient {
       return;
     }
     this.emitConnection("CONNECTED");
-    telemetryBridge.start(this.pollRate);
+    telemetryBridge.start(this.telemetryRate);
+    void this.poll();
     this.startPolling();
   }
 

@@ -19,8 +19,6 @@ export type TowerRaceMode =
 
 export type TowerQualiMode = "QUALI_GAP" | "QUALI_TIMES";
 
-export type DriverCardMode = "AUTO" | "PRACTICE_QUALI" | "RACE";
-
 export type TowerViewLayout =
     | "CLASS_ONLY"
     | "MIXED_TOP"
@@ -63,7 +61,6 @@ export interface TowerSettings {
 }
 
 export interface DriverSettings {
-    mode: DriverCardMode;
     showPart1: boolean;
     showPart2: boolean;
     showPart3: boolean;
@@ -157,7 +154,6 @@ const DEFAULT_CONFIGS: OverlayConfig[] = [
         displayId: 0,
         dragMode: false,
         settings: {
-            mode: "AUTO",
             showPart1: true,
             showPart2: true,
             showPart3: true,

@@ -5,10 +5,11 @@ import type { DriverSettings, OverlayConfig } from "../../../store/overlayStore"
 import { useBufferedAppState } from "../tower/useBufferedAppState";
 import {
     DRIVER_DEFAULT_SETTINGS,
+    getClassBestLapTime,
+    getClassPosition,
     getDriverNameParts,
     getNationalityMark,
     getSessionBestSectors,
-    resolveDriverMode,
 } from "./driverCardUtils";
 import {
     MOCK_DRIVER,
@@ -20,18 +21,24 @@ interface DriverCardData {
     readonly driver: DriverStanding;
     readonly currentLapTime: number | null;
     readonly sessionBestSectors: ReturnType<typeof getSessionBestSectors>;
-    readonly mode: ReturnType<typeof resolveDriverMode>;
     readonly isPreview: boolean;
     readonly dragMode: boolean;
     readonly opacity: number;
     readonly scale: number;
+    readonly classPosition: number;
+    readonly classBestLapTime: number | null;
     readonly nameParts: { first: string; last: string };
     readonly nationalityMark: ReturnType<typeof getNationalityMark>;
+    readonly telemetryAnchorTime: number | null;
+    readonly telemetryAnchorTimestamp: number | null;
     readonly isConfigReady: boolean;
 }
 
 function findSpectatedDriver(standings: DriverStanding[]): DriverStanding | null {
-    return standings.find((standing) => standing.isPlayer) ?? standings[0] ?? null;
+    return standings.find((standing) => standing.isFocused)
+        ?? standings.find((standing) => standing.isPlayer)
+        ?? standings[0]
+        ?? null;
 }
 
 export function useDriverCardData(): DriverCardData {
@@ -166,8 +173,6 @@ export function useDriverCardData(): DriverCardData {
         : sessionTime !== null && lapTrackerRef.current.lapStartTime !== null
             ? Math.max(0, sessionTime - lapTrackerRef.current.lapStartTime)
             : null;
-    const mode = resolveDriverMode(settings.mode, appState.session?.sessionType);
-
     return {
         overlayConfig: {
             ...overlayConfig,
@@ -178,13 +183,16 @@ export function useDriverCardData(): DriverCardData {
         sessionBestSectors: isPreview
             ? MOCK_SESSION_BEST_SECTORS
             : getSessionBestSectors(appState.standings),
-        mode,
         isPreview,
         dragMode: overlayConfig.dragMode,
         opacity: overlayConfig.opacity / 100,
         scale: overlayConfig.scale,
+        classPosition: isPreview ? 2 : getClassPosition(appState.standings, driver),
+        classBestLapTime: isPreview ? MOCK_DRIVER.bestLapTime : getClassBestLapTime(appState.standings, driver),
         nameParts: getDriverNameParts(driver.driverName),
-        nationalityMark: getNationalityMark(driver.driverName),
+        nationalityMark: getNationalityMark(driver.driverName, driver.nationalityCode),
+        telemetryAnchorTime: currentLapTime,
+        telemetryAnchorTimestamp: appState.lastUpdated,
         isConfigReady,
     };
 }

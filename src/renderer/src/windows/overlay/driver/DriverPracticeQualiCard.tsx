@@ -8,6 +8,7 @@ import { DriverLeftPanel } from "./DriverLeftPanel";
 import { DriverPanelFrame } from "./DriverPanelFrame";
 import { DriverRightPanel } from "./DriverRightPanel";
 import { DriverSectorStrip } from "./DriverSectorStrip";
+import { useDriverSectorHighlights } from "./useDriverSectorHighlights";
 import {
     formatLapTime,
     getClassAccent,
@@ -16,10 +17,16 @@ import {
     type NationalityMark,
 } from "./driverCardUtils";
 
+function formatBestLapLabel(bestLapTime: number | null): string {
+    return bestLapTime === null ? "NO LAP SET" : formatLapTime(bestLapTime);
+}
+
 interface DriverPracticeQualiCardProps {
     readonly driver: DriverStanding;
     readonly settings: DriverSettings;
+    readonly classPosition: number;
     readonly currentLapTime: number | null;
+    readonly classBestLapTime: number | null;
     readonly sessionBestSectors: SectorTime;
     readonly nameParts: { first: string; last: string };
     readonly nationalityMark: NationalityMark;
@@ -30,7 +37,9 @@ interface DriverPracticeQualiCardProps {
 export function DriverPracticeQualiCard({
     driver,
     settings,
+    classPosition,
     currentLapTime,
+    classBestLapTime,
     sessionBestSectors,
     nameParts,
     nationalityMark,
@@ -38,6 +47,16 @@ export function DriverPracticeQualiCard({
     disableEnterAnimation = false,
 }: DriverPracticeQualiCardProps): ReactElement {
     const classAccent = getClassAccent(driver.carClass);
+    const sectorHighlight = useDriverSectorHighlights({
+        currentSectors: driver.currentSectors,
+        bestSectors: driver.bestSectors,
+        sessionBestSectors,
+        lastLapTime: driver.lastLapTime,
+        bestLapTime: driver.bestLapTime,
+        classBestLapTime,
+        settings,
+        enabled: !isPreview,
+    });
     const hasVisibleParts =
         settings.showPart1 || settings.showPart2 || settings.showPart3;
 
@@ -53,14 +72,15 @@ export function DriverPracticeQualiCard({
                         <DriverLeftPanel
                             accent={classAccent}
                             accentGradient={getClassGradient(driver.carClass)}
-                            position={driver.position}
+                            position={classPosition}
                             carNumber={driver.carNumber}
                             carClass={getClassLabel(driver.carClass)}
-                            bestLap={formatLapTime(driver.bestLapTime)}
+                            bestLap={formatBestLapLabel(driver.bestLapTime)}
                             showCarNumber={true}
                             showBestLap={true}
                             showClass={true}
                             showPosition={true}
+                            bestLapColor={sectorHighlight.bestLapColor}
                         />
                     </DriverPanelFrame>
                 )}
@@ -98,10 +118,7 @@ export function DriverPracticeQualiCard({
                             </div>
                             <div style={{ paddingTop: 0 }}>
                                 <DriverSectorStrip
-                                    currentSectors={driver.currentSectors}
-                                    bestSectors={driver.bestSectors}
-                                    sessionBestSectors={sessionBestSectors}
-                                    settings={settings}
+                                    sectorVisuals={sectorHighlight.sectorVisuals}
                                 />
                             </div>
                         </motion.div>

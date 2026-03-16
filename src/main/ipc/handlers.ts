@@ -1,6 +1,11 @@
 import { ipcMain, BrowserWindow } from "electron";
 import { lmuClient } from "../api/lmuApi";
-import type { AppState, ConnectionStatus } from "../../renderer/src/types/lmu";
+import { telemetryBridge } from "../api/lmuTelemetryBridge";
+import type {
+  AppState,
+  ConnectionStatus,
+  TelemetrySnapshot,
+} from "../../renderer/src/types/lmu";
 
 /* 
     -- registers all IPC handlers for LMU API client --
@@ -23,6 +28,12 @@ export const registerIpcHandlers = (
       console.warn(`Failed to send ${channel} to renderer:`, error);
     }
   };
+
+  telemetryBridge.setSnapshotCallback((snapshot: TelemetrySnapshot) => {
+    BrowserWindow.getAllWindows().forEach((win) => {
+      safeSend(win, "lmu:telemetryUpdate", snapshot);
+    });
+  });
 
   // -- lmu:connect --
   // -- renderer calls: await window.api.connect(url, pollRate) --
@@ -89,5 +100,9 @@ export const registerIpcHandlers = (
   // -- used on mount to hydrate renderer with any existing state --
   ipcMain.handle("lmu:getState", (): AppState => {
     return lmuClient.getState();
+  });
+
+  ipcMain.handle("lmu:getTelemetry", (): TelemetrySnapshot => {
+    return telemetryBridge.getLatestSnapshot();
   });
 };

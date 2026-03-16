@@ -24,7 +24,6 @@ import type {
     TowerRaceMode,
     TowerQualiMode,
     TowerViewLayout,
-    DriverCardMode,
     DriverSettings,
     GapSettings,
     SessionSettings,
@@ -534,17 +533,6 @@ const DriverSettingsPanel = ({
 
     return (
         <div className="flex flex-col gap-3">
-            <PanelSection title="Mode" />
-            <Select
-                label="Display mode"
-                value={s.mode}
-                options={[
-                    { label: "Auto", value: "AUTO" },
-                    { label: "Practice / Quali", value: "PRACTICE_QUALI" },
-                    { label: "Race", value: "RACE" },
-                ]}
-                onChange={(v) => set({ mode: v as DriverCardMode })}
-            />
             <PanelSection title="Parts" />
             <Toggle label="Part 1: Left shapes" value={s.showPart1} onChange={(v) => set({ showPart1: v })} />
             <Toggle label="Part 2: Center data" value={s.showPart2} onChange={(v) => set({ showPart2: v })} />
@@ -896,14 +884,6 @@ const OverlayCard = ({
         });
     };
 
-    const handleDriverModeChange = (nextValue: string): void => {
-        if (!driverCfg) return;
-
-        onSettingsChange("OVERLAY-DRIVER", {
-            mode: nextValue as DriverCardMode,
-        });
-    };
-
     return (
         <motion.div
             layout
@@ -986,29 +966,10 @@ const OverlayCard = ({
                             </div>
                         </div>
                     ) : isDriverCard && driverCfg ? (
-                        <div className="flex items-center gap-3 pr-3">
-                            <div className="shrink-0">
-                                <p className="text-sm font-semibold text-rd-text leading-tight">
-                                    {meta.label}
-                                </p>
-                            </div>
-                            <div className="h-5 w-px shrink-0 bg-rd-border/80" />
-                            <div className="flex min-w-0 items-center gap-2 rounded-lg border border-rd-border/70 bg-rd-surface/55 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-                                <select
-                                    value={driverCfg.mode}
-                                    onChange={(e) => {
-                                        handleDriverModeChange(e.target.value);
-                                        e.currentTarget.blur();
-                                    }}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="h-8 min-w-[122px] rounded-md border border-rd-border bg-rd-elevated px-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-rd-text outline-none transition-colors hover:border-rd-muted hover:bg-rd-surface focus:border-rd-accent cursor-pointer"
-                                    title="Display mode"
-                                >
-                                    <option value="AUTO">Auto</option>
-                                    <option value="PRACTICE_QUALI">P / Q</option>
-                                    <option value="RACE">Race</option>
-                                </select>
-                            </div>
+                        <div className="shrink-0 pr-3">
+                            <p className="text-sm font-semibold text-rd-text leading-tight">
+                                {meta.label}
+                            </p>
                         </div>
                     ) : (
                         <>

@@ -1,62 +1,42 @@
 import type { ReactElement } from "react";
-import type { DriverSettings } from "../../../store/overlayStore";
+import { motion } from "framer-motion";
 import type { SectorTime } from "../../../types/lmu";
-import { getSectorColor } from "./driverCardUtils";
+import type { DriverSectorVisualMap } from "./driverSectorHighlightUtils";
 
 const SECTORS: Array<keyof SectorTime> = ["sector1", "sector2", "sector3"];
 
 export function DriverSectorStrip({
-    currentSectors,
-    bestSectors,
-    sessionBestSectors,
-    settings,
+    sectorVisuals,
 }: {
-    readonly currentSectors: SectorTime;
-    readonly bestSectors: SectorTime;
-    readonly sessionBestSectors: SectorTime;
-    readonly settings: DriverSettings;
+    readonly sectorVisuals: DriverSectorVisualMap;
 }): ReactElement {
     return (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 18, alignItems: "end" }}>
+        <div style={stripStyle}>
             {SECTORS.map((sectorKey) => {
-                const currentValue = currentSectors[sectorKey];
-                const color = getSectorColor(
-                    sectorKey,
-                    currentValue,
-                    bestSectors,
-                    sessionBestSectors,
-                    settings
-                );
-
+                const visual = sectorVisuals[sectorKey];
                 const label =
-                    currentValue === null
+                    visual.value === null
                         ? sectorKey.toUpperCase().replace("SECTOR", "S")
-                        : currentValue.toFixed(3);
+                        : visual.value.toFixed(3);
 
                 return (
-                    <div key={sectorKey} style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
-                        <div style={headStyle}>
+                    <div key={sectorKey} style={sectorStyle}>
+                        <div style={{ ...headStyle, color: visual.textColor }}>
                             {label}
                         </div>
-                        <div
-                            style={{
-                                position: "relative",
-                                width: "100%",
-                                height: 6,
-                                borderRadius: 999,
-                                background: "rgba(89,94,109,0.68)",
-                                overflow: "hidden",
-                            }}
-                        >
-                            <div
+                        <div style={trackStyle}>
+                            <motion.div
                                 style={{
-                                    position: "absolute",
-                                    inset: 0,
-                                    width: currentValue === null ? "0%" : "88%",
-                                    borderRadius: 999,
-                                    background: color,
-                                    boxShadow: `0 0 14px ${color}66`,
+                                    ...fillStyle,
+                                    background: visual.lineColor,
+                                    boxShadow: `0 0 14px ${visual.lineColor}66`,
                                 }}
+                                initial={false}
+                                animate={{
+                                    width: visual.value === null ? "0%" : "100%",
+                                    opacity: visual.value === null ? 0.8 : 1,
+                                }}
+                                transition={{ duration: 0.18, ease: "easeOut" }}
                             />
                         </div>
                     </div>
@@ -66,10 +46,39 @@ export function DriverSectorStrip({
     );
 }
 
+const stripStyle = {
+    display: "grid",
+    gridTemplateColumns: "repeat(3, minmax(0,1fr))",
+    gap: 18,
+    alignItems: "end",
+} as const;
+
+const sectorStyle = {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    alignItems: "center",
+} as const;
+
 const headStyle = {
     fontSize: 20,
     fontWeight: 600,
-    color: "#b3b8c8",
     textAlign: "center" as const,
     lineHeight: 1,
-};
+    transition: "color 120ms linear",
+} as const;
+
+const trackStyle = {
+    position: "relative",
+    width: "100%",
+    height: 6,
+    borderRadius: 999,
+    background: "rgba(89,94,109,0.68)",
+    overflow: "hidden",
+} as const;
+
+const fillStyle = {
+    position: "absolute",
+    inset: 0,
+    borderRadius: 999,
+} as const;

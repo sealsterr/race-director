@@ -8,20 +8,21 @@ const MOCK_CURRENT_SECTORS: SectorTime = {
 
 const MOCK_BEST_SECTORS: SectorTime = {
     sector1: 27.301,
-    sector2: 31.702,
+    sector2: 31.972,
     sector3: 24.884,
 };
 
 export const MOCK_SESSION_BEST_SECTORS: SectorTime = {
     sector1: 27.118,
     sector2: 31.551,
-    sector3: 24.701,
+    sector3: 24.991,
 };
 
 export const MOCK_DRIVER: DriverStanding = {
     position: 2,
     carNumber: "16",
     driverName: "Ryan REYNOLDS",
+    nationalityCode: "CAN",
     teamName: "Apex Velocity",
     carClass: "HYPERCAR",
     carName: "Ferrari 499P",
@@ -45,5 +46,7 @@ export const MOCK_DRIVER: DriverStanding = {
     penalties: [],
     status: "RACING",
     isPlayer: true,
+    isFocused: true,
     slotId: 16,
+    telemetryId: 16,
 };

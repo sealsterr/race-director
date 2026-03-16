@@ -11,6 +11,7 @@ export function DriverLeftPanel({
     showBestLap,
     showClass,
     showPosition,
+    bestLapColor = "#b3b8c8",
 }: {
     readonly accent: string;
     readonly accentGradient: string;
@@ -22,6 +23,7 @@ export function DriverLeftPanel({
     readonly showBestLap: boolean;
     readonly showClass: boolean;
     readonly showPosition: boolean;
+    readonly bestLapColor?: string;
 }): ReactElement {
     return (
         <div style={{ display: "flex", width: "100%", height: "100%", flexDirection: "column", gap: 10 }}>
@@ -106,8 +108,9 @@ export function DriverLeftPanel({
                                     fontSize: 24,
                                     fontWeight: 700,
                                     lineHeight: 0.95,
-                                    color: "#f8fafc",
+                                    color: bestLapColor,
                                     fontVariantNumeric: "tabular-nums",
+                                    transition: "color 120ms linear",
                                 }}
                             >
                                 {bestLap}

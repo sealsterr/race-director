@@ -31,7 +31,7 @@ function PedalBar({
             <div style={{ height: 7, borderRadius: 999, background: "rgba(68,74,93,0.42)", overflow: "hidden" }}>
                 <motion.div
                     animate={{ width: `${value}%` }}
-                    transition={{ type: "spring", stiffness: 90, damping: 18 }}
+                    transition={{ duration: 0.06, ease: "linear" }}
                     style={{ height: "100%", borderRadius: 999, background: color }}
                 />
             </div>

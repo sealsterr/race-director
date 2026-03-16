@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from "react";
 import { DriverPracticeQualiCard } from "./DriverPracticeQualiCard";
-import { DriverRaceCard } from "./DriverRaceCard";
 import { useDriverCardData } from "./useDriverCardData";
+import { useSmoothLapTime } from "./useSmoothLapTime";
 import { useTowerWindowAutosize } from "../tower/useTowerWindowAutosize";
 
 const rootStyle: CSSProperties = {
@@ -20,15 +20,23 @@ export default function DriverOverlay(): ReactElement {
         overlayConfig,
         currentLapTime,
         sessionBestSectors,
-        mode,
         dragMode,
         opacity,
         scale,
+        classPosition,
+        classBestLapTime,
         nameParts,
         nationalityMark,
+        telemetryAnchorTime,
+        telemetryAnchorTimestamp,
         isConfigReady,
         isPreview,
     } = useDriverCardData();
+    const smoothLapTime = useSmoothLapTime(
+        telemetryAnchorTime,
+        telemetryAnchorTimestamp,
+        isPreview
+    );
     const contentRef = useRef<HTMLDivElement>(null);
     const [disableEnterAnimation, setDisableEnterAnimation] = useState(true);
     const hasVisibleParts =
@@ -76,27 +84,18 @@ export default function DriverOverlay(): ReactElement {
                 } as CSSProperties}
             >
                 {hasVisibleParts ? (
-                    mode === "RACE" ? (
-                        <DriverRaceCard
-                            driver={driver}
-                            settings={overlayConfig.settings}
-                            nameParts={nameParts}
-                            nationalityMark={nationalityMark}
-                            isPreview={isPreview}
-                            disableEnterAnimation={disableEnterAnimation}
-                        />
-                    ) : (
-                        <DriverPracticeQualiCard
-                            driver={driver}
-                            settings={overlayConfig.settings}
-                            currentLapTime={currentLapTime}
-                            sessionBestSectors={sessionBestSectors}
-                            nameParts={nameParts}
-                            nationalityMark={nationalityMark}
-                            isPreview={isPreview}
-                            disableEnterAnimation={disableEnterAnimation}
-                        />
-                    )
+                    <DriverPracticeQualiCard
+                        driver={driver}
+                        settings={overlayConfig.settings}
+                        classPosition={classPosition}
+                        classBestLapTime={classBestLapTime}
+                        currentLapTime={smoothLapTime ?? currentLapTime}
+                        sessionBestSectors={sessionBestSectors}
+                        nameParts={nameParts}
+                        nationalityMark={nationalityMark}
+                        isPreview={isPreview}
+                        disableEnterAnimation={disableEnterAnimation}
+                    />
                 ) : (
                     <div style={{ width: 1, height: 1, opacity: 0 }} />
                 )}

@@ -19,12 +19,12 @@ while (true)
 
 static int ParseInterval(string[] args)
 {
-    if (args.Length > 0 && int.TryParse(args[0], out var parsed) && parsed >= 50)
+    if (args.Length > 0 && int.TryParse(args[0], out var parsed) && parsed >= 16)
     {
         return parsed;
     }
 
-    return 200;
+    return 33;
 }
 
 static TelemetrySnapshot ReadSnapshot(RF2MemoryReader reader)
@@ -41,6 +41,7 @@ static TelemetrySnapshot ReadSnapshot(RF2MemoryReader reader)
 
         var scoringValue = scoring.Value;
         var telemetryValue = telemetry.Value;
+        var electronics = reader.GetLMUElectronics();
         var telemetryById = telemetryValue.Vehicles
             .Take(telemetryValue.NumVehicles)
             .ToDictionary(vehicle => vehicle.ID);
@@ -60,8 +61,14 @@ static TelemetrySnapshot ReadSnapshot(RF2MemoryReader reader)
                 CleanBuffer(scoredVehicle.VehicleName),
                 ExtractCarNumber(CleanBuffer(scoredVehicle.VehicleName)),
                 ToFuelPercentage(telemetryVehicle),
+                ToBatteryPercentage(telemetryVehicle),
+                ToSpeedKph(telemetryVehicle),
+                telemetryVehicle.EngineRPM,
+                ToControlPercentage(telemetryVehicle.FilteredThrottle),
+                ToControlPercentage(telemetryVehicle.FilteredBrake),
                 NormalizeCompound(CleanBuffer(telemetryVehicle.FrontTyreCompoundName)),
-                NormalizeCompound(CleanBuffer(telemetryVehicle.RearTyreCompoundName))
+                NormalizeCompound(CleanBuffer(telemetryVehicle.RearTyreCompoundName)),
+                electronics?.EngineMap
             ));
         }
 
@@ -102,6 +109,32 @@ static double? ToFuelPercentage(VehicleTelemetry vehicle)
 
     var percentage = (vehicle.Fuel / vehicle.FuelCapacity) * 100d;
     return Math.Clamp(percentage, 0d, 100d);
+}
+
+static double? ToBatteryPercentage(VehicleTelemetry vehicle)
+{
+    if (vehicle.BatteryChargeFraction < 0)
+    {
+        return null;
+    }
+
+    return Math.Clamp(vehicle.BatteryChargeFraction * 100d, 0d, 100d);
+}
+
+static double ToSpeedKph(VehicleTelemetry vehicle)
+{
+    var velocity = vehicle.LocalVelocity;
+    var speedMps = Math.Sqrt(
+        velocity.X * velocity.X +
+        velocity.Y * velocity.Y +
+        velocity.Z * velocity.Z
+    );
+    return Math.Max(0d, speedMps * 3.6d);
+}
+
+static double ToControlPercentage(double raw)
+{
+    return Math.Clamp(raw * 100d, 0d, 100d);
 }
 
 static string NormalizeCompound(string raw)
@@ -147,6 +180,12 @@ internal sealed record TelemetryCarSnapshot(
     string VehicleName,
     string CarNumber,
     double? FuelPercentage,
+    double? BatteryChargePercentage,
+    double SpeedKph,
+    double Rpm,
+    double Throttle,
+    double Brake,
     string FrontTyreCompound,
-    string RearTyreCompound
+    string RearTyreCompound,
+    int? EngineMap
 );

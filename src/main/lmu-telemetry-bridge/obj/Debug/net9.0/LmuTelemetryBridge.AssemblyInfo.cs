@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("LmuTelemetryBridge")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a604fb27ca29bcf06d50ea5033c63520c76ee716")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+52f6593d04d5cd10c99b99c042b18ad0ffdb1236")]
 [assembly: System.Reflection.AssemblyProductAttribute("LmuTelemetryBridge")]
 [assembly: System.Reflection.AssemblyTitleAttribute("LmuTelemetryBridge")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

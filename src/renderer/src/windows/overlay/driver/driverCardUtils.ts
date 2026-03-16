@@ -1,16 +1,27 @@
 import type { CarClass, DriverStanding, SectorTime } from "../../../types/lmu";
-import type {
-    DriverCardMode,
-    DriverSettings,
-} from "../../../store/overlayStore";
-
-export type DriverVisualMode = "PRACTICE_QUALI" | "RACE";
+import type { DriverSettings } from "../../../store/overlayStore";
 type SectorKey = "sector1" | "sector2" | "sector3";
 
 export interface NationalityMark {
     readonly code: string;
     readonly colors: readonly [string, string, string];
 }
+
+const NATIONALITY_CODE_MARKS: Record<string, NationalityMark> = {
+    CAN: { code: "CAN", colors: ["#ef4444", "#ffffff", "#ef4444"] },
+    ESP: { code: "ESP", colors: ["#c81e1e", "#facc15", "#c81e1e"] },
+    NLD: { code: "NLD", colors: ["#ef4444", "#ffffff", "#2563eb"] },
+    HU: { code: "HU", colors: ["#dc2626", "#ffffff", "#16a34a"] },
+    HUN: { code: "HUN", colors: ["#dc2626", "#ffffff", "#16a34a"] },
+    FR: { code: "FR", colors: ["#2563eb", "#ffffff", "#dc2626"] },
+    DE: { code: "DE", colors: ["#111827", "#dc2626", "#facc15"] },
+    IT: { code: "IT", colors: ["#16a34a", "#ffffff", "#dc2626"] },
+    JP: { code: "JP", colors: ["#ffffff", "#ef4444", "#ffffff"] },
+    UK: { code: "UK", colors: ["#1d4ed8", "#ffffff", "#dc2626"] },
+    GB: { code: "GB", colors: ["#1d4ed8", "#ffffff", "#dc2626"] },
+    USA: { code: "USA", colors: ["#1d4ed8", "#ffffff", "#dc2626"] },
+    US: { code: "US", colors: ["#1d4ed8", "#ffffff", "#dc2626"] },
+};
 
 const NATIONALITY_MARKS: Record<string, NationalityMark> = {
     "RYAN REYNOLDS": { code: "CAN", colors: ["#ef4444", "#ffffff", "#ef4444"] },
@@ -28,7 +39,6 @@ const CLASS_ACCENTS: Record<CarClass, string> = {
 };
 
 export const DRIVER_DEFAULT_SETTINGS: DriverSettings = {
-    mode: "AUTO",
     showPart1: true,
     showPart2: true,
     showPart3: true,
@@ -37,17 +47,6 @@ export const DRIVER_DEFAULT_SETTINGS: DriverSettings = {
     colorCompleted: "#f59e0b",
     colorPending: "#475569",
 };
-
-export function resolveDriverMode(
-    requestedMode: DriverCardMode,
-    sessionType: string | undefined
-): DriverVisualMode {
-    if (requestedMode === "PRACTICE_QUALI" || requestedMode === "RACE") {
-        return requestedMode;
-    }
-
-    return sessionType === "RACE" ? "RACE" : "PRACTICE_QUALI";
-}
 
 export function getDriverNameParts(driverName: string): { first: string; last: string } {
     const parts = driverName.trim().split(/\s+/).filter(Boolean);
@@ -61,11 +60,27 @@ export function getDriverNameParts(driverName: string): { first: string; last: s
     };
 }
 
-export function getNationalityMark(driverName: string): NationalityMark {
+export function getNationalityMark(
+    driverName: string,
+    nationalityCode: string | null
+): NationalityMark {
+    const fromCode = nationalityCode
+        ? NATIONALITY_CODE_MARKS[nationalityCode.toUpperCase()]
+        : null;
+    if (fromCode) {
+        return fromCode;
+    }
+
     return NATIONALITY_MARKS[driverName.toUpperCase()] ?? {
         code: "INT",
         colors: ["#334155", "#cbd5e1", "#334155"],
     };
+}
+
+export function getClassPosition(standings: DriverStanding[], driver: DriverStanding): number {
+    const classStandings = standings.filter((standing) => standing.carClass === driver.carClass);
+    const classIndex = classStandings.findIndex((standing) => standing.slotId === driver.slotId);
+    return classIndex >= 0 ? classIndex + 1 : driver.position;
 }
 
 export function getSessionBestSectors(standings: DriverStanding[]): SectorTime {
@@ -77,6 +92,25 @@ export function getSessionBestSectors(standings: DriverStanding[]): SectorTime {
             if (value !== null && (best[key] === null || value < (best[key] as number))) {
                 best[key] = value;
             }
+        }
+    }
+
+    return best;
+}
+
+export function getClassBestLapTime(
+    standings: DriverStanding[],
+    driver: DriverStanding
+): number | null {
+    let best: number | null = null;
+
+    for (const standing of standings) {
+        if (standing.carClass !== driver.carClass || standing.bestLapTime === null) {
+            continue;
+        }
+
+        if (best === null || standing.bestLapTime < best) {
+            best = standing.bestLapTime;
         }
     }
 
@@ -113,6 +147,27 @@ export function getSectorColor(
     }
 
     return settings.colorCompleted;
+}
+
+export function getBestLapHighlightColor(
+    lastLapTime: number | null,
+    bestLapTime: number | null,
+    classBestLapTime: number | null,
+    settings: DriverSettings
+): string | null {
+    if (lastLapTime === null || lastLapTime <= 0) {
+        return null;
+    }
+
+    if (classBestLapTime !== null && lastLapTime <= classBestLapTime) {
+        return settings.colorSessionBest;
+    }
+
+    if (bestLapTime !== null && lastLapTime <= bestLapTime) {
+        return settings.colorPersonalBest;
+    }
+
+    return null;
 }
 
 export function getClassLabel(carClass: CarClass): string {
