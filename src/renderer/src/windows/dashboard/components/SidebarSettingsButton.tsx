@@ -28,7 +28,7 @@ const getUpdateActionState = (
 
   if (updaterState?.hasUpdate && updaterState.downloaded) {
     return {
-      title: "Update is ready. Click to apply and restart.",
+      title: "Update is ready. Click to apply and restart!",
       canClick: true,
       mode: "apply",
     };
@@ -37,7 +37,7 @@ const getUpdateActionState = (
   if (updaterState?.hasUpdate) {
     const latestVersion = updaterState.latestVersion;
     return {
-      title: `New version ${latestVersion ?? ""} is available. Click to download.`,
+      title: `${latestVersion ?? ""} is available. Click to download!`,
       canClick: Boolean(
         updaterState &&
           !updaterState.checking &&
@@ -48,7 +48,7 @@ const getUpdateActionState = (
   }
 
   return {
-    title: "App is up to date.",
+    title: "Up to date!",
     canClick: false,
     mode: "download",
   };
@@ -95,11 +95,10 @@ const SidebarSettingsButton = ({
         disabled={!actionState.canClick}
         title={actionState.title}
         className={`
-          flex h-8 w-8 shrink-0 items-center justify-center rounded bg-transparent
-          transition-colors duration-150
+          flex h-8 w-8 shrink-0 items-center justify-center bg-transparent
           ${
             actionState.canClick
-              ? "cursor-pointer text-rd-gold hover:bg-rd-gold/10"
+              ? "cursor-pointer text-rd-gold"
               : "cursor-not-allowed text-rd-subtle opacity-45"
           }
         `}

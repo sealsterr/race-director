@@ -8,14 +8,21 @@ dist/
 dist-electron/
 out/
 release/
+tmp/
+**/bin/
+**/obj/
 
 # env / secrets
 .env
 .env.local
+.codex/
 
 # editor
 .vscode/
 .idea/
+.vs/
+*.user
+*.suo
 
 # OS
 .DS_Store
@@ -23,3 +30,6 @@ Thumbs.db
 
 # logs
 *.log*
+
+# temporary config backups
+electron.vite.config.*.mjs
