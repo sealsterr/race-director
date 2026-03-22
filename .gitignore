@@ -16,6 +16,7 @@ tmp/
 .env
 .env.local
 .codex/
+.impeccable.md
 
 # editor
 .vscode/

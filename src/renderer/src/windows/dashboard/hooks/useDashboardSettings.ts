@@ -11,6 +11,7 @@ import type { DashboardSettings } from "../settings/types";
 interface UseDashboardSettingsResult {
   settings: DashboardSettings;
   draftSettings: DashboardSettings;
+  hasUnsavedChanges: boolean;
   isSettingsOpen: boolean;
   scaledContainerStyle: CSSProperties;
   openSettings: () => void;
@@ -26,6 +27,10 @@ const useDashboardSettings = (): UseDashboardSettingsResult => {
   );
   const [draftSettings, setDraftSettings] = useState<DashboardSettings>(settings);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const hasUnsavedChanges = useMemo(
+    () => JSON.stringify(settings) !== JSON.stringify(draftSettings),
+    [draftSettings, settings]
+  );
 
   useEffect(() => {
     document.documentElement.setAttribute(
@@ -76,6 +81,7 @@ const useDashboardSettings = (): UseDashboardSettingsResult => {
   return {
     settings,
     draftSettings,
+    hasUnsavedChanges,
     isSettingsOpen,
     scaledContainerStyle,
     openSettings,

@@ -1,23 +1,57 @@
-import React from "react";
+import React, { useId } from "react";
 
 interface SettingsRowProps {
   label: string;
   description: string;
-  children: React.ReactNode;
+  badgeLabel?: string;
+  disabled?: boolean;
+  children: (ids: SettingsFieldIds) => React.ReactNode;
+}
+
+interface SettingsFieldIds {
+  controlId: string;
+  descriptionId: string;
+  labelId: string;
 }
 
 const SettingsRow = ({
   label,
   description,
+  badgeLabel,
+  disabled = false,
   children,
 }: SettingsRowProps): React.ReactElement => {
+  const baseId = useId();
+  const ids: SettingsFieldIds = {
+    controlId: `${baseId}-control`,
+    descriptionId: `${baseId}-description`,
+    labelId: `${baseId}-label`,
+  };
+
   return (
-    <div className="flex items-center gap-4 rounded-md px-3 py-2.5 transition-colors hover:bg-rd-elevated/80">
+    <div
+      className={`flex items-center gap-4 rounded-md px-3 py-2.5 transition-colors ${
+        disabled ? "opacity-70" : "hover:bg-rd-elevated/80"
+      }`}
+    >
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-rd-text">{label}</p>
-        <p className="mt-1 text-xs leading-5 text-rd-muted">{description}</p>
+        <p
+          id={ids.labelId}
+          className="flex items-center gap-2 text-sm font-medium text-rd-text"
+        >
+          <span>{label}</span>
+          {badgeLabel ? <SettingsBadge label={badgeLabel} /> : null}
+        </p>
+        <p
+          id={ids.descriptionId}
+          className="mt-1 text-xs leading-5 text-rd-muted"
+        >
+          {description}
+        </p>
       </div>
-      <div className="shrink-0">{children}</div>
+      <div className="shrink-0" aria-disabled={disabled}>
+        {children(ids)}
+      </div>
     </div>
   );
 };
@@ -25,26 +59,49 @@ const SettingsRow = ({
 interface SettingsToggleProps {
   checked: boolean;
   onChange: (checked: boolean) => void;
-  ariaLabel: string;
+  describedBy: string;
+  labelledBy: string;
+  disabled?: boolean;
 }
 
 const SettingsToggle = ({
   checked,
   onChange,
-  ariaLabel,
+  describedBy,
+  labelledBy,
+  disabled = false,
 }: SettingsToggleProps): React.ReactElement => {
   return (
-    <label className="relative inline-flex h-6 w-11 cursor-pointer items-center">
+    <label
+      className={`relative inline-flex h-6 w-11 items-center ${
+        disabled ? "cursor-not-allowed opacity-70" : "cursor-pointer"
+      }`}
+    >
       <input
         type="checkbox"
-        aria-label={ariaLabel}
+        aria-describedby={describedBy}
+        aria-labelledby={labelledBy}
         checked={checked}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
+        role="switch"
         className="peer sr-only"
       />
-      <span className="h-6 w-11 rounded-full border border-rd-border bg-rd-bg transition-colors peer-checked:border-rd-success/50 peer-checked:bg-rd-success/30" />
-      <span className="pointer-events-none absolute left-1 h-4 w-4 rounded-full bg-rd-subtle transition-transform peer-checked:translate-x-5 peer-checked:bg-rd-success" />
+      <span className="h-6 w-11 rounded-full border border-rd-border bg-rd-bg transition-colors peer-checked:border-rd-success/50 peer-checked:bg-rd-success/30 peer-disabled:border-rd-border/60 peer-disabled:bg-rd-elevated/40 peer-focus-visible:ring-2 peer-focus-visible:ring-rd-accent/70 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-rd-surface" />
+      <span className="pointer-events-none absolute left-1 h-4 w-4 rounded-full bg-rd-subtle transition-transform peer-checked:translate-x-5 peer-checked:bg-rd-success peer-disabled:bg-rd-border" />
     </label>
+  );
+};
+
+interface SettingsBadgeProps {
+  label: string;
+}
+
+const SettingsBadge = ({ label }: SettingsBadgeProps): React.ReactElement => {
+  return (
+    <span className="rounded-full border border-rd-warning/35 bg-rd-warning/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-rd-warning">
+      {label}
+    </span>
   );
 };
 
@@ -84,3 +141,4 @@ export {
   SettingsSectionTitle,
   SettingsToggle,
 };
+export type { SettingsFieldIds };

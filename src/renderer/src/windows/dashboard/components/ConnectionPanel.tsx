@@ -1,84 +1,59 @@
-import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { Wifi, WifiOff, RefreshCw, Settings2 } from "lucide-react";
-import type { ConnectionStatus } from "../../../types/lmu";
-import type { LogType } from "../../../types/dashboard";
+import React from 'react'
+import { motion } from 'framer-motion'
+import { Wifi, WifiOff, RefreshCw, Settings2 } from 'lucide-react'
+import type { ConnectionStatus } from '../../../types/lmu'
+import type { LogType } from '../../../types/dashboard'
+import useConnectionPanelState from '../hooks/useConnectionPanelState'
+import {
+  getConnectionButtonClass,
+  getConnectionButtonLabel,
+  MAX_POLL_RATE_MS,
+  MIN_POLL_RATE_MS
+} from './connectionPanelUtils'
 
 interface ConnectionPanelProps {
-  connection: ConnectionStatus;
-  defaultApiUrl: string;
-  defaultPollRateMs: number;
-  onConnectionChange: (status: ConnectionStatus) => void;
-  onLog: (message: string, type?: LogType) => void;
+  connection: ConnectionStatus
+  defaultApiUrl: string
+  defaultPollRateMs: number
+  onConnectionChange: (status: ConnectionStatus) => void
+  onLog: (message: string, type?: LogType) => void
 }
-
-const getStatusValue = (connection: ConnectionStatus): string => {
-  if (connection === "CONNECTED") return "Active";
-  if (connection === "CONNECTING") return "Connecting...";
-  if (connection === "ERROR") return "Error";
-  return "Offline";
-};
-
-const getButtonClass = (connection: ConnectionStatus): string => {
-  if (connection === "CONNECTED") {
-    return "bg-rd-success/20 text-rd-success hover:bg-rd-success/30 border border-rd-success/30";
-  }
-  if (connection === "CONNECTING" || connection === "ERROR") {
-    return "cursor-not-allowed bg-rd-gold/10 text-rd-gold border border-rd-gold/30";
-  }
-  return "bg-rd-accent/20 text-rd-accent hover:bg-rd-accent/30 border border-rd-accent/30";
-};
-
-const getButtonLabel = (connection: ConnectionStatus): string => {
-  if (connection === "CONNECTED") return "Disconnect";
-  if (connection === "CONNECTING") return "Connecting...";
-  return "Connect to LMU";
-};
 
 const ConnectionPanel = ({
   connection,
   defaultApiUrl,
   defaultPollRateMs,
   onConnectionChange,
-  onLog,
+  onLog
 }: ConnectionPanelProps): React.ReactElement => {
-  const [apiUrl, setApiUrl] = useState(defaultApiUrl);
-  const [pollRate, setPollRate] = useState(defaultPollRateMs);
-  const [isEditing, setIsEditing] = useState(false);
+  const {
+    apiUrl,
+    pollRateInput,
+    isEditing,
+    isBusy,
+    errorMessage,
+    validationMessage,
+    statusRows,
+    setApiUrl,
+    setPollRateInput,
+    toggleEditing,
+    handleConnect,
+    clearError
+  } = useConnectionPanelState({
+    connection,
+    defaultApiUrl,
+    defaultPollRateMs,
+    onConnectionChange,
+    onLog
+  })
 
-  useEffect(() => {
-    setApiUrl(defaultApiUrl);
-  }, [defaultApiUrl]);
-
-  useEffect(() => {
-    setPollRate(defaultPollRateMs);
-  }, [defaultPollRateMs]);
-
-  const handleConnect = async (): Promise<void> => {
-    if (connection === "CONNECTED") {
-      await globalThis.api.disconnect();
-      onLog("Disconnected from LMU API", "WARNING");
-      onConnectionChange("DISCONNECTED");
-      return;
-    }
-
-    onLog(`Attempting connection to ${apiUrl}...`, "INFO");
-    // * -- real status updates will arrive via onConnectionChange --
-    // * -- listener set up in dashboard/index.tsx, we just fire call here --
-    await globalThis.api.connect(apiUrl, pollRate);
-  };
-
-  const statusRows = [
-    { label: "API Endpoint", value: apiUrl, mono: true },
-    { label: "Poll Rate", value: `${pollRate}ms`, mono: true },
-    { label: "Status", value: getStatusValue(connection), mono: false },
-  ];
+  const helperMessage = errorMessage ?? validationMessage
 
   return (
     <div className="flex flex-col rounded border border-rd-border bg-rd-surface">
       <div className="flex items-center justify-between border-b border-rd-border px-4 py-3">
         <div className="flex items-center gap-2">
-          {connection === "CONNECTED" ? (
+          {connection === 'CONNECTED' ? (
             <Wifi size={14} className="text-rd-success" />
           ) : (
             <WifiOff size={14} className="text-rd-muted" />
@@ -88,8 +63,11 @@ const ConnectionPanel = ({
           </span>
         </div>
         <button
-          onClick={() => setIsEditing((v) => !v)}
+          type="button"
+          onClick={toggleEditing}
           className="text-rd-subtle transition-colors hover:text-rd-text"
+          aria-expanded={isEditing}
+          aria-controls="connection-panel-editor"
         >
           <Settings2 size={13} />
         </button>
@@ -103,7 +81,8 @@ const ConnectionPanel = ({
           >
             <span className="text-xs text-rd-subtle">{row.label}</span>
             <span
-              className={`text-xs ${row.mono ? "font-mono" : ""} text-rd-text`}
+              className={`max-w-[65%] text-right text-xs ${row.mono ? 'font-mono' : ''} text-rd-text`}
+              title={row.value}
             >
               {row.value}
             </span>
@@ -112,51 +91,63 @@ const ConnectionPanel = ({
       </div>
 
       <motion.div
+        id="connection-panel-editor"
         initial={false}
-        animate={{
-          height: isEditing ? "auto" : 0,
-          opacity: isEditing ? 1 : 0,
-        }}
+        animate={{ height: isEditing ? 'auto' : 0, opacity: isEditing ? 1 : 0 }}
         transition={{ duration: 0.2 }}
         className="overflow-hidden"
       >
         <div className="flex flex-col gap-3 border-t border-rd-border px-4 py-3">
           <div className="flex flex-col gap-1">
-            <label htmlFor="api-url" className="text-xs text-rd-subtle">
+            <label htmlFor="api-url" className="text-xs text-rd-muted">
               API URL
             </label>
             <input
               id="api-url"
               type="text"
               value={apiUrl}
-              onChange={(e) => setApiUrl(e.target.value)}
-              className="
-                w-full rounded border border-rd-border bg-rd-elevated
-                px-3 py-1.5 font-mono text-xs text-rd-text
-                outline-none focus:border-rd-accent/60
-              "
+              onChange={(e) => {
+                clearError()
+                setApiUrl(e.target.value)
+              }}
+              placeholder="http://127.0.0.1:6397"
+              className="w-full rounded border border-rd-border bg-rd-elevated px-3 py-1.5 font-mono text-xs text-rd-text outline-none focus:border-rd-accent/60"
+              aria-invalid={Boolean(validationMessage)}
             />
           </div>
+
           <div className="flex flex-col gap-1">
-            <label htmlFor="poll-rate" className="text-xs text-rd-subtle">
+            <label htmlFor="poll-rate" className="text-xs text-rd-muted">
               Poll Rate (ms)
             </label>
             <input
               id="poll-rate"
               type="number"
-              value={pollRate}
-              min={50}
-              max={2000}
+              value={pollRateInput}
+              min={MIN_POLL_RATE_MS}
+              max={MAX_POLL_RATE_MS}
               step={50}
-              onChange={(e) => setPollRate(Number(e.target.value))}
-              className="
-                [color-scheme:dark]
-                w-full rounded border border-rd-border bg-rd-elevated
-                px-3 py-1.5 font-mono text-xs text-rd-text
-                outline-none focus:border-rd-accent/60
-              "
+              onChange={(e) => {
+                clearError()
+                setPollRateInput(e.target.value)
+              }}
+              className="[color-scheme:dark] w-full rounded border border-rd-border bg-rd-elevated px-3 py-1.5 font-mono text-xs text-rd-text outline-none focus:border-rd-accent/60"
+              aria-invalid={Boolean(validationMessage)}
             />
           </div>
+
+          {helperMessage ? (
+            <p
+              aria-live="polite"
+              className={`rounded border px-3 py-2 text-xs ${
+                errorMessage
+                  ? 'border-rd-error/30 bg-rd-error/10 text-rd-error'
+                  : 'border-rd-gold/30 bg-rd-gold/10 text-rd-gold'
+              }`}
+            >
+              {helperMessage}
+            </p>
+          ) : null}
         </div>
       </motion.div>
 
@@ -164,22 +155,20 @@ const ConnectionPanel = ({
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={() => void handleConnect()}
-          disabled={connection === "CONNECTING"}
+          disabled={isBusy || Boolean(validationMessage && connection !== 'CONNECTED')}
           className={`
             flex w-full items-center justify-center gap-2 rounded
             py-2 text-xs font-semibold uppercase tracking-wider
             transition-colors duration-150
-            ${getButtonClass(connection)}
+            ${getConnectionButtonClass(connection)}
           `}
         >
-          {connection === "CONNECTING" && (
-            <RefreshCw size={12} className="animate-spin" />
-          )}
-          {getButtonLabel(connection)}
+          {isBusy ? <RefreshCw size={12} className="animate-spin" /> : null}
+          {getConnectionButtonLabel(connection)}
         </motion.button>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default ConnectionPanel;
+export default ConnectionPanel

@@ -1,5 +1,6 @@
 import React from "react";
 import type { DashboardSettings } from "../../../settings/types";
+import { getPendingSettingCopy } from "../pendingSettings";
 import { SectionBlock, SettingsRow, SettingsToggle } from "../SettingsPrimitives";
 
 interface AdvancedSettingsTabProps {
@@ -13,6 +14,9 @@ const AdvancedSettingsTab = ({
   onChange,
   onResetQuitConfirm,
 }: AdvancedSettingsTabProps): React.ReactElement => {
+  const compactRowsSetting = getPendingSettingCopy("advanced.compactTelemetryRows");
+  const verboseLogsSetting = getPendingSettingCopy("advanced.verboseLogs");
+
   return (
     <div className="flex flex-col gap-3">
       <SectionBlock title="Behavior">
@@ -20,48 +24,63 @@ const AdvancedSettingsTab = ({
           label="Reduce Motion"
           description="Limit decorative animations to improve focus and readability."
         >
-          <SettingsToggle
-            checked={settings.advanced.reduceMotion}
-            onChange={(checked) =>
-              onChange((prev) => ({
-                ...prev,
-                advanced: { ...prev.advanced, reduceMotion: checked },
-              }))
-            }
-            ariaLabel="Reduce motion"
-          />
+          {({ descriptionId, labelId }) => (
+            <SettingsToggle
+              checked={settings.advanced.reduceMotion}
+              onChange={(checked) =>
+                onChange((prev) => ({
+                  ...prev,
+                  advanced: { ...prev.advanced, reduceMotion: checked },
+                }))
+              }
+              describedBy={descriptionId}
+              labelledBy={labelId}
+            />
+          )}
         </SettingsRow>
 
         <SettingsRow
           label="Compact Telemetry Rows"
-          description="Use tighter spacing in lists and control panels."
+          description={compactRowsSetting.description}
+          badgeLabel={compactRowsSetting.badgeLabel}
+          disabled
         >
-          <SettingsToggle
-            checked={settings.advanced.compactTelemetryRows}
-            onChange={(checked) =>
-              onChange((prev) => ({
-                ...prev,
-                advanced: { ...prev.advanced, compactTelemetryRows: checked },
-              }))
-            }
-            ariaLabel="Compact telemetry rows"
-          />
+          {({ descriptionId, labelId }) => (
+            <SettingsToggle
+              checked={settings.advanced.compactTelemetryRows}
+              onChange={(checked) =>
+                onChange((prev) => ({
+                  ...prev,
+                  advanced: { ...prev.advanced, compactTelemetryRows: checked },
+                }))
+              }
+              describedBy={descriptionId}
+              labelledBy={labelId}
+              disabled
+            />
+          )}
         </SettingsRow>
 
         <SettingsRow
           label="Verbose Logs"
-          description="Include additional diagnostics in the activity feed."
+          description={verboseLogsSetting.description}
+          badgeLabel={verboseLogsSetting.badgeLabel}
+          disabled
         >
-          <SettingsToggle
-            checked={settings.advanced.verboseLogs}
-            onChange={(checked) =>
-              onChange((prev) => ({
-                ...prev,
-                advanced: { ...prev.advanced, verboseLogs: checked },
-              }))
-            }
-            ariaLabel="Verbose logs"
-          />
+          {({ descriptionId, labelId }) => (
+            <SettingsToggle
+              checked={settings.advanced.verboseLogs}
+              onChange={(checked) =>
+                onChange((prev) => ({
+                  ...prev,
+                  advanced: { ...prev.advanced, verboseLogs: checked },
+                }))
+              }
+              describedBy={descriptionId}
+              labelledBy={labelId}
+              disabled
+            />
+          )}
         </SettingsRow>
       </SectionBlock>
 
@@ -70,13 +89,17 @@ const AdvancedSettingsTab = ({
           label="Reset Quit Confirmation Flag"
           description="Force the quit dialog preference to ask again for testing."
         >
-          <button
-            type="button"
-            onClick={() => void onResetQuitConfirm()}
-            className="rounded-md border border-rd-warning/40 bg-rd-warning/10 px-3 py-1.5 text-xs font-semibold text-rd-warning transition-colors hover:bg-rd-warning/20"
-          >
-            Reset Flag
-          </button>
+          {({ descriptionId, labelId }) => (
+            <button
+              type="button"
+              aria-describedby={descriptionId}
+              aria-labelledby={labelId}
+              onClick={() => void onResetQuitConfirm()}
+              className="min-h-11 rounded-md border border-rd-warning/40 bg-rd-warning/10 px-3 py-1.5 text-xs font-semibold text-rd-warning transition-colors hover:bg-rd-warning/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rd-warning/70 focus-visible:ring-offset-2 focus-visible:ring-offset-rd-surface"
+            >
+              Reset Flag
+            </button>
+          )}
         </SettingsRow>
       </SectionBlock>
     </div>

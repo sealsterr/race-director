@@ -37,11 +37,16 @@ const useDashboardIpcSync = ({
   closeOverlaysWhenControlCloses,
 }: UseDashboardIpcSyncParams): void => {
   useEffect(() => {
-    globalThis.api.getState().then((state: AppState) => {
-      setConnection(state.connection);
-      setSession(state.session);
-      setStandings(state.standings);
-    });
+    void globalThis.api
+      .getState()
+      .then((state: AppState) => {
+        setConnection(state.connection);
+        setSession(state.session);
+        setStandings(state.standings);
+      })
+      .catch(() => {
+        addLog("Unable to load the latest LMU state snapshot.", "ERROR");
+      });
 
     const unsubState = globalThis.api.onStateUpdate((state: AppState) => {
       setSession(state.session);
@@ -76,17 +81,26 @@ const useDashboardIpcSync = ({
         "OVERLAY-GAP",
         "OVERLAY-SESSION",
       ];
-      void Promise.all(
+      void Promise.allSettled(
         overlayIds.map(async (overlayId) => {
           await globalThis.api.windows.close(overlayId);
           setWindows((prev) => updateWindowOpenStatus(prev, overlayId, false));
         })
-      );
+      ).then((results) => {
+        if (results.some((result) => result.status === "rejected")) {
+          addLog("One or more overlay windows failed to close cleanly.", "ERROR");
+        }
+      });
     });
 
-    globalThis.api.windows.getOpen().then((openIds: string[]) => {
-      setWindows(hydrateOpenWindows(openIds));
-    });
+    void globalThis.api.windows
+      .getOpen()
+      .then((openIds: string[]) => {
+        setWindows(hydrateOpenWindows(openIds));
+      })
+      .catch(() => {
+        addLog("Unable to determine which windows are already open.", "ERROR");
+      });
 
     return () => {
       unsubState();

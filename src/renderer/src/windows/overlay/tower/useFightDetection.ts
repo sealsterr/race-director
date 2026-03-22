@@ -25,6 +25,42 @@ interface TrackedFight extends FightGroup {
     firstSeenAt: number;
 }
 
+function areFightListsEqual(current: FightGroup[], next: FightGroup[]): boolean {
+    if (current.length !== next.length) {
+        return false;
+    }
+
+    for (let index = 0; index < current.length; index += 1) {
+        const left = current[index];
+        const right = next[index];
+
+        if (
+            left.id !== right.id ||
+            left.label !== right.label ||
+            left.startedAt !== right.startedAt ||
+            left.clearPollCount !== right.clearPollCount ||
+            left.slotIds.length !== right.slotIds.length ||
+            left.classPositions.length !== right.classPositions.length
+        ) {
+            return false;
+        }
+
+        for (let slotIndex = 0; slotIndex < left.slotIds.length; slotIndex += 1) {
+            if (left.slotIds[slotIndex] !== right.slotIds[slotIndex]) {
+                return false;
+            }
+        }
+
+        for (let positionIndex = 0; positionIndex < left.classPositions.length; positionIndex += 1) {
+            if (left.classPositions[positionIndex] !== right.classPositions[positionIndex]) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
 function isEligibleStatus(status: TowerSection["rows"][number]["standing"]["status"]): boolean {
     return status !== "PITTING" && status !== "FINISHED";
 }
@@ -156,10 +192,13 @@ export function useFightDetection({
             holdSeconds * 1000,
             now
         );
+        const activeFights = Array.from(tracked.values()).filter(
+            (fight) => fight.startedAt > 0
+        );
 
         fightsRef.current = tracked;
-        setFights(
-            Array.from(tracked.values()).filter((fight) => fight.startedAt > 0)
+        setFights((current) =>
+            areFightListsEqual(current, activeFights) ? current : activeFights
         );
     }, [
         enabled,

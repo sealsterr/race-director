@@ -1,121 +1,117 @@
-import React, { useState, useCallback } from "react";
-import TopBar from "./components/TopBar";
-import Sidebar, { WINDOW_DEFINITIONS } from "./components/Sidebar";
-import ConnectionPanel from "./components/ConnectionPanel";
-import SessionPanel from "./components/SessionPanel";
-import ActivityLog from "./components/ActivityLog";
-import SettingsModal from "./components/settings/SettingsModal";
-import SystemPopups from "./components/system-popups/SystemPopups";
-import useAppUpdater from "./hooks/useAppUpdater";
-import useAutoReconnect from "./hooks/useAutoReconnect";
-import useDashboardIpcSync from "./hooks/useDashboardIpcSync";
-import useDashboardSettings from "./hooks/useDashboardSettings";
-import useDashboardStartup from "./hooks/useDashboardStartup";
-import useSystemPopups from "./hooks/useSystemPopups";
-import { useRaceStore } from "../../store/raceStore";
-import type { LogEntry, LogType, WindowId, WindowItem } from "../../types/dashboard";
+import React, { useState, useCallback } from 'react'
+import TopBar from './components/TopBar'
+import Sidebar, { WINDOW_DEFINITIONS } from './components/Sidebar'
+import ConnectionPanel from './components/ConnectionPanel'
+import SessionPanel from './components/SessionPanel'
+import ActivityLog from './components/ActivityLog'
+import SettingsModal from './components/settings/SettingsModal'
+import SystemPopups from './components/system-popups/SystemPopups'
+import useAppUpdater from './hooks/useAppUpdater'
+import useAutoReconnect from './hooks/useAutoReconnect'
+import useDashboardIpcSync from './hooks/useDashboardIpcSync'
+import useDashboardSettings from './hooks/useDashboardSettings'
+import useDashboardStartup from './hooks/useDashboardStartup'
+import useSystemPopups from './hooks/useSystemPopups'
+import { useRaceStore } from '../../store/raceStore'
+import type { LogEntry, LogType, WindowId, WindowItem } from '../../types/dashboard'
 
-const createLogEntry = (
-  message: string,
-  type: LogType = "INFO"
-): LogEntry => ({
+const createLogEntry = (message: string, type: LogType = 'INFO'): LogEntry => ({
   id: crypto.randomUUID(),
   timestamp: new Date(),
   type,
-  message,
-});
+  message
+})
 
-const updateWindowOpenStatus = (
-  windows: WindowItem[],
-  id: string,
-  isOpen: boolean
-): WindowItem[] =>
-  windows.map((w) => (w.id === id ? { ...w, isOpen } : w));
+const updateWindowOpenStatus = (windows: WindowItem[], id: string, isOpen: boolean): WindowItem[] =>
+  windows.map((w) => (w.id === id ? { ...w, isOpen } : w))
 
 const Dashboard = (): React.ReactElement => {
-  const { connection, session, setConnection, setSession, setStandings } =
-    useRaceStore();
+  const { connection, session, setConnection, setSession, setStandings } = useRaceStore()
   const {
     settings,
     draftSettings,
+    hasUnsavedChanges,
     isSettingsOpen,
     scaledContainerStyle,
     openSettings,
     closeSettings,
     updateDraft,
     saveDraft,
-    resetDraftToDefaults,
-  } = useDashboardSettings();
+    resetDraftToDefaults
+  } = useDashboardSettings()
 
   const [log, setLog] = useState<LogEntry[]>([
-    createLogEntry("Race Director initialized.", "SYSTEM"),
-    createLogEntry("Waiting for LMU connection...", "INFO"),
-  ]);
+    createLogEntry('Race Director initialized.', 'SYSTEM'),
+    createLogEntry('Waiting for LMU connection...', 'INFO')
+  ])
 
   const [windows, setWindows] = useState<WindowItem[]>(
     WINDOW_DEFINITIONS.map((def) => ({ ...def, isOpen: false }))
-  );
-  const { updaterState, downloadUpdate } = useAppUpdater();
+  )
+  const { updaterState, downloadUpdate } = useAppUpdater()
   const {
     showDisconnectNotice,
     showQuitConfirm,
     dontAskAgain,
+    isBusy,
+    errorMessage,
     setDontAskAgain,
+    clearError,
     dismissDisconnectNotice,
     cancelQuit,
-    confirmQuit,
-  } = useSystemPopups();
+    confirmQuit
+  } = useSystemPopups()
 
   const addLog = useCallback(
-    (message: string, type: LogType = "INFO") => {
+    (message: string, type: LogType = 'INFO') => {
       setLog((prev) => {
-        const next = [...prev, createLogEntry(message, type)];
-        return next.slice(-settings.general.activityLogLimit);
-      });
+        const next = [...prev, createLogEntry(message, type)]
+        return next.slice(-settings.general.activityLogLimit)
+      })
     },
     [settings.general.activityLogLimit]
-  );
+  )
 
   const updateWindowOpen = useCallback((id: WindowId, isOpen: boolean) => {
-    setWindows((prev) => updateWindowOpenStatus(prev, id, isOpen));
-  }, []);
+    setWindows((prev) => updateWindowOpenStatus(prev, id, isOpen))
+  }, [])
 
   useDashboardStartup({
     settings,
     onLog: addLog,
-    onWindowOpenStatus: updateWindowOpen,
-  });
-  useAutoReconnect({ connection, settings, onLog: addLog });
+    onWindowOpenStatus: updateWindowOpen
+  })
+  useAutoReconnect({ connection, settings, onLog: addLog })
   useDashboardIpcSync({
     setConnection,
     setSession,
     setStandings,
     addLog,
     setWindows,
-    closeOverlaysWhenControlCloses: settings.overlay.closeOverlaysWhenControlCloses,
-  });
+    closeOverlaysWhenControlCloses: settings.overlay.closeOverlaysWhenControlCloses
+  })
 
   const handleLaunch = useCallback(
     async (id: WindowId) => {
-      const win = windows.find((w) => w.id === id);
-      if (!win) return;
+      const win = windows.find((w) => w.id === id)
+      if (!win) return
 
       if (win.isOpen) {
-        await globalThis.api.windows.close(id);
-        setWindows((prev) => updateWindowOpenStatus(prev, id, false));
-        addLog(`Closed ${win.label}`, "WARNING");
+        await globalThis.api.windows.close(id)
+        setWindows((prev) => updateWindowOpenStatus(prev, id, false))
+        addLog(`Closed ${win.label}`, 'WARNING')
       } else {
-        await globalThis.api.windows.open(id);
-        setWindows((prev) => updateWindowOpenStatus(prev, id, true));
-        addLog(`Launched ${win.label}`, "SUCCESS");
+        await globalThis.api.windows.open(id)
+        setWindows((prev) => updateWindowOpenStatus(prev, id, true))
+        addLog(`Launched ${win.label}`, 'SUCCESS')
       }
     },
     [windows, addLog]
-  );
+  )
 
   const handleSettingsClick = useCallback(() => {
-    openSettings();
-  }, [openSettings]);
+    openSettings()
+  }, [openSettings])
 
   return (
     <div
@@ -140,11 +136,11 @@ const Dashboard = (): React.ReactElement => {
               defaultApiUrl={settings.network.apiUrl}
               defaultPollRateMs={settings.network.pollRateMs}
               onConnectionChange={(status) => {
-                setConnection(status);
+                setConnection(status)
 
-                if (status === "DISCONNECTED" || status === "ERROR") {
-                  setSession(null);
-                  setStandings([]);
+                if (status === 'DISCONNECTED' || status === 'ERROR') {
+                  setSession(null)
+                  setStandings([])
                 }
               }}
               onLog={addLog}
@@ -160,14 +156,26 @@ const Dashboard = (): React.ReactElement => {
         showDisconnectNotice={showDisconnectNotice}
         showQuitConfirm={showQuitConfirm}
         dontAskAgain={dontAskAgain}
+        isBusy={isBusy}
+        errorMessage={errorMessage}
         onDontAskAgainChange={setDontAskAgain}
-        onDismissDisconnect={dismissDisconnectNotice}
-        onCancelQuit={cancelQuit}
-        onConfirmQuit={confirmQuit}
+        onDismissDisconnect={async () => {
+          clearError()
+          await dismissDisconnectNotice()
+        }}
+        onCancelQuit={async () => {
+          clearError()
+          await cancelQuit()
+        }}
+        onConfirmQuit={async () => {
+          clearError()
+          await confirmQuit()
+        }}
       />
 
       <SettingsModal
         isOpen={isSettingsOpen}
+        hasUnsavedChanges={hasUnsavedChanges}
         settings={draftSettings}
         onChange={updateDraft}
         onClose={closeSettings}
@@ -176,7 +184,7 @@ const Dashboard = (): React.ReactElement => {
         onResetQuitConfirm={globalThis.api.system.resetQuitConfirmPreference}
       />
     </div>
-  );
-};
+  )
+}
 
-export default Dashboard;
+export default Dashboard

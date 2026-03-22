@@ -1,5 +1,6 @@
 import React from "react";
 import type { DashboardSettings } from "../../../settings/types";
+import { getPendingSettingCopy } from "../pendingSettings";
 import { SectionBlock, SettingsRow, SettingsToggle } from "../SettingsPrimitives";
 
 interface OverlaySettingsTabProps {
@@ -11,6 +12,11 @@ const OverlaySettingsTab = ({
   settings,
   onChange,
 }: OverlaySettingsTabProps): React.ReactElement => {
+  const animateHighlightsSetting = getPendingSettingCopy(
+    "overlay.animateOverlayHighlights"
+  );
+  const flashFightRowsSetting = getPendingSettingCopy("overlay.flashFightRows");
+
   return (
     <div className="flex flex-col gap-3">
       <SectionBlock title="Startup Windows">
@@ -18,88 +24,109 @@ const OverlaySettingsTab = ({
           label="Launch Overlay Dashboard"
           description="Open the Overlay Dashboard window when RaceDirector starts."
         >
-          <SettingsToggle
-            checked={settings.overlay.startupOverlayDashboard}
-            onChange={(checked) =>
-              onChange((prev) => ({
-                ...prev,
-                overlay: { ...prev.overlay, startupOverlayDashboard: checked },
-              }))
-            }
-            ariaLabel="Launch overlay dashboard at startup"
-          />
+          {({ descriptionId, labelId }) => (
+            <SettingsToggle
+              checked={settings.overlay.startupOverlayDashboard}
+              onChange={(checked) =>
+                onChange((prev) => ({
+                  ...prev,
+                  overlay: { ...prev.overlay, startupOverlayDashboard: checked },
+                }))
+              }
+              describedBy={descriptionId}
+              labelledBy={labelId}
+            />
+          )}
         </SettingsRow>
 
         <SettingsRow
           label="Launch Info Window"
           description="Open the Info Window automatically on startup."
         >
-          <SettingsToggle
-            checked={settings.overlay.startupInfoWindow}
-            onChange={(checked) =>
-              onChange((prev) => ({
-                ...prev,
-                overlay: { ...prev.overlay, startupInfoWindow: checked },
-              }))
-            }
-            ariaLabel="Launch info window at startup"
-          />
+          {({ descriptionId, labelId }) => (
+            <SettingsToggle
+              checked={settings.overlay.startupInfoWindow}
+              onChange={(checked) =>
+                onChange((prev) => ({
+                  ...prev,
+                  overlay: { ...prev.overlay, startupInfoWindow: checked },
+                }))
+              }
+              describedBy={descriptionId}
+              labelledBy={labelId}
+            />
+          )}
         </SettingsRow>
 
         <SettingsRow
           label="Close Overlays With Control Window"
           description="When Overlay Dashboard closes, close spawned overlay windows too."
         >
-          <SettingsToggle
-            checked={settings.overlay.closeOverlaysWhenControlCloses}
-            onChange={(checked) =>
-              onChange((prev) => ({
-                ...prev,
-                overlay: {
-                  ...prev.overlay,
-                  closeOverlaysWhenControlCloses: checked,
-                },
-              }))
-            }
-            ariaLabel="Close overlays when control closes"
-          />
+          {({ descriptionId, labelId }) => (
+            <SettingsToggle
+              checked={settings.overlay.closeOverlaysWhenControlCloses}
+              onChange={(checked) =>
+                onChange((prev) => ({
+                  ...prev,
+                  overlay: {
+                    ...prev.overlay,
+                    closeOverlaysWhenControlCloses: checked,
+                  },
+                }))
+              }
+              describedBy={descriptionId}
+              labelledBy={labelId}
+            />
+          )}
         </SettingsRow>
       </SectionBlock>
 
       <SectionBlock title="Visual Behavior">
         <SettingsRow
           label="Animate Overlay Highlights"
-          description="Keep animated transitions for lap and sector highlights."
+          description={animateHighlightsSetting.description}
+          badgeLabel={animateHighlightsSetting.badgeLabel}
+          disabled
         >
-          <SettingsToggle
-            checked={settings.overlay.animateOverlayHighlights}
-            onChange={(checked) =>
-              onChange((prev) => ({
-                ...prev,
-                overlay: {
-                  ...prev.overlay,
-                  animateOverlayHighlights: checked,
-                },
-              }))
-            }
-            ariaLabel="Animate overlay highlights"
-          />
+          {({ descriptionId, labelId }) => (
+            <SettingsToggle
+              checked={settings.overlay.animateOverlayHighlights}
+              onChange={(checked) =>
+                onChange((prev) => ({
+                  ...prev,
+                  overlay: {
+                    ...prev.overlay,
+                    animateOverlayHighlights: checked,
+                  },
+                }))
+              }
+              describedBy={descriptionId}
+              labelledBy={labelId}
+              disabled
+            />
+          )}
         </SettingsRow>
 
         <SettingsRow
           label="Flash Fight Rows"
-          description="Pulse tower rows when cars are in close fight range."
+          description={flashFightRowsSetting.description}
+          badgeLabel={flashFightRowsSetting.badgeLabel}
+          disabled
         >
-          <SettingsToggle
-            checked={settings.overlay.flashFightRows}
-            onChange={(checked) =>
-              onChange((prev) => ({
-                ...prev,
-                overlay: { ...prev.overlay, flashFightRows: checked },
-              }))
-            }
-            ariaLabel="Flash fight rows"
-          />
+          {({ descriptionId, labelId }) => (
+            <SettingsToggle
+              checked={settings.overlay.flashFightRows}
+              onChange={(checked) =>
+                onChange((prev) => ({
+                  ...prev,
+                  overlay: { ...prev.overlay, flashFightRows: checked },
+                }))
+              }
+              describedBy={descriptionId}
+              labelledBy={labelId}
+              disabled
+            />
+          )}
         </SettingsRow>
       </SectionBlock>
     </div>
