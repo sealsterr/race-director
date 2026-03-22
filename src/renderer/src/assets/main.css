@@ -21,6 +21,18 @@
   --font-mono: "JetBrains Mono", monospace;
 }
 
+:root[data-rd-theme="light"] {
+  --color-rd-bg: #dbe4ef;
+  --color-rd-surface: #f6f8fc;
+  --color-rd-elevated: #ffffff;
+  --color-rd-border: #ced8e6;
+  --color-rd-text: #0f172a;
+  --color-rd-muted: #475569;
+  --color-rd-subtle: #64748b;
+  --color-rd-success: #15803d;
+  --color-rd-warning: #b45309;
+}
+
 @keyframes rd-flash {
   0%,
   100% {
@@ -47,6 +59,17 @@ body {
   background: transparent;
   margin: 0;
   padding: 0;
+}
+
+[style*="--rd-reduce-motion: 1"] * {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+:root[data-rd-modal-open="true"] .rd-titlebar-controls-strip {
+  background: rgba(2, 6, 23, 0.72) !important;
+  backdrop-filter: blur(10px) saturate(0.85);
 }
 
 ::-webkit-scrollbar {

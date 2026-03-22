@@ -6,6 +6,14 @@ import type {
 } from "../renderer/src/types/lmu";
 import type { AppUpdaterState } from "../shared/updater";
 
+interface GlobalUiSettingsPayload {
+  darkMode: boolean;
+  accent: string;
+  logoPrimary: string;
+  logoSecondary: string;
+  reduceMotion: boolean;
+}
+
 const api = {
   // -- connection --
   connect: (url: string, pollRate: number): Promise<void> =>
@@ -82,6 +90,9 @@ const api = {
     getOpen: (): Promise<string[]> =>
       ipcRenderer.invoke("window:getOpen"),
 
+    setModalBackdropActive: (isActive: boolean): Promise<void> =>
+      ipcRenderer.invoke("window:setModalBackdropActive", isActive),
+
     onClosed: (cb: (id: string) => void): (() => void) => {
       const handler = (
         _event: Electron.IpcRendererEvent,
@@ -98,14 +109,63 @@ const api = {
     ackDisconnect: (): Promise<void> =>
       ipcRenderer.invoke("system:ackDisconnect"),
 
+    onDisconnectNoticeVisibilityChange: (
+      cb: (isVisible: boolean) => void
+    ): (() => void) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        isVisible: boolean
+      ): void => {
+        cb(isVisible);
+      };
+      ipcRenderer.on("system:disconnectNoticeVisibility", handler);
+      return () =>
+        ipcRenderer.removeListener("system:disconnectNoticeVisibility", handler);
+    },
+
+    onQuitConfirmVisibilityChange: (
+      cb: (isVisible: boolean) => void
+    ): (() => void) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        isVisible: boolean
+      ): void => {
+        cb(isVisible);
+      };
+      ipcRenderer.on("system:quitConfirmVisibility", handler);
+      return () =>
+        ipcRenderer.removeListener("system:quitConfirmVisibility", handler);
+    },
+
     getQuitConfirmPreference: (): Promise<boolean> =>
       ipcRenderer.invoke("system:getQuitConfirmPreference"),
+
+    resetQuitConfirmPreference: (): Promise<void> =>
+      ipcRenderer.invoke("system:resetQuitConfirmPreference"),
 
     cancelQuit: (): Promise<void> =>
       ipcRenderer.invoke("system:cancelQuit"),
 
     confirmQuit: (dontAskAgain: boolean): Promise<void> =>
       ipcRenderer.invoke("system:confirmQuit", dontAskAgain),
+  },
+
+  settings: {
+    applyGlobalUi: (payload: GlobalUiSettingsPayload): Promise<void> =>
+      ipcRenderer.invoke("settings:applyGlobalUi", payload),
+
+    onGlobalUiChanged: (
+      callback: (payload: GlobalUiSettingsPayload) => void
+    ): (() => void) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        payload: GlobalUiSettingsPayload
+      ): void => {
+        callback(payload);
+      };
+      ipcRenderer.on("settings:globalUiChanged", handler);
+      return () => ipcRenderer.removeListener("settings:globalUiChanged", handler);
+    },
   },
 
   updater: {

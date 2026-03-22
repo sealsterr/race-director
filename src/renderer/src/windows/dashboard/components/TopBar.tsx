@@ -131,7 +131,7 @@ const TopBar = ({ connection }: TopBarProps): React.ReactElement => {
         {/* -- window controls overlay chrome strip (visual reserved area) -- */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute right-0 top-0 h-full bg-rd-surface"
+          className="rd-titlebar-controls-strip pointer-events-none absolute right-0 top-0 h-full bg-rd-surface"
           style={{ width: overlayInsets.right}}
         >
 

@@ -12,15 +12,34 @@ const DASHBOARD_HEIGHT = 700;
 
 interface UiPrefs {
   showQuitConfirm: boolean;
+  quitConfirmResetAppliedAfterTesting: boolean;
+}
+
+interface GlobalUiSettings {
+  darkMode: boolean;
+  accent: string;
+  logoPrimary: string;
+  logoSecondary: string;
+  reduceMotion: boolean;
 }
 
 const DEFAULT_UI_PREFS: UiPrefs = {
   showQuitConfirm: true,
+  quitConfirmResetAppliedAfterTesting: false,
 };
 
 let uiPrefs: UiPrefs = DEFAULT_UI_PREFS;
+const DEFAULT_GLOBAL_UI_SETTINGS: GlobalUiSettings = {
+  darkMode: true,
+  accent: "#dc2626",
+  logoPrimary: "#eb7b27",
+  logoSecondary: "#14537e",
+  reduceMotion: false,
+};
+let globalUiSettings: GlobalUiSettings = DEFAULT_GLOBAL_UI_SETTINGS;
 let isAppQuitting = false;
 let isQuitDialogOpen = false;
+const modalBackdropWindowIds = new Set<number>();
 
 // -- track child windows so we don't open duplicates --
 const childWindows: Map<string, BrowserWindow> = new Map();
@@ -117,6 +136,93 @@ function saveUiPrefs(next: UiPrefs): void {
   writeFileSync(path, JSON.stringify(next, null, 2), "utf8");
 }
 
+function getTitlebarOverlayTheme(height: number): Electron.TitleBarOverlay {
+  if (globalUiSettings.darkMode) {
+    return {
+      color: "#0f1117",
+      symbolColor: "#f1f5f9",
+      height,
+    };
+  }
+
+  return {
+    color: "#e9edf3",
+    symbolColor: "#0f172a",
+    height,
+  };
+}
+
+function getSolidWindowBackground(): string {
+  return globalUiSettings.darkMode ? "#08090c" : "#dbe4ef";
+}
+
+function getModalMaskedTitlebarOverlayTheme(
+  height: number
+): Electron.TitleBarOverlay {
+  const modalBackdropColor = globalUiSettings.darkMode
+    ? "rgba(6, 10, 16, 0.74)"
+    : "rgba(20, 28, 42, 0.58)";
+
+  return {
+    color: modalBackdropColor,
+    // Hide native symbols while preserving the modal backdrop blend.
+    symbolColor: modalBackdropColor,
+    height,
+  };
+}
+
+function applyWindowTheme(win: BrowserWindow, titlebarHeight: number): void {
+  if (win.isDestroyed()) return;
+
+  try {
+    if (modalBackdropWindowIds.has(win.id)) {
+      win.setTitleBarOverlay(getModalMaskedTitlebarOverlayTheme(titlebarHeight));
+      return;
+    }
+
+    win.setTitleBarOverlay(getTitlebarOverlayTheme(titlebarHeight));
+  } catch {
+    // no-op for windows that don't support title bar overlays
+  }
+}
+
+function broadcastGlobalUiSettings(): void {
+  const payload = globalUiSettings;
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (win.isDestroyed()) continue;
+    win.webContents.send("settings:globalUiChanged", payload);
+  }
+}
+
+function applyThemeToOpenWindows(mainWindow: BrowserWindow): void {
+  applyWindowTheme(mainWindow, 56);
+
+  for (const win of childWindows.values()) {
+    if (win.isDestroyed()) continue;
+    applyWindowTheme(win, 40);
+  }
+}
+
+function applyGlobalUiSettings(
+  next: GlobalUiSettings,
+  mainWindow: BrowserWindow
+): void {
+  globalUiSettings = next;
+  applyThemeToOpenWindows(mainWindow);
+  broadcastGlobalUiSettings();
+}
+
+function resetQuitConfirmPreferenceOnceAfterTesting(): void {
+  if (uiPrefs.quitConfirmResetAppliedAfterTesting) return;
+
+  uiPrefs = {
+    ...uiPrefs,
+    showQuitConfirm: true,
+    quitConfirmResetAppliedAfterTesting: true,
+  };
+  saveUiPrefs(uiPrefs);
+}
+
 function closeAllManagedWindows(exceptIds: Set<string> = new Set()): void {
   for (const [id, win] of childWindows.entries()) {
     if (exceptIds.has(id)) continue;
@@ -134,91 +240,44 @@ function focusMainWindow(mainWindow: BrowserWindow): void {
   mainWindow.focus();
 }
 
-function destroyChildWindow(id: string): void {
-  const win = childWindows.get(id);
-  if (win && !win.isDestroyed()) {
-    win.destroy();
-  }
-}
-
 function dismissDisconnectNotice(mainWindow: BrowserWindow): void {
-  destroyChildWindow("DISCONNECT-NOTICE");
+  setDisconnectNoticeVisibility(mainWindow, false);
   focusMainWindow(mainWindow);
 }
 
 function dismissQuitConfirm(mainWindow: BrowserWindow): void {
   isQuitDialogOpen = false;
-  destroyChildWindow("QUIT-CONFIRM");
+  setQuitConfirmVisibility(mainWindow, false);
   focusMainWindow(mainWindow);
 }
 
-function getCenteredBounds(
-  mainWindow: BrowserWindow,
-  width: number,
-  height: number
-): Electron.Rectangle {
-  const bounds = mainWindow.getBounds();
-  return {
-    x: bounds.x + Math.round((bounds.width - width) / 2),
-    y: bounds.y + Math.round((bounds.height - height) / 2),
-    width,
-    height,
-  };
+function setDisconnectNoticeVisibility(mainWindow: BrowserWindow, isVisible: boolean): void {
+  if (mainWindow.isDestroyed()) return;
+  mainWindow.webContents.send("system:disconnectNoticeVisibility", isVisible);
+}
+
+function setQuitConfirmVisibility(mainWindow: BrowserWindow, isVisible: boolean): void {
+  if (mainWindow.isDestroyed()) return;
+  mainWindow.webContents.send("system:quitConfirmVisibility", isVisible);
 }
 
 function openDisconnectNotice(mainWindow: BrowserWindow): void {
-  const bounds = getCenteredBounds(mainWindow, 460, 248);
-  createChildWindow(
-    "DISCONNECT-NOTICE",
-    "system/disconnect-notice",
-    {
-      x: bounds.x,
-      y: bounds.y,
-      width: bounds.width,
-      height: bounds.height,
-      parent: mainWindow,
-      resizable: false,
-      minimizable: false,
-      maximizable: false,
-      frame: false,
-      transparent: true,
-      hasShadow: false,
-      backgroundColor: "#00000000",
-      title: "Connection Lost",
-    },
-    mainWindow
-  );
+  isQuitDialogOpen = false;
+  setQuitConfirmVisibility(mainWindow, false);
+  setDisconnectNoticeVisibility(mainWindow, true);
 }
 
 function openQuitConfirm(mainWindow: BrowserWindow): void {
-  const bounds = getCenteredBounds(mainWindow, 490, 370);
-  createChildWindow(
-    "QUIT-CONFIRM",
-    "system/quit-confirm",
-    {
-      x: bounds.x,
-      y: bounds.y,
-      width: bounds.width,
-      height: bounds.height,
-      parent: mainWindow,
-      modal: true,
-      movable: false,
-      minimizable: false,
-      maximizable: false,
-      resizable: false,
-      skipTaskbar: true,
-      title: "Confirm Quit",
-      frame: false,
-      transparent: true,
-      backgroundColor: "#00000000",
-      hasShadow: false,
-      thickFrame: false,
-      roundedCorners: true,
-      alwaysOnTop: true,
-    },
-    mainWindow
-  );
   isQuitDialogOpen = true;
+  setQuitConfirmVisibility(mainWindow, true);
+}
+
+function resetQuitConfirmPreference(): void {
+  uiPrefs = {
+    ...uiPrefs,
+    showQuitConfirm: true,
+  };
+  saveUiPrefs(uiPrefs);
 }
 
 const createMainWindow = (): BrowserWindow => {
@@ -229,12 +288,8 @@ const createMainWindow = (): BrowserWindow => {
     minHeight: 600,
     show: false,
     titleBarStyle: "hidden",
-    titleBarOverlay: {
-      color: "#0f1117",
-      symbolColor: "#f1f5f9",
-      height: 56,
-    },
-    backgroundColor: "#08090c",
+    titleBarOverlay: getTitlebarOverlayTheme(56),
+    backgroundColor: getSolidWindowBackground(),
     icon: join(__dirname, "../../resources/rd-icon-2.ico"),
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
@@ -281,16 +336,12 @@ const createChildWindow = (
 
   const win = new BrowserWindow({
     show: false,
-    backgroundColor: isFrameless ? "#00000000" : "#08090c",
+    backgroundColor: isFrameless ? "#00000000" : getSolidWindowBackground(),
     ...(isFrameless
       ? {}
       : {
           titleBarStyle: "hidden",
-          titleBarOverlay: {
-            color: "#0f1117",
-            symbolColor: "#f1f5f9",
-            height: 40,
-          },
+          titleBarOverlay: getTitlebarOverlayTheme(40),
         }),
     icon: join(__dirname, "../../resources/rd-icon-2.ico"),
     webPreferences: {
@@ -307,21 +358,6 @@ const createChildWindow = (
     if (options.title) win.setTitle(options.title);
   });
 
-  win.on("close", (event) => {
-    if (isAppQuitting) return;
-
-    if (id === "QUIT-CONFIRM") {
-      event.preventDefault();
-      dismissQuitConfirm(mainWindow);
-      return;
-    }
-
-    if (id === "DISCONNECT-NOTICE") {
-      event.preventDefault();
-      dismissDisconnectNotice(mainWindow);
-    }
-  });
-
   // -- load same renderer with hash route --
   if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
     const base = process.env["ELECTRON_RENDERER_URL"].replace(/\/$/, "");
@@ -335,10 +371,7 @@ const createChildWindow = (
   // -- clean up map entry and notify dashboard when closed --
   win.on("closed", () => {
     childWindows.delete(id);
-
-    if (id === "QUIT-CONFIRM" && !mainWindow.isDestroyed()) {
-      isQuitDialogOpen = false;
-    }
+    modalBackdropWindowIds.delete(win.id);
 
     if (!mainWindow.isDestroyed()) {
       mainWindow.webContents.send("window:closed", id);
@@ -544,6 +577,10 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
     return uiPrefs.showQuitConfirm;
   });
 
+  ipcMain.handle("system:resetQuitConfirmPreference", (): void => {
+    resetQuitConfirmPreference();
+  });
+
   ipcMain.handle("system:cancelQuit", (): void => {
     dismissQuitConfirm(mainWindow);
   });
@@ -555,6 +592,9 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
     };
     saveUiPrefs(uiPrefs);
 
+    isQuitDialogOpen = false;
+    setQuitConfirmVisibility(mainWindow, false);
+
     isAppQuitting = true;
     closeAllManagedWindows();
 
@@ -562,6 +602,27 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
       mainWindow.close();
     }
   });
+
+  ipcMain.handle("settings:applyGlobalUi", (_event, next: GlobalUiSettings): void => {
+    applyGlobalUiSettings(next, mainWindow);
+  });
+
+  ipcMain.handle(
+    "window:setModalBackdropActive",
+    (event, isActive: boolean): void => {
+      const targetWindow = BrowserWindow.fromWebContents(event.sender);
+      if (!targetWindow || targetWindow.isDestroyed()) return;
+
+      if (isActive) {
+        modalBackdropWindowIds.add(targetWindow.id);
+      } else {
+        modalBackdropWindowIds.delete(targetWindow.id);
+      }
+
+      const titlebarHeight = targetWindow.id === mainWindow.id ? 56 : 40;
+      applyWindowTheme(targetWindow, titlebarHeight);
+    }
+  );
 
   // -- query which windows are open --
   ipcMain.handle("window:getOpen", (): string[] => {
@@ -585,6 +646,7 @@ const bootstrap = async (): Promise<void> => {
     });
 
     uiPrefs = loadUiPrefs();
+    resetQuitConfirmPreferenceOnceAfterTesting();
 
     const mainWindow = createMainWindow();
 
@@ -614,6 +676,7 @@ const bootstrap = async (): Promise<void> => {
     });
 
     mainWindow.on("closed", () => {
+      modalBackdropWindowIds.delete(mainWindow.id);
       closeAllManagedWindows();
     });
 

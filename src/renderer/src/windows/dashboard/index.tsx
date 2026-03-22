@@ -1,18 +1,19 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import TopBar from "./components/TopBar";
 import Sidebar, { WINDOW_DEFINITIONS } from "./components/Sidebar";
 import ConnectionPanel from "./components/ConnectionPanel";
 import SessionPanel from "./components/SessionPanel";
 import ActivityLog from "./components/ActivityLog";
+import SettingsModal from "./components/settings/SettingsModal";
+import SystemPopups from "./components/system-popups/SystemPopups";
 import useAppUpdater from "./hooks/useAppUpdater";
+import useAutoReconnect from "./hooks/useAutoReconnect";
+import useDashboardIpcSync from "./hooks/useDashboardIpcSync";
+import useDashboardSettings from "./hooks/useDashboardSettings";
+import useDashboardStartup from "./hooks/useDashboardStartup";
+import useSystemPopups from "./hooks/useSystemPopups";
 import { useRaceStore } from "../../store/raceStore";
-import type {
-  LogEntry,
-  LogType,
-  WindowId,
-  WindowItem,
-} from "../../types/dashboard";
-import type { AppState } from "../../types/lmu";
+import type { LogEntry, LogType, WindowId, WindowItem } from "../../types/dashboard";
 
 const createLogEntry = (
   message: string,
@@ -31,17 +32,20 @@ const updateWindowOpenStatus = (
 ): WindowItem[] =>
   windows.map((w) => (w.id === id ? { ...w, isOpen } : w));
 
-const mapWindowWithOpenStatus = (w: WindowItem, openIds: string[]) => ({
-  ...w,
-  isOpen: openIds.includes(w.id),
-});
-
-const hydrateOpenWindows = (openIds: string[]) => (prev: WindowItem[]) =>
-  prev.map((w) => mapWindowWithOpenStatus(w, openIds));
-
 const Dashboard = (): React.ReactElement => {
   const { connection, session, setConnection, setSession, setStandings } =
     useRaceStore();
+  const {
+    settings,
+    draftSettings,
+    isSettingsOpen,
+    scaledContainerStyle,
+    openSettings,
+    closeSettings,
+    updateDraft,
+    saveDraft,
+    resetDraftToDefaults,
+  } = useDashboardSettings();
 
   const [log, setLog] = useState<LogEntry[]>([
     createLogEntry("Race Director initialized.", "SYSTEM"),
@@ -52,65 +56,44 @@ const Dashboard = (): React.ReactElement => {
     WINDOW_DEFINITIONS.map((def) => ({ ...def, isOpen: false }))
   );
   const { updaterState, downloadUpdate } = useAppUpdater();
+  const {
+    showDisconnectNotice,
+    showQuitConfirm,
+    dontAskAgain,
+    setDontAskAgain,
+    dismissDisconnectNotice,
+    cancelQuit,
+    confirmQuit,
+  } = useSystemPopups();
 
   const addLog = useCallback(
     (message: string, type: LogType = "INFO") => {
-      setLog((prev) => [...prev, createLogEntry(message, type)]);
+      setLog((prev) => {
+        const next = [...prev, createLogEntry(message, type)];
+        return next.slice(-settings.general.activityLogLimit);
+      });
     },
-    []
+    [settings.general.activityLogLimit]
   );
 
-  // -- subscribe to IPC events from main process --
-  useEffect(() => {
-    // -- hydrate with whatever state main process already has --
-    globalThis.api.getState().then((state: AppState) => {
-      setConnection(state.connection);
-      setSession(state.session);
-      setStandings(state.standings);
-    });
+  const updateWindowOpen = useCallback((id: WindowId, isOpen: boolean) => {
+    setWindows((prev) => updateWindowOpenStatus(prev, id, isOpen));
+  }, []);
 
-    // -- live state updates from poll loop --
-    const unsubState = globalThis.api.onStateUpdate((state: AppState) => {
-      setSession(state.session);
-      setStandings(state.standings);
-    });
-
-    // -- connection status changes --
-    const unsubConn = globalThis.api.onConnectionChange((status) => {
-      setConnection(status);
-
-      const messages: Record<typeof status, [string, LogType]> = {
-        CONNECTED: ["Connected to LMU API successfully!", "SUCCESS"],
-        CONNECTING: ["Connecting to LMU API...", "INFO"],
-        DISCONNECTED: ["Disconnected from LMU API!", "WARNING"],
-        ERROR: [
-          "Connection failed! Make sure Le Mans Ultimate is running.",
-          "ERROR",
-        ],
-      };
-      const [msg, type] = messages[status];
-      addLog(msg, type);
-    });
-
-    // sync isOpen if user closes a child window via its own X button
-    const unsubWinClosed = globalThis.api.windows.onClosed((id: string) => {
-      setWindows((prev) => updateWindowOpenStatus(prev, id, false));
-      const closed = WINDOW_DEFINITIONS.find((w) => w.id === id);
-      if (closed) addLog(`${closed.label} was closed`, "WARNING");
-    });
-
-    // hydrate open windows on mount
-    globalThis.api.windows.getOpen().then((openIds: string[]) => {
-      setWindows(hydrateOpenWindows(openIds));
-    });
-
-    // -- remove listeners when component unmounts --
-    return () => {
-      unsubState();
-      unsubConn();
-      unsubWinClosed();
-    };
-  }, [setConnection, setSession, setStandings, addLog]);
+  useDashboardStartup({
+    settings,
+    onLog: addLog,
+    onWindowOpenStatus: updateWindowOpen,
+  });
+  useAutoReconnect({ connection, settings, onLog: addLog });
+  useDashboardIpcSync({
+    setConnection,
+    setSession,
+    setStandings,
+    addLog,
+    setWindows,
+    closeOverlaysWhenControlCloses: settings.overlay.closeOverlaysWhenControlCloses,
+  });
 
   const handleLaunch = useCallback(
     async (id: WindowId) => {
@@ -131,11 +114,14 @@ const Dashboard = (): React.ReactElement => {
   );
 
   const handleSettingsClick = useCallback(() => {
-    addLog("Settings panel is coming soon.", "INFO");
-  }, [addLog]);
+    openSettings();
+  }, [openSettings]);
 
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-rd-bg">
+    <div
+      style={scaledContainerStyle}
+      className="relative flex h-screen w-screen flex-col overflow-hidden bg-rd-bg"
+    >
       <TopBar connection={connection} />
 
       <div className="flex min-h-0 flex-1">
@@ -151,6 +137,8 @@ const Dashboard = (): React.ReactElement => {
           <div className="grid grid-cols-2 gap-3">
             <ConnectionPanel
               connection={connection}
+              defaultApiUrl={settings.network.apiUrl}
+              defaultPollRateMs={settings.network.pollRateMs}
               onConnectionChange={(status) => {
                 setConnection(status);
 
@@ -167,6 +155,26 @@ const Dashboard = (): React.ReactElement => {
           <ActivityLog entries={log} />
         </div>
       </div>
+
+      <SystemPopups
+        showDisconnectNotice={showDisconnectNotice}
+        showQuitConfirm={showQuitConfirm}
+        dontAskAgain={dontAskAgain}
+        onDontAskAgainChange={setDontAskAgain}
+        onDismissDisconnect={dismissDisconnectNotice}
+        onCancelQuit={cancelQuit}
+        onConfirmQuit={confirmQuit}
+      />
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        settings={draftSettings}
+        onChange={updateDraft}
+        onClose={closeSettings}
+        onSave={saveDraft}
+        onResetDefaults={resetDraftToDefaults}
+        onResetQuitConfirm={globalThis.api.system.resetQuitConfirmPreference}
+      />
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Wifi, WifiOff, RefreshCw, Settings2 } from "lucide-react";
 import type { ConnectionStatus } from "../../../types/lmu";
@@ -6,6 +6,8 @@ import type { LogType } from "../../../types/dashboard";
 
 interface ConnectionPanelProps {
   connection: ConnectionStatus;
+  defaultApiUrl: string;
+  defaultPollRateMs: number;
   onConnectionChange: (status: ConnectionStatus) => void;
   onLog: (message: string, type?: LogType) => void;
 }
@@ -35,12 +37,22 @@ const getButtonLabel = (connection: ConnectionStatus): string => {
 
 const ConnectionPanel = ({
   connection,
+  defaultApiUrl,
+  defaultPollRateMs,
   onConnectionChange,
   onLog,
 }: ConnectionPanelProps): React.ReactElement => {
-  const [apiUrl, setApiUrl] = useState("http://localhost:6397");
-  const [pollRate, setPollRate] = useState(200);
+  const [apiUrl, setApiUrl] = useState(defaultApiUrl);
+  const [pollRate, setPollRate] = useState(defaultPollRateMs);
   const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    setApiUrl(defaultApiUrl);
+  }, [defaultApiUrl]);
+
+  useEffect(() => {
+    setPollRate(defaultPollRateMs);
+  }, [defaultPollRateMs]);
 
   const handleConnect = async (): Promise<void> => {
     if (connection === "CONNECTED") {
@@ -133,7 +145,7 @@ const ConnectionPanel = ({
               id="poll-rate"
               type="number"
               value={pollRate}
-              min={100}
+              min={50}
               max={2000}
               step={50}
               onChange={(e) => setPollRate(Number(e.target.value))}

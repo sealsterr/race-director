@@ -4,8 +4,7 @@ import InfoWindow from "./windows/info";
 import OverlayControl from "./windows/overlay-control";
 import TowerOverlay from "./windows/overlay/tower/index";
 import DriverOverlay from "./windows/overlay/driver";
-import DisconnectNotice from "./windows/system/disconnect-notice";
-import QuitConfirm from "./windows/system/quit-confirm";
+import useGlobalUiSettings from "./hooks/useGlobalUiSettings";
 
 const ROUTES: Record<string, React.ReactElement> = {
   "": <Dashboard />,
@@ -13,11 +12,11 @@ const ROUTES: Record<string, React.ReactElement> = {
   "overlay-control": <OverlayControl />,
   "overlay/tower": <TowerOverlay />,
   "overlay/driver": <DriverOverlay />,
-  "system/disconnect-notice": <DisconnectNotice />,
-  "system/quit-confirm": <QuitConfirm />,
 };
 
 const App = (): React.ReactElement => {
+  useGlobalUiSettings();
+
   const [route, setRoute] = useState(() =>
     globalThis.location.hash.replace("#", "").toLowerCase()
   );
