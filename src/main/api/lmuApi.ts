@@ -1,5 +1,3 @@
-// src/main/api/lmuApi.ts
-
 import type {
   AppState,
   SessionInfo,
@@ -20,9 +18,8 @@ import {
 } from "./lmuTelemetryBridge";
 import { loadPlayerProfile } from "./lmuPlayerProfile";
 
-// -- raw API shapes --
-// -- these match what the LMU REST API actually returns --
-
+// * -- raw API shapes --
+// * -- these match what the LMU REST API actually returns --
 interface RawSessionInfo {
   session: string;           // "PRACTICE1", "QUALIFY1", "RACE1", etc.
   trackName: string;
@@ -78,8 +75,7 @@ interface RawVehicleStanding {
   qualification: number;     // grid position
 }
 
-// -- mapping helpers --
-
+// * -- mapping helpers --
 const mapSessionType = (session: string): SessionType => {
   const upper = session.toUpperCase();
   
@@ -91,7 +87,7 @@ const mapSessionType = (session: string): SessionType => {
 };
 
 const mapFlagState = (yellowFlagState: string, sectorFlags: string[]): FlagState => {
-  // -- check for full course yellow / safety car first --
+  // * -- check for full course yellow / safety car first --
   const upper = yellowFlagState.toUpperCase();
   const map: Record<string, FlagState> = {
     NONE: "GREEN",
@@ -101,7 +97,7 @@ const mapFlagState = (yellowFlagState: string, sectorFlags: string[]): FlagState
     SAFETYCAR: "SAFETY_CAR",
   };
 
-  // -- check sector flags for any yellows --
+  // * -- check sector flags for any yellows --
   const hasYellow = sectorFlags.some((f) =>
     f.toUpperCase().includes("YELLOW")
   );
@@ -202,23 +198,23 @@ const mapDriverStatus = (v: RawVehicleStanding): DriverStatus => {
   return "RACING";
 };
 
-// -- extract car number from vehicleName or vehicleFilename as fallback --
-// -- vehicleName format: "Make Model #007:EC" --
+// * -- extract car number from vehicleName or vehicleFilename as fallback --
+// * -- vehicleName format: "Make Model #007:EC" --
 const extractCarNumber = (v: RawVehicleStanding): string => {
   if (v.carNumber && v.carNumber.trim() !== "") return v.carNumber;
 
-  // -- try to extract from vehicleName: "... #007:EC" → "007" --
+  // * -- try to extract from vehicleName: "... #007:EC" → "007" --
   const nameMatch = /#(\w+)/.exec(v.vehicleName);
   if (nameMatch) return nameMatch[1];
 
-  // -- fallback to slotID --
+  // * -- fallback to slotID --
   return String(v.slotID);
 };
 
-// -- clean up vehicle name for display --
-// -- "Aston Martin THOR Team 2025 #007:EC" → "Aston Martin THOR" --
+// * -- clean up vehicle name for display --
+// * -- "Aston Martin THOR Team 2025 #007:EC" → "Aston Martin THOR" --
 const cleanCarName = (vehicleName: string): string => {
-  // -- strip the "#xxx:XX" suffix --
+  // * -- strip the "#xxx:XX" suffix --
   return vehicleName.replace(/#\w+.*$/, "").trim();
 };
 
@@ -323,18 +319,17 @@ function findTelemetryMatch(
 const mapSectorTime = (s1: number, s2: number): SectorTime => ({
   sector1: s1 > 0 ? s1 : null,
   sector2: s2 > 0 ? s2 : null,
-  sector3: null, // -- not available via REST --
+  sector3: null, // * -- not available via REST --
 });
 
-// -- build penalty array from count --
-// -- REST only gives us a count, detail comes later via shared memory --
+// * -- build penalty array from count --
+// * -- REST only gives us a count, detail comes later via shared memory --
 const mapPenalties = (count: number): Penalty[] =>
   count <= 0
     ? []
     : [{ type: "TIME_PENALTY" as const, time: 0, reason: `${count} pending` }];
 
-// -- transform functions --
-
+// * -- transform functions --
 const transformSession = (
   raw: RawSessionInfo,
   vehicles: RawVehicleStanding[],
@@ -351,7 +346,7 @@ const transformSession = (
     : null;               
   const timeRemaining = remainingDirect ?? remainingFromMax ?? 0;
 
-  // -- laps --
+  // * -- laps --
   const noLapLimit = raw.maximumLaps >= 4294967295 || raw.maximumLaps === 0;
 
   // use leader lapCompleted + 1
@@ -363,7 +358,7 @@ const transformSession = (
     ? Math.max(0, leader.lapsCompleted) + 1
     : 0;
 
-  // -- on track --
+  // * -- on track --
   const numCarsOnTrack = vehicles.filter((v) => {
     const finish = (v.finishStatus ?? "").toUpperCase();
     const inactiveFinish = 
@@ -432,16 +427,23 @@ const transformVehicle = (
   };
 };
 
-// -- LmuApiClient --
-
+// * -- LmuApiClient --
 type StateUpdateCallback = (state: AppState) => void;
 type ConnectionCallback = (status: ConnectionStatus) => void;
+const DEFAULT_LMU_BASE_URL = "http://localhost:6397";
+const DEFAULT_POLL_RATE_MS = 200;
+const MIN_POLL_RATE_MS = 50;
+const MAX_POLL_RATE_MS = 2_000;
+const LMU_PING_TIMEOUT_MS = 3_000;
+const LMU_REQUEST_TIMEOUT_MS = 3_000;
+const LMU_DISCONNECT_NOTICE_DELAY_MS = 3_000;
 
 export class LmuApiClient {
-  private baseUrl: string = "http://localhost:6397";
-  private pollRate: number = 200;
+  private baseUrl: string = DEFAULT_LMU_BASE_URL;
+  private pollRate: number = DEFAULT_POLL_RATE_MS;
   private telemetryRate: number = 33;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private delayedDisconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private pollInFlight = false;
   private consecutivePollFailures = 0;
   private currentState: AppState = {
@@ -454,11 +456,11 @@ export class LmuApiClient {
   private onStateUpdate: StateUpdateCallback | null = null;
   private onConnectionChange: ConnectionCallback | null = null;
 
-  // -- public API --
-
+  // * -- public API --
   public configure(url: string, pollRate: number): void {
-    this.baseUrl = url;
-    this.pollRate = pollRate;
+    this.baseUrl = this.toSafeBaseUrl(url);
+    const safePollRate = Number.isFinite(pollRate) ? Math.round(pollRate) : DEFAULT_POLL_RATE_MS;
+    this.pollRate = Math.max(MIN_POLL_RATE_MS, Math.min(MAX_POLL_RATE_MS, safePollRate));
   }
 
   public setStateUpdateCallback(cb: StateUpdateCallback): void {
@@ -474,12 +476,13 @@ export class LmuApiClient {
   }
 
   public async connect(): Promise<void> {
+    this.clearDelayedDisconnectTimer();
     this.emitConnection("CONNECTING");
     this.consecutivePollFailures = 0;
     const alive = await this.ping();
     if (!alive) {
       this.emitConnection("ERROR");
-      setTimeout(() => this.emitConnection("DISCONNECTED"), 3000);
+      this.scheduleDelayedDisconnect();
       return;
     }
     this.emitConnection("CONNECTED");
@@ -489,9 +492,7 @@ export class LmuApiClient {
   }
 
   public async focusVehicle(slotId: number): Promise<void> {
-    await fetch(`${this.baseUrl}/rest/watch/focus/${slotId}`, {
-      method: "PUT",
-    });
+    await this.performControlRequest(`/rest/watch/focus/${slotId}`);
   }
 
   public async setCameraAngle(
@@ -499,13 +500,13 @@ export class LmuApiClient {
     trackSideGroup: number,
     shouldAdvance: boolean
   ): Promise<void> {
-    await fetch(
-      `${this.baseUrl}/rest/watch/focus/${cameraType}/${trackSideGroup}/${shouldAdvance}`,
-      { method: "PUT" }
+    await this.performControlRequest(
+      `/rest/watch/focus/${cameraType}/${trackSideGroup}/${shouldAdvance}`
     );
   }
 
   public disconnect(): void {
+    this.clearDelayedDisconnectTimer();
     this.stopPolling();
     this.consecutivePollFailures = 0;
     telemetryBridge.stop();
@@ -520,16 +521,49 @@ export class LmuApiClient {
     this.onStateUpdate?.(this.currentState);
   }
 
-  // -- private methods --
-
+  // * -- private methods --
   private async ping(): Promise<boolean> {
     try {
       const res = await fetch(`${this.baseUrl}/rest/watch/sessionInfo`, {
-        signal: AbortSignal.timeout(3000),
+        signal: AbortSignal.timeout(LMU_PING_TIMEOUT_MS),
       });
       return res.ok;
     } catch {
       return false;
+    }
+  }
+
+  private toSafeBaseUrl(rawUrl: string): string {
+    if (typeof rawUrl !== "string") {
+      return DEFAULT_LMU_BASE_URL;
+    }
+
+    const trimmed = rawUrl.trim();
+    if (!trimmed) {
+      return DEFAULT_LMU_BASE_URL;
+    }
+
+    try {
+      const parsed = new URL(trimmed);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return DEFAULT_LMU_BASE_URL;
+      }
+
+      const normalizedPath = parsed.pathname.replace(/\/+$/, "");
+      return `${parsed.origin}${normalizedPath === "/" ? "" : normalizedPath}`;
+    } catch {
+      return DEFAULT_LMU_BASE_URL;
+    }
+  }
+
+  private async performControlRequest(path: string): Promise<void> {
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      method: "PUT",
+      signal: AbortSignal.timeout(LMU_REQUEST_TIMEOUT_MS),
+    });
+
+    if (!response.ok) {
+      throw new Error(`LMU control request failed (${response.status})`);
     }
   }
 
@@ -538,6 +572,7 @@ export class LmuApiClient {
     this.pollTimer = setInterval(() => {
       void this.poll();
     }, this.pollRate);
+    this.pollTimer.unref?.();
   }
 
   private stopPolling(): void {
@@ -556,9 +591,11 @@ export class LmuApiClient {
     this.pollInFlight = true;
 
     try {
+      const timeoutMs = Math.max(1_000, Math.min(5_000, this.pollRate * 3));
+      const signal = AbortSignal.timeout(timeoutMs);
       const [sessionRes, standingsRes] = await Promise.all([
-        fetch(`${this.baseUrl}/rest/watch/sessionInfo`),
-        fetch(`${this.baseUrl}/rest/watch/standings`),
+        fetch(`${this.baseUrl}/rest/watch/sessionInfo`, { signal }),
+        fetch(`${this.baseUrl}/rest/watch/standings`, { signal }),
       ]);
 
       if (!sessionRes.ok || !standingsRes.ok) {
@@ -600,10 +637,32 @@ export class LmuApiClient {
     this.stopPolling();
     telemetryBridge.stop();
     this.emitConnection("ERROR");
-    setTimeout(() => this.emitConnection("DISCONNECTED"), 3000);
+    this.scheduleDelayedDisconnect();
+  }
+
+  private scheduleDelayedDisconnect(): void {
+    this.clearDelayedDisconnectTimer();
+    this.delayedDisconnectTimer = setTimeout(() => {
+      this.delayedDisconnectTimer = null;
+      this.emitConnection("DISCONNECTED");
+    }, LMU_DISCONNECT_NOTICE_DELAY_MS);
+    this.delayedDisconnectTimer.unref?.();
+  }
+
+  private clearDelayedDisconnectTimer(): void {
+    if (!this.delayedDisconnectTimer) {
+      return;
+    }
+
+    clearTimeout(this.delayedDisconnectTimer);
+    this.delayedDisconnectTimer = null;
   }
 
   private emitConnection(status: ConnectionStatus): void {
+    if (status === "CONNECTED" || status === "DISCONNECTED") {
+      this.clearDelayedDisconnectTimer();
+    }
+
     this.currentState = { ...this.currentState, connection: status };
     try {
       this.onConnectionChange?.(status);
@@ -621,5 +680,5 @@ export class LmuApiClient {
   }
 }
 
-// -- one client for whole app lifetime --
+// * -- one client for whole app lifetime --
 export const lmuClient = new LmuApiClient();

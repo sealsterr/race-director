@@ -9,14 +9,14 @@ import TowerSection from "./TowerSection";
 import { useTowerWindowAutosize } from "./useTowerWindowAutosize";
 import { useBufferedAppState } from "./useBufferedAppState";
 
-// -- empty sector time sentinel --
+// * -- empty sector time sentinel --
 const EMPTY_SECTORS: SectorTime = {
     sector1: null,
     sector2: null,
     sector3: null,
 };
 
-// -- derive session-best sectors from all standings --
+// * -- derive session-best sectors from all standings --
 function deriveSessionBestSectors(
     standings: DriverStanding[]
 ): SectorTime {
@@ -34,7 +34,7 @@ function deriveSessionBestSectors(
     return { sector1: s1, sector2: s2, sector3: s3 };
 }
 
-// -- overtake detection --
+// * -- overtake detection --
 // returns a map of slotId: "gained" or "lost" clears after flash duration
 const OVERTAKE_FLASH_MS = 600;
 
@@ -117,14 +117,14 @@ export default function TowerOverlay() {
     };
     const appState = useBufferedAppState(towerSettings.standingsRefreshMs);
 
-    // -- start positions: captured once at race start, never reset mid-race --
+    // * -- start positions: captured once at race start, never reset mid-race --
     const startPositionsRef = useRef<Map<number, number>>(new Map());
     const raceStartedRef = useRef(false);
 
-    // -- previous positions for overtake detection --
+    // * -- previous positions for overtake detection --
     const prevPositionsRef = useRef<Map<number, number>>(new Map());
 
-    // -- overtaking flash state --
+    // * -- overtaking flash state --
     const [overtakingSlots, setOvertakingSlots] = useState<
         Map<number, "gained" | "lost">
     >(new Map());
@@ -133,7 +133,7 @@ export default function TowerOverlay() {
     );
     const contentRef = useRef<HTMLDivElement>(null);
 
-    // -- self-hydrate on mount --
+    // * -- self-hydrate on mount --
     useEffect(() => {
         const unsubConfig = globalThis.api?.overlay?.onConfigUpdate?.((raw: unknown) => {
             const incoming = raw as OverlayConfig<TowerSettings>;
@@ -147,7 +147,7 @@ export default function TowerOverlay() {
         };
     }, []);
 
-    // -- capture start positions when race begins --
+    // * -- capture start positions when race begins --
     useEffect(() => {
         const { session, standings } = appState;
         if (session?.sessionType !== "RACE") {
@@ -165,7 +165,7 @@ export default function TowerOverlay() {
         raceStartedRef.current = true;
     }, [appState]);
 
-    // -- overtake detection --
+    // * -- overtake detection --
     useEffect(() => {
         const { standings } = appState;
         const prev = prevPositionsRef.current;
@@ -202,7 +202,7 @@ export default function TowerOverlay() {
         }
     }, [appState.standings]);
 
-    // -- cleanup timers on unmount --
+    // * -- cleanup timers on unmount --
     useEffect(() => {
         return () => {
             for (const t of overtakeTimersRef.current.values()) {

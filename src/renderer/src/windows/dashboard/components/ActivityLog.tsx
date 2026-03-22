@@ -23,7 +23,7 @@ const formatTimestamp = (date: Date): string =>
 const ActivityLog = ({ entries }: ActivityLogProps): React.ReactElement => {
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  //  -- auto-scroll to bottom on new entry --
+  // * -- auto-scroll to bottom on new entry --
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [entries]);

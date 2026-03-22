@@ -1,6 +1,6 @@
 import React from 'react';
 
-// -- activity log --
+// * -- activity log --
 export type LogType = 
     | "INFO"
     | "SUCCESS"
@@ -15,7 +15,7 @@ export interface LogEntry {
     message: string;
 }
 
-// -- window registry -- 
+// * -- window registry --
 export type WindowId =
     | "INFO"
     | "OVERLAY-CONTROL"

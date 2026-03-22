@@ -63,8 +63,8 @@ const ConnectionPanel = ({
     }
 
     onLog(`Attempting connection to ${apiUrl}...`, "INFO");
-    // -- real status updates will arrive via onConnectionChange --
-    // -- listener set up in dashboard/index.tsx, we just fire call here
+    // * -- real status updates will arrive via onConnectionChange --
+    // * -- listener set up in dashboard/index.tsx, we just fire call here --
     await globalThis.api.connect(apiUrl, pollRate);
   };
 

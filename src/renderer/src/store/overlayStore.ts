@@ -1,14 +1,14 @@
 import { create } from "zustand";
 import type { CarClass } from "../types/lmu";
 
-// -- types --
+// * -- types --
 export type OverlayId = 
     | "OVERLAY-TOWER"
     | "OVERLAY-DRIVER"
     | "OVERLAY-GAP"
     | "OVERLAY-SESSION";
 
-// -- specific settings --
+// * -- specific settings --
 export type TowerRaceMode =
     | "GAP_AHEAD"
     | "GAP_LEADER"
@@ -90,7 +90,7 @@ export type OverlaySpecificSettings =
     | GapSettings
     | SessionSettings;
 
-// -- base config --
+// * -- base config --
 export interface OverlayConfig<T extends OverlaySpecificSettings = OverlaySpecificSettings> {
     id: OverlayId;
     enabled: boolean;
@@ -103,7 +103,7 @@ export interface OverlayConfig<T extends OverlaySpecificSettings = OverlaySpecif
     settings: T;
 }
 
-// -- default configs --
+// * -- default configs --
 const DEFAULT_CONFIGS: OverlayConfig[] = [
     {
         id: "OVERLAY-TOWER",
@@ -237,7 +237,7 @@ export function normalizeOverlayConfigs(
     });
 }
 
-// -- store shape
+// * -- store shape --
 interface OverlayStore {
     overlays: OverlayConfig[];
     savePath: string;

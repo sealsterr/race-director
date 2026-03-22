@@ -14,8 +14,10 @@ interface GlobalUiSettingsPayload {
   reduceMotion: boolean;
 }
 
+// * -- preload bridge surface --
+// Keep methods small and explicit so IPC contracts stay auditable.
 const api = {
-  // -- connection --
+  // * -- connection --
   connect: (url: string, pollRate: number): Promise<void> =>
     ipcRenderer.invoke("lmu:connect", url, pollRate),
 
@@ -32,14 +34,14 @@ const api = {
   ): Promise<void> =>
     ipcRenderer.invoke("lmu:setCameraAngle", cameraType, trackSideGroup, shouldAdvance),
 
-  // -- state --
+  // * -- state --
   getState: (): Promise<AppState> =>
     ipcRenderer.invoke("lmu:getState"),
 
   getTelemetry: (): Promise<TelemetrySnapshot> =>
     ipcRenderer.invoke("lmu:getTelemetry"),
 
-  // -- event subscriptions --
+  // * -- event subscriptions --
   onStateUpdate: (
     callback: (state: AppState) => void
   ): (() => void) => {
@@ -79,7 +81,7 @@ const api = {
     return () => ipcRenderer.removeListener("lmu:telemetryUpdate", handler);
   },
 
-  // -- window management --
+  // * -- window management --
   windows: {
     open: (id: string): Promise<boolean> =>
       ipcRenderer.invoke("window:open", id),
@@ -178,6 +180,9 @@ const api = {
     download: (): Promise<AppUpdaterState> =>
       ipcRenderer.invoke("updater:download"),
 
+    install: (): Promise<AppUpdaterState> =>
+      ipcRenderer.invoke("updater:install"),
+
     onStateChange: (
       callback: (state: AppUpdaterState) => void
     ): (() => void) => {
@@ -192,7 +197,7 @@ const api = {
     },
   },
 
-  // -- overlay management --
+  // * -- overlay management --
   overlay: {
     getDisplays: () =>
       ipcRenderer.invoke("overlay:getDisplays"),
@@ -248,6 +253,7 @@ const api = {
   },
 };
 
+// TODO: Keep new bridge methods grouped by domain section.
 contextBridge.exposeInMainWorld("api", api);
 
 export type ElectronAPI = typeof api;

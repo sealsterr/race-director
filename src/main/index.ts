@@ -1,10 +1,11 @@
-import { app, BrowserWindow, shell, ipcMain, screen } from "electron";
+import { app, BrowserWindow, shell, screen } from "electron";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import { registerIpcHandlers } from "./ipc/handlers";
 import { registerOverlayHandlers } from "./ipc/overlayHandlers";
 import { registerUpdaterHandlers } from "./ipc/updaterHandlers";
+import { registerIpcHandle } from "./ipc/registerIpcHandle";
 import { initializeAutoUpdater } from "./updater";
 
 const DASHBOARD_WIDTH = 1100;
@@ -41,7 +42,7 @@ let isAppQuitting = false;
 let isQuitDialogOpen = false;
 const modalBackdropWindowIds = new Set<number>();
 
-// -- track child windows so we don't open duplicates --
+// * -- track child windows so we don't open duplicates --
 const childWindows: Map<string, BrowserWindow> = new Map();
 const suppressOverlayMoveEvents = new Set<string>();
 
@@ -280,6 +281,71 @@ function resetQuitConfirmPreference(): void {
   saveUiPrefs(uiPrefs);
 }
 
+function toSafeExternalUrl(rawUrl: string): string | null {
+  if (typeof rawUrl !== "string" || rawUrl.length === 0) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+      return null;
+    }
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
+function getDevRendererOrigin(): string | null {
+  const devUrl = process.env["ELECTRON_RENDERER_URL"];
+  if (!devUrl) {
+    return null;
+  }
+
+  try {
+    return new URL(devUrl).origin;
+  } catch {
+    return null;
+  }
+}
+
+function isAllowedInAppNavigation(rawUrl: string): boolean {
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol === "file:") {
+      return true;
+    }
+
+    const devOrigin = getDevRendererOrigin();
+    return devOrigin !== null && parsed.origin === devOrigin;
+  } catch {
+    return false;
+  }
+}
+
+function attachWebContentsSecurityHandlers(win: BrowserWindow): void {
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    const safeUrl = toSafeExternalUrl(url);
+    if (safeUrl) {
+      void shell.openExternal(safeUrl);
+    }
+    return { action: "deny" };
+  });
+
+  win.webContents.on("will-navigate", (event, url) => {
+    if (isAllowedInAppNavigation(url)) {
+      return;
+    }
+
+    event.preventDefault();
+    const safeUrl = toSafeExternalUrl(url);
+    if (safeUrl) {
+      void shell.openExternal(safeUrl);
+    }
+  });
+}
+
 const createMainWindow = (): BrowserWindow => {
   const win = new BrowserWindow({
     width: DASHBOARD_WIDTH,
@@ -303,11 +369,7 @@ const createMainWindow = (): BrowserWindow => {
   setTimeout(() => {  // fallback in case 'ready-to-show' doesn't fire
     if (!win.isDestroyed() && !win.isVisible()) win.show();
   }, 3000);
-
-  win.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
-    return { action: "deny" };
-  });
+  attachWebContentsSecurityHandlers(win);
 
   if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
     win.loadURL(process.env["ELECTRON_RENDERER_URL"]);
@@ -324,7 +386,7 @@ const createChildWindow = (
   options: Partial<Electron.BrowserWindowConstructorOptions>,
   mainWindow: BrowserWindow
 ): BrowserWindow => {
-  // -- if already open just focus it --
+  // * -- if already open just focus it --
   const existing = childWindows.get(id);
   if (existing && !existing.isDestroyed()) {
     existing.focus();
@@ -357,8 +419,9 @@ const createChildWindow = (
   win.webContents.on("did-finish-load", () => {
     if (options.title) win.setTitle(options.title);
   });
+  attachWebContentsSecurityHandlers(win);
 
-  // -- load same renderer with hash route --
+  // * -- load same renderer with hash route --
   if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
     const base = process.env["ELECTRON_RENDERER_URL"].replace(/\/$/, "");
     win.loadURL(`${base}/#${route}`);
@@ -368,7 +431,7 @@ const createChildWindow = (
     });
   }
 
-  // -- clean up map entry and notify dashboard when closed --
+  // * -- clean up map entry and notify dashboard when closed --
   win.on("closed", () => {
     childWindows.delete(id);
     modalBackdropWindowIds.delete(win.id);
@@ -425,6 +488,7 @@ const createOverlayWindow = (
   win.setIgnoreMouseEvents(true, { forward: true });
 
   win.once("ready-to-show", () => win.show());
+  attachWebContentsSecurityHandlers(win);
 
   if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
     win.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}/#${route}`);
@@ -476,8 +540,8 @@ const createOverlayWindow = (
 };
 
 const registerWindowIpc = (mainWindow: BrowserWindow): void => {
-  // -- open a named window --
-  ipcMain.handle("window:open", (_event, id: string): boolean => {
+  // * -- open a named window --
+  registerIpcHandle("window:open", (_event, id: string): boolean => {
     if (id === "INFO") {
       createChildWindow(
         "INFO",
@@ -510,7 +574,7 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
       return true;
     }
 
-    // -- overlay windows --
+    // * -- overlay windows --
     const OVERLAY_SIZES: Record<
       string,
       { route: string; w: number; h: number }
@@ -531,7 +595,7 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
   });
 
   // move/resize overlay windows
-  ipcMain.handle(
+  registerIpcHandle(
     "overlay:updateBounds",
     (_e, id: string, x: number, y: number, w: number, h: number): void => {
       const win = childWindows.get(id);
@@ -542,7 +606,7 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
   );
 
   // toggle drag mode
-  ipcMain.handle(
+  registerIpcHandle(
     "overlay:setDragMode",
     (_e, id: string, enabled: boolean): void => {
       const win = childWindows.get(id);
@@ -554,7 +618,7 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
   );
 
   // get bounds of overlay window
-  ipcMain.handle(
+  registerIpcHandle(
     "overlay:getBounds",
     (_e, id: string): Electron.Rectangle | null => {
       const win = childWindows.get(id);
@@ -563,29 +627,29 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
     }
   );
 
-  // -- close a named window --
-  ipcMain.handle("window:close", (_event, id: string): void => {
+  // * -- close a named window --
+  registerIpcHandle("window:close", (_event, id: string): void => {
     const win = childWindows.get(id);
     if (win && !win.isDestroyed()) win.close();
   });
 
-  ipcMain.handle("system:ackDisconnect", (): void => {
+  registerIpcHandle("system:ackDisconnect", (): void => {
     dismissDisconnectNotice(mainWindow);
   });
 
-  ipcMain.handle("system:getQuitConfirmPreference", (): boolean => {
+  registerIpcHandle("system:getQuitConfirmPreference", (): boolean => {
     return uiPrefs.showQuitConfirm;
   });
 
-  ipcMain.handle("system:resetQuitConfirmPreference", (): void => {
+  registerIpcHandle("system:resetQuitConfirmPreference", (): void => {
     resetQuitConfirmPreference();
   });
 
-  ipcMain.handle("system:cancelQuit", (): void => {
+  registerIpcHandle("system:cancelQuit", (): void => {
     dismissQuitConfirm(mainWindow);
   });
 
-  ipcMain.handle("system:confirmQuit", (_event, dontAskAgain: boolean): void => {
+  registerIpcHandle("system:confirmQuit", (_event, dontAskAgain: boolean): void => {
     uiPrefs = {
       ...uiPrefs,
       showQuitConfirm: !dontAskAgain,
@@ -603,11 +667,11 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
     }
   });
 
-  ipcMain.handle("settings:applyGlobalUi", (_event, next: GlobalUiSettings): void => {
+  registerIpcHandle("settings:applyGlobalUi", (_event, next: GlobalUiSettings): void => {
     applyGlobalUiSettings(next, mainWindow);
   });
 
-  ipcMain.handle(
+  registerIpcHandle(
     "window:setModalBackdropActive",
     (event, isActive: boolean): void => {
       const targetWindow = BrowserWindow.fromWebContents(event.sender);
@@ -624,8 +688,8 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
     }
   );
 
-  // -- query which windows are open --
-  ipcMain.handle("window:getOpen", (): string[] => {
+  // * -- query which windows are open --
+  registerIpcHandle("window:getOpen", (): string[] => {
     return Array.from(childWindows.entries())
       .filter(([, w]) => !w.isDestroyed())
       .map(([id]) => id);

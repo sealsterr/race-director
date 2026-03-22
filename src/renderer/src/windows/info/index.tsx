@@ -8,8 +8,8 @@ import type {
   PenaltyType,
 } from "../../types/lmu";
 
-// -- camera types --
-// -- trackSideGroup always 0 && shouldAdvance always false --
+// * -- camera types --
+// * -- trackSideGroup always 0 && shouldAdvance always false --
 export const CAMERA_TYPES = [
   { label: "Cockpit 1",    value: 1,  description: "Driver eye, facing forward -> classic onboard"       },
   { label: "Grille",       value: 2,  description: "Top of hood/grille -> good for watching a chaser"    },
@@ -23,7 +23,7 @@ export const CAMERA_TYPES = [
 
 export type CameraTypeValue = (typeof CAMERA_TYPES)[number]["value"];
 
-// -- helpers --
+// * -- helpers --
 const formatTime = (s: number | null): string => {
   if (s === null || s <= 0) return "—";
 
@@ -46,7 +46,7 @@ const formatFuel = (f: number | null): string => {
   return `${f.toFixed(1)}%`;
 };
 
-// -- class badge --
+// * -- class badge --
 const CLASS_COLORS: Record<CarClass, string> = {
   HYPERCAR: "bg-red-700 text-white",
   LMP2:     "bg-blue-700 text-white",
@@ -64,7 +64,7 @@ const ClassBadge = ({ cls }: { cls: CarClass}): React.ReactElement => (
   </span>
 );
 
-// -- status badge --
+// * -- status badge --
 const STATUS_STYLES: Record<DriverStatus, string> = {
   RACING:       "bg-rd-success/20 text-rd-success",
   PITTING:      "bg-rd-warning/20 text-rd-warning",
@@ -85,9 +85,9 @@ const PENALTY_LABEL: Record<PenaltyType, string> = {
 };
 
 const formatPenaltyLabel = (p: Penalty): string => {
-  // -- user-added time penalty with known seconds --
+  // * -- user-added time penalty with known seconds --
   if (p.type === "TIME_PENALTY" && p.time > 0) return `+${p.time}s`;
-  // -- api-sourced --
+  // * -- api-sourced --
   const countMatch = /^(\d+) pending$/.exec(p.reason);
   if (countMatch && Number(countMatch[1]) > 1) {
     return `PEN x${countMatch[1]}`;
@@ -103,7 +103,7 @@ const StatusBadge = ({ status }: { status: DriverStatus }): React.ReactElement =
   </span>
 );
 
-// -- column config --
+// * -- column config --
 type ColumnKey = 
   | "position"
   | "class"
@@ -145,20 +145,19 @@ const COLUMNS: ColumnDef[] = [
   { key: "status",     label: "Status",     defaultVisible: true  },
 ];
 
-// -- class filter --
+// * -- class filter --
 const ALL_CLASSES: CarClass[] = [
   "HYPERCAR", "LMP2", "LMP3", "LMGT3", "GTE", "UNKNOWN"
 ];
 
-// -- row --
+// * -- row --
 interface RowProps {
   driver: DriverStanding;
   visibleCols: Set<ColumnKey>;
   isLapped: boolean;
 }
 
-// -- cell components --
-
+// * -- cell components --
 const CellPosition = ({ v }: { v: DriverStanding }) => (
   <td className="border-r border-rd-border px-2 py-1.5 text-center last:border-r-0 text-center font-mono text-xs font-semibold">
     {v.position}
@@ -298,7 +297,7 @@ const CELL_MAP: Record<ColumnKey, (v: DriverStanding) => React.ReactElement> = {
   status:    (v) => <CellStatus    key="status"    v={v} />,
 };
 
-// -- row --
+// * -- row --
 interface RowProps {
   driver: DriverStanding;
   visibleCols: Set<ColumnKey>;
@@ -332,19 +331,19 @@ const DriverRow = ({
   );
 };
 
-// -- main component --
+// * -- main component --
 const InfoWindow = (): React.ReactElement => {
   const { connection, session, standings, setConnection, setSession, setStandings } = useRaceStore();
 
   useEffect(() => {
-    // -- hydrate with current state on mount --
+    // * -- hydrate with current state on mount --
     globalThis.api.getState().then((state) => {
       setConnection(state.connection);
       setSession(state.session);
       setStandings(state.standings);
     });
 
-    // -- subscribe to live updates --
+    // * -- subscribe to live updates --
     const unsubState = globalThis.api.onStateUpdate((state) => {
       setSession(state.session);
       setStandings(state.standings);
@@ -367,10 +366,10 @@ const InfoWindow = (): React.ReactElement => {
 
   const handleRowClick = async (driver: DriverStanding): Promise<void> => {
     if (connection !== "CONNECTED") return;
-    // -- always switch focus to clicked car --
+    // * -- always switch focus to clicked car --
     await globalThis.api.focusVehicle(driver.slotId);
-    // -- only send camera angle if differs from what's currently active --
-    // -- switching drivers does NOT change camera type, no setCameraAngle needed --
+    // * -- only send camera angle if differs from what's currently active --
+    // * -- switching drivers does NOT change camera type, no setCameraAngle needed --
     if (activeCameraType.current !== selectedCamera) {
       await globalThis.api.setCameraAngle(selectedCamera, 0, false);
       activeCameraType.current = selectedCamera;

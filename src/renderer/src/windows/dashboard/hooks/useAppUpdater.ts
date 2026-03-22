@@ -38,11 +38,16 @@ const useAppUpdater = (): UseAppUpdaterResult => {
 
   const downloadUpdate = useCallback(async () => {
     try {
+      if (updaterState?.downloaded) {
+        await globalThis.api.updater.install();
+        return;
+      }
+
       await globalThis.api.updater.download();
     } catch (error) {
       console.warn("Failed to start update download:", error);
     }
-  }, []);
+  }, [updaterState?.downloaded]);
 
   return {
     updaterState,

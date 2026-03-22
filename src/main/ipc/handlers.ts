@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow } from "electron";
+import { BrowserWindow } from "electron";
 import { lmuClient } from "../api/lmuApi";
 import { telemetryBridge } from "../api/lmuTelemetryBridge";
 import type {
@@ -6,6 +6,7 @@ import type {
   ConnectionStatus,
   TelemetrySnapshot,
 } from "../../renderer/src/types/lmu";
+import { registerIpcHandle } from "./registerIpcHandle";
 
 /* 
     -- registers all IPC handlers for LMU API client --
@@ -16,6 +17,18 @@ export const registerIpcHandlers = (
   onConnectionLost?: () => void
 ): void => {
   let previousStatus: ConnectionStatus = lmuClient.getState().connection;
+  const DEFAULT_POLL_RATE_MS = 200;
+  const MIN_POLL_RATE_MS = 50;
+  const MAX_POLL_RATE_MS = 2_000;
+
+  const toSafePollRate = (value: unknown): number => {
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      return DEFAULT_POLL_RATE_MS;
+    }
+
+    const rounded = Math.round(value);
+    return Math.max(MIN_POLL_RATE_MS, Math.min(MAX_POLL_RATE_MS, rounded));
+  };
 
   const safeSend = (win: BrowserWindow, channel: string, payload: unknown): void => {
     try {
@@ -35,21 +48,22 @@ export const registerIpcHandlers = (
     });
   });
 
-  // -- lmu:connect --
-  // -- renderer calls: await window.api.connect(url, pollRate) --
-  ipcMain.handle(
+  // * -- lmu:connect --
+  // * -- renderer calls: await window.api.connect(url, pollRate) --
+  registerIpcHandle(
     "lmu:connect",
-    async (_event, url: string, pollRate: number): Promise<void> => {
-      lmuClient.configure(url, pollRate);
+    async (_event, url: unknown, pollRate: unknown): Promise<void> => {
+      const baseUrl = typeof url === "string" ? url : "";
+      lmuClient.configure(baseUrl, toSafePollRate(pollRate));
 
-      // -- when state updates arrive from polling loop, push to renderer -- 
+      // * -- when state updates arrive from polling loop, push to renderer --
       lmuClient.setStateUpdateCallback((state: AppState) => {
         BrowserWindow.getAllWindows().forEach((win) => {
           safeSend(win, "lmu:stateUpdate", state);
         });
       });
 
-      // -- when connection status changes, push that too --
+      // * -- when connection status changes, push that too --
       lmuClient.setConnectionCallback((status: ConnectionStatus) => {
         BrowserWindow.getAllWindows().forEach((win) => {
           safeSend(win, "lmu:connectionChange", status);
@@ -70,16 +84,16 @@ export const registerIpcHandlers = (
     }
   );
 
-  // -- lmu:focusVehicle --
-  ipcMain.handle(
+  // * -- lmu:focusVehicle --
+  registerIpcHandle(
     "lmu:focusVehicle",
     async (_event, slotId: number): Promise<void> => {
       await lmuClient.focusVehicle(slotId);
     }
   );
 
-  // -- lmu:setCameraAngle --
-  ipcMain.handle(
+  // * -- lmu:setCameraAngle --
+  registerIpcHandle(
     "lmu:setCameraAngle",
     async (
       _event,
@@ -91,18 +105,18 @@ export const registerIpcHandlers = (
     }
   );
 
-  // -- lmu:disconnect --
-  ipcMain.handle("lmu:disconnect", (): void => {
+  // * -- lmu:disconnect --
+  registerIpcHandle("lmu:disconnect", (): void => {
     lmuClient.disconnect();
   });
 
-  // -- lmu:getState --
-  // -- used on mount to hydrate renderer with any existing state --
-  ipcMain.handle("lmu:getState", (): AppState => {
+  // * -- lmu:getState --
+  // * -- used on mount to hydrate renderer with any existing state --
+  registerIpcHandle("lmu:getState", (): AppState => {
     return lmuClient.getState();
   });
 
-  ipcMain.handle("lmu:getTelemetry", (): TelemetrySnapshot => {
+  registerIpcHandle("lmu:getTelemetry", (): TelemetrySnapshot => {
     return telemetryBridge.getLatestSnapshot();
   });
 };

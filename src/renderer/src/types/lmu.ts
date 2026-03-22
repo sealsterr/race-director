@@ -1,5 +1,4 @@
-// -- session --
-
+// * -- session --
 export type SessionType = 
     | "PRACTICE"
     | "QUALIFYING"
@@ -15,7 +14,7 @@ export type FlagState =
     | "CHEQUERED" 
     | "NONE";
 
-// -- for dashboard info panel --
+// * -- for dashboard info panel --
 export interface SessionInfo {
     sessionType: SessionType;
     trackName: string;
@@ -29,8 +28,7 @@ export interface SessionInfo {
     isActive: boolean;
 }
 
-// -- car --
-
+// * -- car --
 export type CarClass = 
     | "LMGT3"
     | "GTE"
@@ -53,7 +51,7 @@ export interface TyreSet {
     rearRight: TyreCompound;
 }
 
-//  -- custom detect -- 
+// * -- custom detect --
 export type DriverStatus =  
     | "RACING"
     | "PITTING"
@@ -133,16 +131,14 @@ export interface Penalty {
     reason: string;
 }
 
-// -- connection --
-
+// * -- connection --
 export type ConnectionStatus =
     | "CONNECTED"
     | "CONNECTING"
     | "DISCONNECTED"
     | "ERROR";
 
-// -- app-level state --
-
+// * -- app-level state --
 export interface AppState {
     connection: ConnectionStatus;
     session: SessionInfo | null;

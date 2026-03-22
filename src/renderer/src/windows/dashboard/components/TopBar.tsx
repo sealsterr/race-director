@@ -39,18 +39,18 @@ const connectionConfig: Record<
 
 type OverlayInsets = { left: number; right: number; height: number };
 
-// -- compute how much of titlebar area is NOT safe for content --
+// * -- compute how much of titlebar area is NOT safe for content --
 const computeOverlayInsets = (): OverlayInsets => {
   const fallback: OverlayInsets = { left: 0, right: 160, height: 56 };
 
-  // -- navigator.windowControlsOverlay exists only when titleBarOverlay is enabled --
+  // * -- navigator.windowControlsOverlay exists only when titleBarOverlay is enabled --
   const wco = (navigator as any).windowControlsOverlay;
   if (!wco?.visible) return { left: 0, right: 0, height: 56 };
 
   const rect = wco.getTitlebarAreaRect();
 
-  // -- rect is safe titlebar area for web contents
-  // -- anything outside it (left/right) is where native buttons live
+  // * -- rect is safe titlebar area for web contents --
+  // * -- anything outside it (left/right) is where native buttons live --
   const left = Math.max(0, Math.round(rect.x));
   const right = Math.max(
     0,
@@ -58,7 +58,7 @@ const computeOverlayInsets = (): OverlayInsets => {
   );
   const height = Math.max(0, Math.round(rect.height));
 
-  // -- if something looks off, use safe fallback padding so UI won't overlap --
+  // * -- if something looks off, use safe fallback padding so UI won't overlap --
   const looksInvalid = height === 0 || (left === 0 && right === 0);
   if (looksInvalid) return fallback;
 
@@ -68,7 +68,7 @@ const computeOverlayInsets = (): OverlayInsets => {
 const TopBar = ({ connection }: TopBarProps): React.ReactElement => {
   const [time, setTime] = useState(new Date());
 
-  // -- window controls overlay safe-area insets --
+  // * -- window controls overlay safe-area insets --
   const [overlayInsets, setOverlayInsets] = useState<OverlayInsets>(() => ({
     left: 0,
     right: 160,
@@ -92,7 +92,7 @@ const TopBar = ({ connection }: TopBarProps): React.ReactElement => {
     const wco = (navigator as any).windowControlsOverlay;
     if (!wco) return;
 
-    // -- keep it updated when DPI / window state changes --
+    // * -- keep it updated when DPI / window state changes --
     wco.addEventListener("geometrychange", update);
     window.addEventListener("resize", update);
 

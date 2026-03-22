@@ -36,7 +36,7 @@ import {
 } from "../overlay/tower/constants";
 import { getTowerBaseHeight } from "../overlay/tower/windowLayout";
 
-// -- overlay metadata --
+// * -- overlay metadata --
 interface OverlayMeta {
     id: OverlayId;
     label: string;
@@ -212,11 +212,11 @@ function getOverlayPositionFromBounds(
     };
 }
 
-// -- helpers --
+// * -- helpers --
 const cls = (...classes: (string | false | undefined | null)[]): string =>
   classes.filter(Boolean).join(" ");
 
-// -- toast --
+// * -- toast --
 interface Toast {
     id: number;
     type: "success" | "error";
@@ -237,7 +237,7 @@ function pushToast(
     }, 3500);
 }
 
-// -- slider --
+// * -- slider --
 interface SliderProps {
     label: string;
     value: number;
@@ -282,7 +282,7 @@ const Slider = ({
     </div>
 );
 
-// -- toggle --
+// * -- toggle --
 interface ToggleProps {
     label: string;
     value: boolean;
@@ -318,7 +318,7 @@ const Toggle = ({
     </div>
 );
 
-// -- select --
+// * -- select --
 interface SelectProps {
     label: string;
     value: string;
@@ -349,7 +349,7 @@ const Select = ({
     </div>
 );
 
-// -- color picker --
+// * -- color picker --
 interface ColorPickerProps {
     readonly label: string;
     readonly value: string;
@@ -378,7 +378,7 @@ const ColorPicker = ({ label, value, onChange }: ColorPickerProps): React.ReactE
     </div>
 );
 
-// -- section heading inside a settings panel --
+// * -- section heading inside a settings panel --
 const PanelSection = ({ title }: { readonly title: string }): React.ReactElement => (
     <p className="pt-1 text-[10px] font-bold uppercase tracking-widest text-rd-subtle border-t border-rd-border/60">
         {title}
@@ -620,7 +620,7 @@ const SPECIFIC_PANELS: Record<
     "OVERLAY-SESSION": SessionSettingsPanel,
 };
 
-// -- settings drawer --
+// * -- settings drawer --
 interface SettingsDrawerProps {
     cfg: OverlayConfig;
     meta: OverlayMeta;
@@ -798,7 +798,7 @@ const SettingsDrawer = ({
     );
 };
 
-// -- overlay card --
+// * -- overlay card --
 interface OverlayCardProps {
     cfg: OverlayConfig;
     meta: OverlayMeta;
@@ -1053,7 +1053,7 @@ const OverlayCard = ({
     );
 };
 
-// -- main component --
+// * -- main component --
 const OverlayControl = (): React.ReactElement => {
     const {
         overlays,
@@ -1073,7 +1073,7 @@ const OverlayControl = (): React.ReactElement => {
     const [toasts, setToasts] = useState<Toast[]>([]);
     const [isSaving, setIsSaving] = useState(false);
 
-    // -- overlay control does not need the full live push stream; pull snapshots instead
+    // * -- overlay control does not need the full live push stream; pull snapshots instead --
     useEffect(() => {
         let cancelled = false;
 
@@ -1100,7 +1100,7 @@ const OverlayControl = (): React.ReactElement => {
         };
     }, []);
 
-    // -- load displays + default save path --
+    // * -- load displays + default save path --
     useEffect(() => {
         (async () => {
             const d = await globalThis.api.overlay.getDisplays();
@@ -1170,7 +1170,7 @@ const OverlayControl = (): React.ReactElement => {
         }
     }, [displays, overlays, standings]);
 
-    // -- auto-save on overlay change --
+    // * -- auto-save on overlay change --
     const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     useEffect(() => {
         if (!savePath) return;
@@ -1192,7 +1192,7 @@ const OverlayControl = (): React.ReactElement => {
 
     
 
-    // -- save / load --
+    // * -- save / load --
     const handleSave = async (): Promise<void> => {
         setIsSaving(true);
         const r = await globalThis.api.overlay.savePreset(overlays, savePath);
@@ -1227,7 +1227,7 @@ const OverlayControl = (): React.ReactElement => {
         }
     };
 
-    // -- overlay actions --
+    // * -- overlay actions --
     const handleToggleEnabled = async (id: OverlayId): Promise<void> => {
         const cfg = overlays.find((o) => o.id === id);
         const meta = OVERLAY_META.find((item) => item.id === id);

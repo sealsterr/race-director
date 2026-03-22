@@ -1,21 +1,27 @@
-import { ipcMain } from "electron";
 import {
   checkForAppUpdates,
   downloadUpdate,
   getUpdaterState,
+  installDownloadedUpdate,
 } from "../updater";
 import type { AppUpdaterState } from "../../shared/updater";
+import { registerIpcHandle } from "./registerIpcHandle";
 
 export const registerUpdaterHandlers = (): void => {
-  ipcMain.handle("updater:getState", (): AppUpdaterState => {
+  registerIpcHandle("updater:getState", (): AppUpdaterState => {
     return getUpdaterState();
   });
 
-  ipcMain.handle("updater:check", async (): Promise<AppUpdaterState> => {
+  registerIpcHandle("updater:check", async (): Promise<AppUpdaterState> => {
     return checkForAppUpdates();
   });
 
-  ipcMain.handle("updater:download", async (): Promise<AppUpdaterState> => {
+  registerIpcHandle("updater:download", async (): Promise<AppUpdaterState> => {
     return downloadUpdate();
+  });
+
+  registerIpcHandle("updater:install", async (): Promise<AppUpdaterState> => {
+    const result = await installDownloadedUpdate();
+    return result.state;
   });
 };

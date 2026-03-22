@@ -3,7 +3,7 @@ import type { DriverStanding, SessionInfo, CarClass } from "../../../types/lmu";
 import type { TowerSettings } from "../../../store/overlayStore";
 import { CLASS_ORDER } from "./constants";
 
-// -- types 
+// * -- types --
 export interface TowerRow {
     /* unique key for framer-motion layout animations */
     key: string;
@@ -23,7 +23,7 @@ export interface TowerSection {
     rows: TowerRow[];
 }
 
-// -- helpers --
+// * -- helpers --
 function formatGap(seconds: number | null, isLeader: boolean): string {
     if (isLeader) return "LEADER";
     if (seconds === null) return "—";
@@ -118,7 +118,7 @@ function getFirstValidBestLapTime(
     return null;
 }
 
-// -- main hook --
+// * -- main hook --
 interface UseTowerDataOptions {
     standings: DriverStanding[];
     session: SessionInfo | null;
@@ -399,7 +399,7 @@ export function useTowerData({
     return { sections, isQuali, isRace, activeClasses };
 }
 
-// -- lap time formatter --
+// * -- lap time formatter --
 export function formatLapTime(seconds: number): string {
     if (seconds <= 0) return "NO TIME";
     const m = Math.floor(seconds / 60);
