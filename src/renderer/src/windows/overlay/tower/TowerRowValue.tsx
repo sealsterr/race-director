@@ -76,11 +76,23 @@ export default function TowerRowValue({
 
     if (settings.raceMode === "TYRES") {
         return (
-            <TyreDisplay
-                tyreCompound={row.standing.tyreCompound}
-                tyreSet={row.standing.tyreSet}
-                settings={settings}
-            />
+            <div
+                style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    alignItems: "center",
+                    minHeight: 28,
+                    width: "100%",
+                    paddingRight: 1,
+                    boxSizing: "border-box",
+                }}
+            >
+                <TyreDisplay
+                    tyreCompound={row.standing.tyreCompound}
+                    tyreSet={row.standing.tyreSet}
+                    settings={settings}
+                />
+            </div>
         );
     }
 

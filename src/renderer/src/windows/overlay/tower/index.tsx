@@ -8,6 +8,12 @@ import { useFightDetection } from "./useFightDetection";
 import TowerSection from "./TowerSection";
 import { useTowerWindowAutosize } from "./useTowerWindowAutosize";
 import { useBufferedAppState } from "./useBufferedAppState";
+import { STATUS_EAR_GUTTER } from "./StatusEar";
+import {
+    TOWER_PREVIEW_SESSION,
+    TOWER_PREVIEW_STANDINGS,
+    TOWER_PREVIEW_START_POSITIONS,
+} from "./towerPreviewData";
 
 // * -- empty sector time sentinel --
 const EMPTY_SECTORS: SectorTime = {
@@ -32,6 +38,17 @@ function deriveSessionBestSectors(
     }
 
     return { sector1: s1, sector2: s2, sector3: s3 };
+}
+
+function getStatusEarGutter(sections: ReturnType<typeof useTowerData>["sections"]): number {
+    const hasVisibleStatusEar = sections.some((section) =>
+        section.rows.some(
+            (row) =>
+                row.standing.status === "PITTING" || row.standing.status === "FINISHED"
+        )
+    );
+
+    return hasVisibleStatusEar ? STATUS_EAR_GUTTER : 0;
 }
 
 // * -- overtake detection --
@@ -132,6 +149,12 @@ export default function TowerOverlay() {
         new Map()
     );
     const contentRef = useRef<HTMLDivElement>(null);
+    const isPreview = appState.connection !== "CONNECTED";
+    const effectiveSession = isPreview ? TOWER_PREVIEW_SESSION : appState.session;
+    const effectiveStandings = isPreview ? TOWER_PREVIEW_STANDINGS : appState.standings;
+    const effectiveStartPositions = isPreview
+        ? TOWER_PREVIEW_START_POSITIONS
+        : startPositionsRef.current;
 
     // * -- self-hydrate on mount --
     useEffect(() => {
@@ -212,10 +235,10 @@ export default function TowerOverlay() {
     }, []);
 
     const { sections, isQuali, isRace } = useTowerData({
-        standings: appState.standings,
-        session: appState.session,
+        standings: effectiveStandings,
+        session: effectiveSession,
         settings: towerSettings,
-        startPositions: startPositionsRef.current,
+        startPositions: effectiveStartPositions,
     });
 
     const fightEnabled =
@@ -235,44 +258,20 @@ export default function TowerOverlay() {
     });
 
     const sessionBestSectors = isQuali
-        ? deriveSessionBestSectors(appState.standings)
+        ? deriveSessionBestSectors(effectiveStandings)
         : EMPTY_SECTORS;
+    const statusEarGutter = getStatusEarGutter(sections);
 
     const opacity = (overlayConfig?.opacity ?? 100) / 100;
     const scale = overlayConfig?.scale ?? 1;
     const dragMode = overlayConfig?.dragMode ?? false;
 
     useTowerWindowAutosize({
-        enabled: appState.connection === "CONNECTED",
+        enabled: true,
         overlayId: "OVERLAY-TOWER",
         scale,
         targetRef: contentRef,
     });
-
-    if (appState.connection !== "CONNECTED") {
-        return (
-            <div
-                style={{
-                    width: "100vw",
-                    height: "100vh",
-                    background: "none",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                }}
-            >
-                <span
-                    style={{
-                        fontSize: 11,
-                        color: "rgba(148,163,184,0.5)",
-                        fontFamily: "sans-serif",
-                    }}
-                >
-                    NOT CONNECTED
-                </span>
-            </div>
-        );
-    }
 
     return (
         <div
@@ -297,18 +296,20 @@ export default function TowerOverlay() {
                     transformOrigin: "top left",
                     fontFamily:
                         "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
-                    padding: "8px 0",
+                    padding: "8px 0 0 0",
                     minWidth: 320,
                     pointerEvents: dragMode ? "auto" : "none",
                     WebkitAppRegion: dragMode ? "drag" : "no-drag",
                     cursor: dragMode ? "grab" : "default",
                 } as React.CSSProperties}
             >
-                {sections.map((section) => (
+                {sections.map((section, index) => (
                     <TowerSection
                         key={section.carClass}
                         section={section}
                         settings={towerSettings}
+                        statusEarGutter={statusEarGutter}
+                        isLast={index === sections.length - 1}
                         fightGroups={fightGroups.filter((g) =>
                             section.rows.some((r) =>
                                 g.slotIds.includes(r.standing.slotId)

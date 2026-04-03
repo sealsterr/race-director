@@ -8,6 +8,7 @@ import {
   SettingsSectionTitle,
   SettingsToggle,
 } from "../SettingsPrimitives";
+import GeneralMeasurementsSection from "./GeneralMeasurementsSection";
 
 interface GeneralSettingsTabProps {
   settings: DashboardSettings;
@@ -177,6 +178,8 @@ const GeneralSettingsTab = ({
           )}
         </SettingsRow>
       </SectionBlock>
+
+      <GeneralMeasurementsSection settings={settings} onChange={onChange} />
     </div>
   );
 };

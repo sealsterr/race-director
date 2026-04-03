@@ -5,7 +5,6 @@ import { getClassColor, CLASS_LABELS, ANIMATION_DURATION } from "./constants";
 import type { FightGroup } from "./useFightDetection";
 import type { TowerRow, TowerSection as TowerSectionData } from "./useTowerData";
 import FightGroupBlock from "./FightGroupBlock";
-import { STATUS_EAR_GUTTER } from "./StatusEar";
 import TowerRowComponent from "./TowerRow";
 
 interface TowerSectionProps {
@@ -15,6 +14,8 @@ interface TowerSectionProps {
     readonly overtakingSlots: Map<number, "gained" | "lost">;
     readonly sessionBestSectors: SectorTime;
     readonly isQuali: boolean;
+    readonly statusEarGutter: number;
+    readonly isLast: boolean;
 }
 
 type RenderBlock =
@@ -68,6 +69,8 @@ export default function TowerSection({
     overtakingSlots,
     sessionBestSectors,
     isQuali,
+    statusEarGutter,
+    isLast,
 }: TowerSectionProps) {
     const classColor = getClassColor(section.carClass, settings);
     const animDuration = ANIMATION_DURATION[settings.animationSpeed];
@@ -78,9 +81,16 @@ export default function TowerSection({
         if (best === null || lap < best) return lap;
         return best;
     }, null);
+    const classLabel = CLASS_LABELS[section.carClass];
 
     return (
-        <div style={{ marginBottom: 12, paddingRight: STATUS_EAR_GUTTER, overflow: "visible" }}>
+        <div
+            style={{
+                marginBottom: isLast ? 0 : 12,
+                paddingRight: statusEarGutter,
+                overflow: "visible",
+            }}
+        >
             <div
                 style={{
                     borderRadius: 6,
@@ -98,19 +108,31 @@ export default function TowerSection({
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
+                        gap: 8,
                         height: 28,
                         marginBottom: 3,
-                        position: "relative",
                         background: `linear-gradient(90deg, transparent 0%, ${classColor}22 40%, ${classColor}22 60%, transparent 100%)`,
                         borderTop: `2px solid ${classColor}`,
                         borderBottom: `2px solid ${classColor}44`,
+                        paddingInline: 8,
                     }}
                 >
-                    <div style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", width: 118, height: 3, background: `linear-gradient(90deg, transparent, ${classColor})` }} />
-                    <div style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", width: 120, height: 3, background: `linear-gradient(270deg, transparent, ${classColor})` }} />
-                    <span style={{ fontSize: 15, fontWeight: 900, color: classColor, letterSpacing: "0.22em", textTransform: "uppercase", textShadow: `0 0 16px ${classColor}88, 0 0 4px ${classColor}44` }}>
-                        {CLASS_LABELS[section.carClass]}
+                    <HeaderRail side="left" color={classColor} />
+                    <span
+                        style={{
+                            flexShrink: 0,
+                            paddingInline: 2,
+                            fontSize: 15,
+                            fontWeight: 900,
+                            color: classColor,
+                            letterSpacing: "0.22em",
+                            textTransform: "uppercase",
+                            textShadow: `0 0 16px ${classColor}88, 0 0 4px ${classColor}44`,
+                        }}
+                    >
+                        {classLabel}
                     </span>
+                    <HeaderRail side="right" color={classColor} />
                 </div>
 
                 <AnimatePresence initial={false}>
@@ -146,6 +168,32 @@ export default function TowerSection({
                     ))}
                 </AnimatePresence>
             </div>
+        </div>
+    );
+}
+
+function HeaderRail({
+    side,
+    color,
+}: {
+    readonly side: "left" | "right";
+    readonly color: string;
+}) {
+    const innerGradient =
+        side === "left"
+            ? `linear-gradient(90deg, transparent 0%, ${color} 100%)`
+            : `linear-gradient(270deg, transparent 0%, ${color} 100%)`;
+
+    return (
+        <div style={{ flex: 1, minWidth: 28, display: "grid", alignItems: "center" }}>
+            <div
+                style={{
+                    height: 3,
+                    background: innerGradient,
+                    opacity: 0.95,
+                    boxShadow: `0 0 10px ${color}40`,
+                }}
+            />
         </div>
     );
 }

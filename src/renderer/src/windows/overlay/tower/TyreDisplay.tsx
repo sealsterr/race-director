@@ -27,17 +27,19 @@ function TyreGlyph({
     return (
         <span
             style={{
-                minWidth: compact ? 14 : 18,
-                height: compact ? 14 : 18,
+                width: compact ? 15 : 24,
+                height: compact ? 15 : 24,
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                borderRadius: compact ? 3 : "999px",
-                backgroundColor: `${color}22`,
-                border: `1px solid ${color}55`,
+                borderRadius: compact ? 0 : "999px",
+                backgroundColor: compact ? "transparent" : `${color}22`,
+                border: compact ? "none" : `1px solid ${color}55`,
                 color,
-                fontSize: compact ? 9 : 14,
+                boxSizing: "border-box",
+                fontSize: compact ? 13 : 15,
                 fontWeight: 900,
+                lineHeight: 1,
                 letterSpacing: "0.04em",
             }}
         >
@@ -73,26 +75,43 @@ export default function TyreDisplay({
     const allSame = layout.every((compound) => compound === firstCompound);
 
     if (allSame) {
-        return <TyreGlyph compound={firstCompound} settings={settings} compact={false} />;
+        return (
+            <div style={footprintStyle}>
+                <TyreGlyph compound={firstCompound} settings={settings} compact={false} />
+            </div>
+        );
     }
 
     return (
-        <div
-            style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-                gap: 3,
-                justifyItems: "end",
-            }}
-        >
-            {layout.map((compound, index) => (
-                <TyreGlyph
-                    key={`${compound}-${index}`}
-                    compound={compound}
-                    settings={settings}
-                    compact
-                />
-            ))}
+        <div style={footprintStyle}>
+            <div
+                style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(2, 15px)",
+                    gridTemplateRows: "repeat(2, 15px)",
+                    columnGap: 5,
+                    rowGap: 3,
+                    justifyItems: "center",
+                    alignItems: "center",
+                }}
+            >
+                {layout.map((compound, index) => (
+                    <TyreGlyph
+                        key={`${compound}-${index}`}
+                        compound={compound}
+                        settings={settings}
+                        compact
+                    />
+                ))}
+            </div>
         </div>
     );
 }
+
+const footprintStyle = {
+    width: 35,
+    minWidth: 35,
+    height: 33,
+    display: "grid",
+    placeItems: "center",
+} as const;

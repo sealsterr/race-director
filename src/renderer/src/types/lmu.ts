@@ -105,6 +105,7 @@ export interface DriverTelemetrySnapshot {
     fuelPercentage: number | null;
     batteryChargePercentage: number | null;
     engineMap: number | null;
+    gear: number | null;
     speedKph: number | null;
     rpm: number | null;
     throttle: number | null;

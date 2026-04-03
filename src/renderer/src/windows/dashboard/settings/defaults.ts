@@ -3,6 +3,7 @@ import type {
   AccentPresetId,
   DashboardSettings,
 } from "./types";
+import { DEFAULT_MEASUREMENT_UNITS } from "../../../../../shared/measurementUnits";
 
 export const DASHBOARD_SETTINGS_STORAGE_KEY = "race-director.dashboard.settings.v1";
 
@@ -56,6 +57,7 @@ export const DEFAULT_DASHBOARD_SETTINGS: DashboardSettings = {
     uiScale: 1,
     darkMode: true,
     language: "English",
+    speedUnit: DEFAULT_MEASUREMENT_UNITS.speedUnit,
     accentPreset: "ember-red",
     activityLogLimit: 400,
   },

@@ -62,6 +62,7 @@ static TelemetrySnapshot ReadSnapshot(RF2MemoryReader reader)
                 ExtractCarNumber(CleanBuffer(scoredVehicle.VehicleName)),
                 ToFuelPercentage(telemetryVehicle),
                 ToBatteryPercentage(telemetryVehicle),
+                ToGear(telemetryVehicle),
                 ToSpeedKph(telemetryVehicle),
                 telemetryVehicle.EngineRPM,
                 ToControlPercentage(telemetryVehicle.FilteredThrottle),
@@ -119,6 +120,28 @@ static double? ToBatteryPercentage(VehicleTelemetry vehicle)
     }
 
     return Math.Clamp(vehicle.BatteryChargeFraction * 100d, 0d, 100d);
+}
+
+static int? ToGear(VehicleTelemetry vehicle)
+{
+    var type = vehicle.GetType();
+
+    foreach (var name in new[] { "Gear", "CurrentGear" })
+    {
+        var field = type.GetField(name);
+        if (field?.GetValue(vehicle) is IConvertible fieldValue)
+        {
+            return Convert.ToInt32(fieldValue);
+        }
+
+        var property = type.GetProperty(name);
+        if (property?.GetValue(vehicle) is IConvertible propertyValue)
+        {
+            return Convert.ToInt32(propertyValue);
+        }
+    }
+
+    return null;
 }
 
 static double ToSpeedKph(VehicleTelemetry vehicle)
@@ -181,6 +204,7 @@ internal sealed record TelemetryCarSnapshot(
     string CarNumber,
     double? FuelPercentage,
     double? BatteryChargePercentage,
+    int? Gear,
     double SpeedKph,
     double Rpm,
     double Throttle,

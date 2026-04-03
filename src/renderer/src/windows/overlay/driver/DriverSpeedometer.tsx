@@ -1,9 +1,12 @@
 import type { ReactElement } from "react";
 import { motion } from "framer-motion";
+import type { SpeedUnit } from "../../../../../shared/measurementUnits";
+import { formatSpeedValue, getSpeedUnitLabel } from "../../../../../shared/measurementUnits";
 import { DriverTelemetryBars } from "./DriverTelemetryBars";
 
 interface DriverSpeedometerProps {
     readonly speedKph: number;
+    readonly speedUnit: SpeedUnit;
     readonly rpm: number;
     readonly fuelLevel: number;
     readonly veLevel: number;
@@ -16,6 +19,7 @@ const ARC_PATH = "M 17 56 A 71 71 0 0 1 159 56";
 
 export function DriverSpeedometer({
     speedKph,
+    speedUnit,
     rpm,
     fuelLevel,
     veLevel,
@@ -23,7 +27,8 @@ export function DriverSpeedometer({
     brakeLevel,
 }: DriverSpeedometerProps): ReactElement {
     const progress = Math.max(0, Math.min(1, rpm / MAX_RPM));
-    const speedDisplay = Math.max(0, Math.round(speedKph));
+    const speedDisplay = formatSpeedValue(speedKph, speedUnit);
+    const speedUnitLabel = getSpeedUnitLabel(speedUnit);
     const rpmDisplay = Math.max(0, Math.round(rpm));
     const fuelDisplay = Math.max(0, Math.round(fuelLevel));
     const veDisplay = Math.max(0, Math.round(veLevel));
@@ -70,7 +75,7 @@ export function DriverSpeedometer({
                     >
                         {speedDisplay}
                     </motion.div>
-                    <div style={speedUnitStyle}>KM/H</div>
+                    <div style={speedUnitStyle}>{speedUnitLabel}</div>
                     <motion.div
                         style={rpmStyle}
                     >

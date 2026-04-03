@@ -18,6 +18,7 @@ export interface DashboardSettings {
     uiScale: number;
     darkMode: boolean;
     language: "English" | "Romanian" | "French" | "German";
+    speedUnit: "kph" | "mph";
     accentPreset: AccentPresetId;
     activityLogLimit: number;
   };

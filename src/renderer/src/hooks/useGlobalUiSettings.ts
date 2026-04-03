@@ -6,8 +6,8 @@ import {
 import {
   applyGlobalUiPayload,
   toGlobalUiPayload,
-  type GlobalUiSettingsPayload,
 } from "../windows/dashboard/settings/globalUi";
+import type { GlobalUiSettingsPayload } from "../../../shared/globalUi";
 
 const useGlobalUiSettings = (): void => {
   useEffect(() => {

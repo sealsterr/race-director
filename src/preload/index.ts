@@ -5,14 +5,7 @@ import type {
   TelemetrySnapshot,
 } from "../renderer/src/types/lmu";
 import type { AppUpdaterState } from "../shared/updater";
-
-interface GlobalUiSettingsPayload {
-  darkMode: boolean;
-  accent: string;
-  logoPrimary: string;
-  logoSecondary: string;
-  reduceMotion: boolean;
-}
+import type { GlobalUiSettingsPayload } from "../shared/globalUi";
 
 // * -- preload bridge surface --
 // Keep methods small and explicit so IPC contracts stay auditable.
@@ -226,7 +219,8 @@ const api = {
       y: number,
       w: number,
       h: number
-    ) => ipcRenderer.invoke("overlay:updateBounds", id, x, y, w, h),
+    ): Promise<{ x: number; y: number; width: number; height: number } | null> =>
+      ipcRenderer.invoke("overlay:updateBounds", id, x, y, w, h),
 
     setDragMode: (id: string, enabled: boolean) =>
       ipcRenderer.invoke("overlay:setDragMode", id, enabled),

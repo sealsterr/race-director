@@ -1,302 +1,274 @@
-import { create } from "zustand";
-import type { CarClass } from "../types/lmu";
+import { create } from 'zustand'
+import type { CarClass } from '../types/lmu'
 
 // * -- types --
-export type OverlayId = 
-    | "OVERLAY-TOWER"
-    | "OVERLAY-DRIVER"
-    | "OVERLAY-GAP"
-    | "OVERLAY-SESSION";
+export type OverlayId = 'OVERLAY-TOWER' | 'OVERLAY-DRIVER' | 'OVERLAY-GAP' | 'OVERLAY-SESSION'
 
 // * -- specific settings --
-export type TowerRaceMode =
-    | "GAP_AHEAD"
-    | "GAP_LEADER"
-    | "PITS"
-    | "FUEL"
-    | "TYRES"
-    | "POSITIONS";
+export type TowerRaceMode = 'GAP_AHEAD' | 'GAP_LEADER' | 'PITS' | 'FUEL' | 'TYRES' | 'POSITIONS'
 
-export type TowerQualiMode = "QUALI_GAP" | "QUALI_TIMES";
+export type TowerQualiMode = 'QUALI_GAP' | 'QUALI_TIMES'
 
-export type TowerViewLayout =
-    | "CLASS_ONLY"
-    | "MIXED_TOP"
-    | "EVERYONE_TOP"
-    | "PER_CLASS";
+export type TowerViewLayout = 'CLASS_ONLY' | 'MIXED_TOP' | 'EVERYONE_TOP' | 'PER_CLASS'
 
 export interface TowerSettings {
-    viewLayout: TowerViewLayout;
-    specificClass: CarClass | null;
-    raceMode: TowerRaceMode;
-    qualiMode: TowerQualiMode;
-    maxRowsPerClass: number;
-    standingsRefreshMs: number;
-    fightEnabled: boolean;
-    fightOnlyInIntervalMode: boolean;
-    fightThresholdSeconds: number;
-    fightHoldSeconds: number;
-    fightDisabledLaps: number;
-    fightRequireSameLap: boolean;
-    fightIgnorePitAndFinished: boolean;
-    showCarNumber: boolean;
-    showClassBar: boolean;
-    animationSpeed: "slow" | "normal" | "fast";
+  viewLayout: TowerViewLayout
+  specificClass: CarClass | null
+  raceMode: TowerRaceMode
+  qualiMode: TowerQualiMode
+  maxRowsPerClass: number
+  standingsRefreshMs: number
+  fightEnabled: boolean
+  fightOnlyInIntervalMode: boolean
+  fightThresholdSeconds: number
+  fightHoldSeconds: number
+  fightDisabledLaps: number
+  fightRequireSameLap: boolean
+  fightIgnorePitAndFinished: boolean
+  showCarNumber: boolean
+  showClassBar: boolean
+  animationSpeed: 'slow' | 'normal' | 'fast'
 
-    // class colors
-    colorHypercar: string;
-    colorLMP2: string;
-    colorLMP3: string;
-    colorLMGT3: string;
-    colorGTE: string;
+  // class colors
+  colorHypercar: string
+  colorLMP2: string
+  colorLMP3: string
+  colorLMGT3: string
+  colorGTE: string
 
-    // tyre colors
-    colorHard: string;
-    colorMedium: string;
-    colorSoft: string;
-    colorWet: string;
-    
-    colorPitBadge: string;
-    colorFinishBadge: string;
+  // tyre colors
+  colorHard: string
+  colorMedium: string
+  colorSoft: string
+  colorWet: string
+
+  colorPitBadge: string
+  colorFinishBadge: string
 }
 
 export interface DriverSettings {
-    showPart1: boolean;
-    showPart2: boolean;
-    showPart3: boolean;
-    colorSessionBest: string;
-    colorPersonalBest: string;
-    colorCompleted: string;
-    colorPending: string;
+  showPart1: boolean
+  showPart2: boolean
+  showPart3: boolean
+  colorSessionBest: string
+  colorPersonalBest: string
+  colorCompleted: string
+  colorPending: string
 }
 
 export interface GapSettings {
-    triggerThresholdSeconds: number;
-    showCarClass: boolean;
+  triggerThresholdSeconds: number
+  showCarClass: boolean
 }
 
 export interface SessionSettings {
-    showTrackName: boolean;
-    showSessionType: boolean;
-    showTimeRemaining: boolean;
-    showLapCount: boolean;
-    showFlagState: boolean;
-    colorScheme: "default" | "minimal" | "bold";
+  showTrackName: boolean
+  showSessionType: boolean
+  showTimeRemaining: boolean
+  showLapCount: boolean
+  showFlagState: boolean
+  colorScheme: 'default' | 'minimal' | 'bold'
 }
 
-export type OverlaySpecificSettings =
-    | TowerSettings
-    | DriverSettings
-    | GapSettings
-    | SessionSettings;
+export type OverlaySpecificSettings = TowerSettings | DriverSettings | GapSettings | SessionSettings
 
 // * -- base config --
 export interface OverlayConfig<T extends OverlaySpecificSettings = OverlaySpecificSettings> {
-    id: OverlayId;
-    enabled: boolean;
-    opacity: number;       // 0 – 100
-    scale: number;         // 0.5 – 2.0
-    x: number;             // px from left of target display
-    y: number;             // px from top of target display
-    displayId: number;     // electron display id
-    dragMode: boolean;     // true = draggable, false = click-through
-    settings: T;
+  id: OverlayId
+  enabled: boolean
+  opacity: number // 0 – 100
+  scale: number // 0.5 – 2.0
+  x: number // px from left of target display
+  y: number // px from top of target display
+  displayId: number // electron display id
+  dragMode: boolean // true = draggable, false = click-through
+  settings: T
 }
 
 // * -- default configs --
 const DEFAULT_CONFIGS: OverlayConfig[] = [
-    {
-        id: "OVERLAY-TOWER",
-        enabled: false,
-        opacity: 100,
-        scale: 1,
-        x: 20,
-        y: 100,
-        displayId: 0,
-        dragMode: false,
-        settings: {
-            viewLayout: "MIXED_TOP",
-            specificClass: null,
-            raceMode: "GAP_AHEAD",
-            qualiMode: "QUALI_GAP",
-            maxRowsPerClass: 5,
-            standingsRefreshMs: 1000,
-            fightEnabled: true,
-            fightOnlyInIntervalMode: true,
-            fightThresholdSeconds: 0.25,
-            fightHoldSeconds: 3,
-            fightDisabledLaps: 3,
-            fightRequireSameLap: true,
-            fightIgnorePitAndFinished: true,
-            showCarNumber: true,
-            showClassBar: true,
-            animationSpeed: "normal",
-            colorHypercar: "#E4002B",
-            colorLMP2: "#0057A8",
-            colorLMP3: "#FFD700",
-            colorLMGT3: "#00A651",
-            colorGTE: "#FF6600",
-            colorHard: "#FFFFFF",
-            colorMedium: "#FFD700",
-            colorSoft: "#E4002B",
-            colorWet: "#0099FF",
-            colorPitBadge: "#F59E0B",
-            colorFinishBadge: "#E5E7EB",
-        } satisfies TowerSettings,
-    },
-    {
-        id: "OVERLAY-DRIVER",
-        enabled: false,
-        opacity: 90,
-        scale: 1,
-        x: 40,
-        y: 880,
-        displayId: 0,
-        dragMode: false,
-        settings: {
-            showPart1: true,
-            showPart2: true,
-            showPart3: true,
-            colorSessionBest: "#7c3aed",
-            colorPersonalBest: "#22c55e",
-            colorCompleted: "#f59e0b",
-            colorPending: "#475569",
-        } satisfies DriverSettings,
-    },
-    {
-        id: "OVERLAY-GAP",
-        enabled: false,
-        opacity: 90,
-        scale: 1,
-        x: 760,
-        y: 880,
-        displayId: 0,
-        dragMode: false,
-        settings: {
-            triggerThresholdSeconds: 1,
-            showCarClass: true,
-        } satisfies GapSettings,
-    },
-    {
-        id: "OVERLAY-SESSION",
-        enabled: false,
-        opacity: 90,
-        scale: 1,
-        x: 0,
-        y: 0,
-        displayId: 0,
-        dragMode: false,
-        settings: {
-            showTrackName: true,
-            showSessionType: true,
-            showTimeRemaining: true,
-            showLapCount: true,
-            showFlagState: true,
-            colorScheme: "default",
-        } satisfies SessionSettings,
-    },
-];
+  {
+    id: 'OVERLAY-TOWER',
+    enabled: false,
+    opacity: 100,
+    scale: 1,
+    x: 20,
+    y: 100,
+    displayId: 0,
+    dragMode: false,
+    settings: {
+      viewLayout: 'MIXED_TOP',
+      specificClass: null,
+      raceMode: 'GAP_AHEAD',
+      qualiMode: 'QUALI_GAP',
+      maxRowsPerClass: 5,
+      standingsRefreshMs: 1000,
+      fightEnabled: true,
+      fightOnlyInIntervalMode: true,
+      fightThresholdSeconds: 0.25,
+      fightHoldSeconds: 3,
+      fightDisabledLaps: 3,
+      fightRequireSameLap: true,
+      fightIgnorePitAndFinished: true,
+      showCarNumber: true,
+      showClassBar: true,
+      animationSpeed: 'normal',
+      colorHypercar: '#E4002B',
+      colorLMP2: '#0057A8',
+      colorLMP3: '#FFD700',
+      colorLMGT3: '#00A651',
+      colorGTE: '#FF6600',
+      colorHard: '#FFFFFF',
+      colorMedium: '#FFD700',
+      colorSoft: '#E4002B',
+      colorWet: '#0099FF',
+      colorPitBadge: '#F59E0B',
+      colorFinishBadge: '#E5E7EB'
+    } satisfies TowerSettings
+  },
+  {
+    id: 'OVERLAY-DRIVER',
+    enabled: false,
+    opacity: 90,
+    scale: 1,
+    x: 40,
+    y: 880,
+    displayId: 0,
+    dragMode: false,
+    settings: {
+      showPart1: true,
+      showPart2: true,
+      showPart3: true,
+      colorSessionBest: '#7c3aed',
+      colorPersonalBest: '#22c55e',
+      colorCompleted: '#f59e0b',
+      colorPending: '#475569'
+    } satisfies DriverSettings
+  },
+  {
+    id: 'OVERLAY-GAP',
+    enabled: false,
+    opacity: 90,
+    scale: 0.8,
+    x: 120,
+    y: 620,
+    displayId: 0,
+    dragMode: false,
+    settings: {
+      triggerThresholdSeconds: 1,
+      showCarClass: true
+    } satisfies GapSettings
+  },
+  {
+    id: 'OVERLAY-SESSION',
+    enabled: false,
+    opacity: 90,
+    scale: 1,
+    x: 0,
+    y: 0,
+    displayId: 0,
+    dragMode: false,
+    settings: {
+      showTrackName: true,
+      showSessionType: true,
+      showTimeRemaining: true,
+      showLapCount: true,
+      showFlagState: true,
+      colorScheme: 'default'
+    } satisfies SessionSettings
+  }
+]
 
 function cloneConfig<T extends OverlaySpecificSettings>(
-    config: OverlayConfig<T>
+  config: OverlayConfig<T>
 ): OverlayConfig<T> {
-    return {
-        ...config,
-        settings: { ...config.settings },
-    };
+  return {
+    ...config,
+    settings: { ...config.settings }
+  }
 }
 
 function createDefaultConfigMap(): Map<OverlayId, OverlayConfig> {
-    return new Map(
-        DEFAULT_CONFIGS.map((config) => [config.id, cloneConfig(config)])
-    );
+  return new Map(DEFAULT_CONFIGS.map((config) => [config.id, cloneConfig(config)]))
 }
 
-export function normalizeOverlayConfigs(
-    overlays: OverlayConfig[]
-): OverlayConfig[] {
-    const defaults = createDefaultConfigMap();
+export function normalizeOverlayConfigs(overlays: OverlayConfig[]): OverlayConfig[] {
+  const defaults = createDefaultConfigMap()
 
-    for (const overlay of overlays) {
-        const base = defaults.get(overlay.id);
-        if (!base) continue;
+  for (const overlay of overlays) {
+    const base = defaults.get(overlay.id)
+    if (!base) continue
 
-        defaults.set(overlay.id, {
-            ...base,
-            ...overlay,
-            settings: {
-                ...base.settings,
-                ...overlay.settings,
-            },
-        });
-    }
+    defaults.set(overlay.id, {
+      ...base,
+      ...overlay,
+      settings: {
+        ...base.settings,
+        ...overlay.settings
+      }
+    })
+  }
 
-    return DEFAULT_CONFIGS.map((config) => {
-        const normalized = defaults.get(config.id);
-        return normalized ? cloneConfig(normalized) : cloneConfig(config);
-    });
+  return DEFAULT_CONFIGS.map((config) => {
+    const normalized = defaults.get(config.id)
+    return normalized ? cloneConfig(normalized) : cloneConfig(config)
+  })
 }
 
 // * -- store shape --
 interface OverlayStore {
-    overlays: OverlayConfig[];
-    savePath: string;
+  overlays: OverlayConfig[]
+  savePath: string
 
-    // actions
-    setOverlayConfig: (id: OverlayId, partial: Partial<OverlayConfig>) => void;
-    setOverlayRuntimePosition: (
-        id: OverlayId,
-        position: Pick<OverlayConfig, "x" | "y" | "displayId">
-    ) => void;
-    setOverlaySettings: (id: OverlayId, settings: Partial<OverlaySpecificSettings>) => void;
-    setSavePath: (path: string) => void;
-    getOverlay: (id: OverlayId) => OverlayConfig | undefined;
-    loadFromPreset: (overlays: OverlayConfig[], savePath: string) => OverlayConfig[];
+  // actions
+  setOverlayConfig: (id: OverlayId, partial: Partial<OverlayConfig>) => void
+  setOverlayRuntimePosition: (
+    id: OverlayId,
+    position: Pick<OverlayConfig, 'x' | 'y' | 'displayId'>
+  ) => void
+  setOverlaySettings: (id: OverlayId, settings: Partial<OverlaySpecificSettings>) => void
+  setSavePath: (path: string) => void
+  getOverlay: (id: OverlayId) => OverlayConfig | undefined
+  loadFromPreset: (overlays: OverlayConfig[], savePath: string) => OverlayConfig[]
 }
 
 export const useOverlayStore = create<OverlayStore>((set, get) => ({
-    overlays: normalizeOverlayConfigs(DEFAULT_CONFIGS),
-    savePath: "",
+  overlays: normalizeOverlayConfigs(DEFAULT_CONFIGS),
+  savePath: '',
 
-    setOverlayConfig: (id, partial) => {
-        set((state) => ({
-            overlays: state.overlays.map((o) =>
-                o.id === id ? { ...o, ...partial } : o
-            ),
-        }));
-        const updated = get().overlays.find((o) => o.id === id);
-        if (updated) globalThis.api?.overlay?.broadcastConfig?.(updated);
-    },
+  setOverlayConfig: (id, partial) => {
+    set((state) => ({
+      overlays: state.overlays.map((o) => (o.id === id ? { ...o, ...partial } : o))
+    }))
+    const updated = get().overlays.find((o) => o.id === id)
+    if (updated) globalThis.api?.overlay?.broadcastConfig?.(updated)
+  },
 
-    setOverlayRuntimePosition: (id, position) =>
-        set((state) => ({
-            overlays: state.overlays.map((o) =>
-                o.id === id ? { ...o, ...position } : o
-            ),
-        })),
+  setOverlayRuntimePosition: (id, position) =>
+    set((state) => ({
+      overlays: state.overlays.map((o) => (o.id === id ? { ...o, ...position } : o))
+    })),
 
-    setOverlaySettings: (id, settings) => {
-        set((state) => ({
-            overlays: state.overlays.map((o) =>
-                o.id === id
-                    ? { ...o, settings: { ...o.settings, ...settings } }
-                    : o
-            ),
-        }));
-        const updated = get().overlays.find((o) => o.id === id);
-        if (updated) globalThis.api?.overlay?.broadcastConfig?.(updated);
-    },
+  setOverlaySettings: (id, settings) => {
+    set((state) => ({
+      overlays: state.overlays.map((o) =>
+        o.id === id ? { ...o, settings: { ...o.settings, ...settings } } : o
+      )
+    }))
+    const updated = get().overlays.find((o) => o.id === id)
+    if (updated) globalThis.api?.overlay?.broadcastConfig?.(updated)
+  },
 
-    setSavePath: (path) => set({ savePath: path }),
+  setSavePath: (path) => set({ savePath: path }),
 
-    getOverlay: (id) => get().overlays.find((o) => o.id === id),
+  getOverlay: (id) => get().overlays.find((o) => o.id === id),
 
-    loadFromPreset: (overlays, savePath) => {
-        const normalized = normalizeOverlayConfigs(overlays);
-        set({ overlays: normalized, savePath });
-        normalized.forEach((overlay) => {
-            globalThis.api?.overlay?.broadcastConfig?.(overlay);
-        });
-        return normalized;
-    },
-}));
+  loadFromPreset: (overlays, savePath) => {
+    const normalized = normalizeOverlayConfigs(overlays)
+    set({ overlays: normalized, savePath })
+    normalized.forEach((overlay) => {
+      globalThis.api?.overlay?.broadcastConfig?.(overlay)
+    })
+    return normalized
+  }
+}))
