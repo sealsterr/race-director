@@ -1,4 +1,5 @@
 import React from "react";
+import CustomNumberField from "../../../../../components/ui/CustomNumberField";
 import type { DashboardSettings } from "../../../settings/types";
 import { SectionBlock, SettingsRow, SettingsToggle } from "../SettingsPrimitives";
 
@@ -15,8 +16,8 @@ const NetworkSettingsTab = ({
     <div className="flex flex-col gap-3">
       <SectionBlock title="Connection">
         <SettingsRow
-          label="LMU API Endpoint"
-          description="Default endpoint used for manual and automatic connections."
+          label="API Endpoint"
+          description="Endpoint used for connections."
         >
           {({ controlId, descriptionId, labelId }) => (
             <input
@@ -41,37 +42,35 @@ const NetworkSettingsTab = ({
 
         <SettingsRow
           label="Poll Rate"
-          description="How often telemetry snapshots are requested from the API."
+          description="How often telemetry is requested by the app."
         >
           {({ controlId, descriptionId, labelId }) => (
-            <div className="flex items-center gap-2">
-              <input
+            <CustomNumberField
                 id={controlId}
-                type="number"
+                value={settings.network.pollRateMs}
                 min={50}
                 max={2000}
                 step={50}
-                value={settings.network.pollRateMs}
-                aria-describedby={descriptionId}
-                aria-labelledby={labelId}
-                onChange={(event) =>
+                suffix="ms"
+                ariaDescribedBy={descriptionId}
+                ariaLabelledBy={labelId}
+                onChange={(nextValue) => {
+                  const parsed = Number(nextValue);
+                  if (!Number.isFinite(parsed)) return;
                   onChange((prev) => ({
                     ...prev,
                     network: {
                       ...prev.network,
-                      pollRateMs: Number(event.target.value),
+                      pollRateMs: parsed,
                     },
-                  }))
-                }
-                className="w-24 rounded-md border border-rd-border bg-rd-elevated px-2 py-1.5 text-right font-mono text-xs text-rd-text outline-none focus:border-rd-accent/60"
+                  }));
+                }}
               />
-              <span className="text-xs text-rd-muted">ms</span>
-            </div>
           )}
         </SettingsRow>
       </SectionBlock>
 
-      <SectionBlock title="Startup & Recovery">
+      <SectionBlock title="Recovery">
         <SettingsRow
           label="Auto Connect on Launch"
           description="Attempt connection as soon as the dashboard starts."
@@ -93,7 +92,7 @@ const NetworkSettingsTab = ({
 
         <SettingsRow
           label="Auto Reconnect on Drop"
-          description="Retry after a disconnect triggered by API or game state."
+          description="Retry after a disconnect is triggered."
         >
           {({ descriptionId, labelId }) => (
             <SettingsToggle
@@ -112,32 +111,30 @@ const NetworkSettingsTab = ({
 
         <SettingsRow
           label="Reconnect Delay"
-          description="Delay before the reconnect attempt is fired."
+          description="Delay before each reconnect attempt."
         >
           {({ controlId, descriptionId, labelId }) => (
-            <div className="flex items-center gap-2">
-              <input
+            <CustomNumberField
                 id={controlId}
-                type="number"
+                value={settings.network.reconnectDelayMs}
                 min={300}
                 max={10000}
                 step={100}
-                value={settings.network.reconnectDelayMs}
-                aria-describedby={descriptionId}
-                aria-labelledby={labelId}
-                onChange={(event) =>
+                suffix="ms"
+                ariaDescribedBy={descriptionId}
+                ariaLabelledBy={labelId}
+                onChange={(nextValue) => {
+                  const parsed = Number(nextValue);
+                  if (!Number.isFinite(parsed)) return;
                   onChange((prev) => ({
                     ...prev,
                     network: {
                       ...prev.network,
-                      reconnectDelayMs: Number(event.target.value),
+                      reconnectDelayMs: parsed,
                     },
-                  }))
-                }
-                className="w-24 rounded-md border border-rd-border bg-rd-elevated px-2 py-1.5 text-right font-mono text-xs text-rd-text outline-none focus:border-rd-accent/60"
+                  }));
+                }}
               />
-              <span className="text-xs text-rd-muted">ms</span>
-            </div>
           )}
         </SettingsRow>
       </SectionBlock>

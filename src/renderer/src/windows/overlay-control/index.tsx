@@ -1,5 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import CustomSelect, { type CustomSelectOption } from '../../components/ui/CustomSelect'
+import CustomNumberField from '../../components/ui/CustomNumberField'
+import CustomColorPicker, {
+  COLOR_PICKER_PORTAL_SELECTOR
+} from '../../components/ui/CustomColorPicker'
 import { getOverlayWindowScale } from '../../../../shared/overlayWindowSizing'
 import {
   Save,
@@ -376,25 +381,20 @@ const Toggle = ({ label, value, onChange }: ToggleProps): React.ReactElement => 
 interface SelectProps {
   label: string
   value: string
-  options: { label: string; value: string }[]
+  options: CustomSelectOption[]
   onChange: (v: string) => void
 }
 
 const Select = ({ label, value, options, onChange }: SelectProps): React.ReactElement => (
   <div className="flex items-center justify-between gap-3">
     <span className="text-xs text-rd-muted">{label}</span>
-    <select
+    <CustomSelect
       value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="rounded border border-rd-border bg-rd-bg px-2 py-1 text-xs
-                text-rd-text focus:border-rd-accent focus:outline-none"
-    >
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
+      options={options}
+      onChange={onChange}
+      buttonClassName="h-8 rounded border border-rd-border bg-rd-bg px-2 py-1 text-xs text-rd-text focus:border-rd-accent"
+      optionClassName="text-xs"
+    />
   </div>
 )
 
@@ -406,20 +406,17 @@ interface ColorPickerProps {
 }
 
 const ColorPicker = ({ label, value, onChange }: ColorPickerProps): React.ReactElement => (
-  <div className="flex items-center justify-between gap-3 min-h-[32px]">
+  <div className="flex min-h-[32px] items-center justify-between gap-3">
     <span className="text-xs text-rd-muted">{label}</span>
     <div className="flex items-center gap-2">
       <span className="font-mono text-xs text-rd-subtle">{value.toUpperCase()}</span>
-      <label className="relative h-6 w-6 cursor-pointer overflow-hidden rounded border border-rd-border">
-        <span className="sr-only">{label}</span>
-        <span className="absolute inset-0 rounded" style={{ background: value }} />
-        <input
-          type="color"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-        />
-      </label>
+      <CustomColorPicker
+        ariaLabel={label}
+        title={label}
+        value={value}
+        onChange={onChange}
+        stopPropagation
+      />
     </div>
   </div>
 )
@@ -723,6 +720,12 @@ const SettingsDrawer = ({
       if (target instanceof Element && target.closest("[data-overlay-settings-toggle='true']")) {
         return
       }
+      if (target instanceof Element && target.closest("[data-rd-select-portal='true']")) {
+        return
+      }
+      if (target instanceof Element && target.closest(COLOR_PICKER_PORTAL_SELECTOR)) {
+        return
+      }
 
       if (drawerRef.current && !drawerRef.current.contains(e.target as Node)) {
         onClose()
@@ -799,37 +802,29 @@ const SettingsDrawer = ({
             <div className="grid grid-cols-2 gap-2">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-rd-muted">X</span>
-                <div className="relative flex items-center flex-1">
-                  <input
-                    type="number"
-                    value={cfg.x}
-                    onChange={(e) => setOverlayConfig(cfg.id, { x: Number(e.target.value) })}
-                    className="no-spin w-full rounded border border-rd-border bg-rd-bg px-2 py-1 text-xs text-rd-text 
-                                        focus:border-rd-accent focus:outline-none pr-7 remove-number-spin"
-                  />
-                  {typeof cfg.x === 'number' && !Number.isNaN(cfg.x) && (
-                    <span className="absolute right-2 text-xs text-rd-muted select-none pointer-events-none">
-                      px
-                    </span>
-                  )}
-                </div>
+                <CustomNumberField
+                  value={cfg.x}
+                  allowNegative
+                  suffix="px"
+                  onChange={(nextValue) => {
+                    const parsed = Number(nextValue)
+                    if (!Number.isFinite(parsed)) return
+                    setOverlayConfig(cfg.id, { x: parsed })
+                  }}
+                />
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-rd-muted">Y</span>
-                <div className="relative flex items-center flex-1">
-                  <input
-                    type="number"
-                    value={cfg.y}
-                    onChange={(e) => setOverlayConfig(cfg.id, { y: Number(e.target.value) })}
-                    className="no-spin w-full rounded border border-rd-border bg-rd-bg px-2 py-1 text-xs text-rd-text 
-                                        focus:border-rd-accent focus:outline-none pr-7 remove-number-spin"
-                  />
-                  {typeof cfg.y === 'number' && !Number.isNaN(cfg.y) && (
-                    <span className="absolute right-2 text-xs text-rd-muted select-none pointer-events-none">
-                      px
-                    </span>
-                  )}
-                </div>
+                <CustomNumberField
+                  value={cfg.y}
+                  allowNegative
+                  suffix="px"
+                  onChange={(nextValue) => {
+                    const parsed = Number(nextValue)
+                    if (!Number.isFinite(parsed)) return
+                    setOverlayConfig(cfg.id, { y: parsed })
+                  }}
+                />
               </div>
             </div>
 
@@ -976,49 +971,44 @@ const OverlayCard = ({
               </div>
               <div className="h-5 w-px shrink-0 bg-rd-border/80" />
               <div className="flex min-w-0 items-center gap-2 rounded-lg border border-rd-border/70 bg-rd-surface/55 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-                <select
+                <CustomSelect
                   value={towerModeValue ?? ''}
-                  onChange={(e) => {
-                    handleTowerModeChange(e.target.value)
-                    e.currentTarget.blur()
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  className="h-8 min-w-[84px] rounded-md border border-rd-border bg-rd-elevated px-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-rd-text outline-none transition-colors hover:border-rd-muted hover:bg-rd-surface focus:border-rd-accent cursor-pointer"
+                  options={
+                    isQualiSession
+                      ? [
+                          { label: 'Gap', value: 'QUALI_GAP' },
+                          { label: 'Time', value: 'QUALI_TIMES' }
+                        ]
+                      : [
+                          { label: 'Int', value: 'GAP_AHEAD' },
+                          { label: 'Lead', value: 'GAP_LEADER' },
+                          { label: 'Pits', value: 'PITS' },
+                          { label: 'Fuel', value: 'FUEL' },
+                          { label: 'Tyres', value: 'TYRES' },
+                          { label: 'Gain', value: 'POSITIONS' }
+                        ]
+                  }
+                  onChange={handleTowerModeChange}
+                  stopPropagation
                   title="Data mode"
-                >
-                  {isQualiSession ? (
-                    <>
-                      <option value="QUALI_GAP">Gap</option>
-                      <option value="QUALI_TIMES">Time</option>
-                    </>
-                  ) : (
-                    <>
-                      <option value="GAP_AHEAD">Int</option>
-                      <option value="GAP_LEADER">Lead</option>
-                      <option value="PITS">Pits</option>
-                      <option value="FUEL">Fuel</option>
-                      <option value="TYRES">Tyres</option>
-                      <option value="POSITIONS">Gain</option>
-                    </>
-                  )}
-                </select>
-                <select
+                  buttonClassName="h-8 min-w-[84px] rounded-md border border-rd-border bg-rd-elevated px-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-rd-text hover:border-rd-muted hover:bg-rd-surface"
+                  optionClassName="text-[10px] font-bold uppercase tracking-[0.12em]"
+                />
+                <CustomSelect
                   value={towerScopeValue ?? 'MIXED_TOP'}
-                  onChange={(e) => {
-                    handleTowerScopeChange(e.target.value)
-                    e.currentTarget.blur()
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  className="h-8 min-w-[148px] rounded-md border border-rd-border bg-rd-elevated px-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-rd-text outline-none transition-colors hover:border-rd-muted hover:bg-rd-surface focus:border-rd-accent cursor-pointer"
+                  options={[
+                    ...availableTowerClasses.map((carClass) => ({
+                      label: TOWER_CLASS_LABELS[carClass],
+                      value: `CLASS_ONLY:${carClass}`
+                    })),
+                    { label: 'Mixed', value: 'MIXED_TOP' }
+                  ]}
+                  onChange={handleTowerScopeChange}
+                  stopPropagation
                   title="Display scope"
-                >
-                  {availableTowerClasses.map((carClass) => (
-                    <option key={carClass} value={`CLASS_ONLY:${carClass}`}>
-                      {TOWER_CLASS_LABELS[carClass]}
-                    </option>
-                  ))}
-                  <option value="MIXED_TOP">Mixed</option>
-                </select>
+                  buttonClassName="h-8 min-w-[148px] rounded-md border border-rd-border bg-rd-elevated px-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-rd-text hover:border-rd-muted hover:bg-rd-surface"
+                  optionClassName="text-[10px] font-bold uppercase tracking-[0.12em]"
+                />
               </div>
             </div>
           ) : isDriverCard && driverCfg ? (

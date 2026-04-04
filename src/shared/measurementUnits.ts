@@ -1,11 +1,20 @@
 export type SpeedUnit = 'kph' | 'mph'
+export type TemperatureUnit = 'c' | 'f'
+export type DistanceUnit = 'km' | 'mi'
+export type PressureUnit = 'kpa' | 'psi' | 'bar'
 
 export interface MeasurementUnits {
   speedUnit: SpeedUnit
+  temperatureUnit: TemperatureUnit
+  distanceUnit: DistanceUnit
+  pressureUnit: PressureUnit
 }
 
 export const DEFAULT_MEASUREMENT_UNITS: MeasurementUnits = {
-  speedUnit: 'kph'
+  speedUnit: 'kph',
+  temperatureUnit: 'c',
+  distanceUnit: 'km',
+  pressureUnit: 'kpa'
 }
 
 export function convertSpeedFromKph(valueKph: number, speedUnit: SpeedUnit): number {

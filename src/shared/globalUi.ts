@@ -1,4 +1,4 @@
-import type { SpeedUnit } from './measurementUnits'
+import type { MeasurementUnits } from './measurementUnits'
 
 export interface GlobalUiSettingsPayload {
   darkMode: boolean
@@ -6,5 +6,5 @@ export interface GlobalUiSettingsPayload {
   logoPrimary: string
   logoSecondary: string
   reduceMotion: boolean
-  speedUnit: SpeedUnit
+  measurementUnits: MeasurementUnits
 }

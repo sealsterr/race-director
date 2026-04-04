@@ -49,6 +49,10 @@ interface WindowButtonProps {
   onLaunch: (id: WindowId) => void;
 }
 
+const COMING_SOON_BADGE = "Coming soon";
+const COMING_SOON_BADGE_CLASS =
+  "rounded px-1 text-[8px] font-bold uppercase tracking-wide leading-4 bg-rd-logo-primary/20 text-rd-logo-primary";
+
 const getButtonClass = (item: WindowItem): string => {
     if (item.isOpen) {
         return "border-rd-accent/40 bg-rd-accent/10 cursor-pointer";
@@ -81,11 +85,12 @@ const RightIndicator = ({ item }: { item: WindowItem }): React.ReactElement => {
         return (<ExternalLink size={11} className="text-rd-subtle opacity-0 transition-opacity group-hover:opacity-100" />
         );
     }
-    return <Lock size={11} className="text-rd-subtle" />;
+    return <Lock size={11} className="text-rd-subtle opacity-40" />;
 };
 
 const WindowButton = ({ item, onLaunch }: WindowButtonProps): React.ReactElement => {
   const Icon = item.icon;
+  const showComingSoonBadge = !item.isAvailable;
 
   return (
     <motion.button
@@ -98,6 +103,12 @@ const WindowButton = ({ item, onLaunch }: WindowButtonProps): React.ReactElement
         ${getButtonClass(item)}
       `}
     >
+      {showComingSoonBadge ? (
+        <span className={`absolute -top-2 right-2 ${COMING_SOON_BADGE_CLASS}`}>
+          {COMING_SOON_BADGE}
+        </span>
+      ) : null}
+
       {/* -- icon -- */}
       <div
         className={`
@@ -110,7 +121,7 @@ const WindowButton = ({ item, onLaunch }: WindowButtonProps): React.ReactElement
 
       {/* -- labels -- */}
       <div className="min-w-0 flex-1">
-        <p className={`text-xs font-semibold tracking-wide ${getLabelClass(item)}`}>
+        <p className={`flex items-center gap-2 text-xs font-semibold tracking-wide ${getLabelClass(item)}`}>
           {item.label}
         </p>
         <p className="text-xs leading-snug text-rd-subtle whitespace-normal break-words">{item.description}</p>

@@ -1,8 +1,14 @@
+import type {
+  DistanceUnit,
+  PressureUnit,
+  SpeedUnit,
+  TemperatureUnit,
+} from "../../../../../shared/measurementUnits";
+
 export type SettingsTabId =
   | "general"
   | "network"
   | "overlay"
-  | "audio"
   | "advanced";
 
 export type AccentPresetId =
@@ -11,15 +17,28 @@ export type AccentPresetId =
   | "pit-blue"
   | "stint-teal"
   | "royal-violet"
-  | "flag-yellow";
+  | "flag-yellow"
+  | "custom";
+
+export type BuiltInAccentPresetId = Exclude<AccentPresetId, "custom">;
+
+export interface PaletteColors {
+  accent: string;
+  logoPrimary: string;
+  logoSecondary: string;
+}
 
 export interface DashboardSettings {
   general: {
     uiScale: number;
     darkMode: boolean;
-    language: "English" | "Romanian" | "French" | "German";
-    speedUnit: "kph" | "mph";
+    language: "English" | "Romanian" | "French" | "German" | "Hungarian";
+    speedUnit: SpeedUnit;
+    temperatureUnit: TemperatureUnit;
+    distanceUnit: DistanceUnit;
+    pressureUnit: PressureUnit;
     accentPreset: AccentPresetId;
+    customPalette: PaletteColors;
     activityLogLimit: number;
   };
   network: {
@@ -36,13 +55,6 @@ export interface DashboardSettings {
     animateOverlayHighlights: boolean;
     flashFightRows: boolean;
   };
-  audio: {
-    enableUiSounds: boolean;
-    enableConnectionAlerts: boolean;
-    enableVoiceCallouts: boolean;
-    masterVolume: number;
-    calloutVolume: number;
-  };
   advanced: {
     reduceMotion: boolean;
     compactTelemetryRows: boolean;
@@ -50,10 +62,7 @@ export interface DashboardSettings {
   };
 }
 
-export interface AccentPreset {
-  id: AccentPresetId;
+export interface AccentPreset extends PaletteColors {
+  id: BuiltInAccentPresetId;
   label: string;
-  accent: string;
-  logoPrimary: string;
-  logoSecondary: string;
 }

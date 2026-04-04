@@ -3,14 +3,13 @@ import {
   Gauge,
   Network,
   MonitorPlay,
-  AudioLines,
   Wrench,
   X,
 } from "lucide-react";
 import type { DashboardSettings, SettingsTabId } from "../../settings/types";
+import DiscardSettingsPopup from "./DiscardSettingsPopup";
 import useSettingsModalA11y from "./hooks/useSettingsModalA11y";
 import AdvancedSettingsTab from "./tabs/AdvancedSettingsTab";
-import AudioSettingsTab from "./tabs/AudioSettingsTab";
 import GeneralSettingsTab from "./tabs/GeneralSettingsTab";
 import NetworkSettingsTab from "./tabs/NetworkSettingsTab";
 import OverlaySettingsTab from "./tabs/OverlaySettingsTab";
@@ -37,7 +36,6 @@ const TAB_ITEMS: ReadonlyArray<{
   { id: "general", label: "General", icon: <Gauge size={14} /> },
   { id: "network", label: "Network", icon: <Network size={14} /> },
   { id: "overlay", label: "Overlay", icon: <MonitorPlay size={14} /> },
-  { id: "audio", label: "Audio", icon: <AudioLines size={14} /> },
   { id: "advanced", label: "Advanced", icon: <Wrench size={14} /> },
 ];
 
@@ -52,6 +50,15 @@ const SettingsModal = ({
   onResetQuitConfirm,
 }: SettingsModalProps): React.ReactElement | null => {
   const [activeTab, setActiveTab] = useState<SettingsTabId>("general");
+  const [showDiscardPopup, setShowDiscardPopup] = useState(false);
+  const handleRequestClose = (): void => {
+    if (hasUnsavedChanges) {
+      setShowDiscardPopup(true);
+      return;
+    }
+    onClose();
+  };
+
   const {
     closeButtonRef,
     dialogRef,
@@ -61,12 +68,16 @@ const SettingsModal = ({
     setTabRef,
   } = useSettingsModalA11y({
     activeTab,
-    isDirty: hasUnsavedChanges,
     isOpen,
-    onClose,
+    onRequestClose: handleRequestClose,
     onTabChange: setActiveTab,
     tabs: TAB_ITEMS.map((tab) => tab.id),
   });
+
+  React.useEffect(() => {
+    if (isOpen) return;
+    setShowDiscardPopup(false);
+  }, [isOpen]);
 
   const currentPanel = useMemo(() => {
     if (activeTab === "general") {
@@ -77,9 +88,6 @@ const SettingsModal = ({
     }
     if (activeTab === "overlay") {
       return <OverlaySettingsTab settings={settings} onChange={onChange} />;
-    }
-    if (activeTab === "audio") {
-      return <AudioSettingsTab settings={settings} onChange={onChange} />;
     }
     return (
       <AdvancedSettingsTab
@@ -107,8 +115,11 @@ const SettingsModal = ({
         aria-labelledby={SETTINGS_MODAL_TITLE_ID}
         aria-modal="true"
         tabIndex={-1}
-        className="flex h-full max-h-[620px] w-full max-w-[820px] flex-col overflow-hidden rounded-xl border border-rd-border bg-rd-surface/95 shadow-[0_28px_80px_rgba(0,0,0,0.75)]"
-        onKeyDown={handleDialogKeyDown}
+        className="relative flex h-full max-h-[620px] w-full max-w-[820px] flex-col overflow-hidden rounded-xl border border-rd-border bg-rd-surface/95 shadow-[0_28px_80px_rgba(0,0,0,0.75)]"
+        onKeyDown={(event) => {
+          if (showDiscardPopup) return;
+          handleDialogKeyDown(event);
+        }}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex h-12 items-center border-b border-rd-border px-4">
@@ -138,7 +149,7 @@ const SettingsModal = ({
           aria-label="Settings sections"
           className="overflow-x-auto border-b border-rd-border bg-rd-bg/60"
         >
-          <div className="flex px-4">
+          <div className="mx-auto flex w-max min-w-full justify-center px-4">
             {TAB_ITEMS.map((tab, index) => {
               const isActive = tab.id === activeTab;
               const tabButtonId = `settings-tab-${tab.id}`;
@@ -202,6 +213,16 @@ const SettingsModal = ({
             {hasUnsavedChanges ? "Save & Close" : "Close"}
           </button>
         </div>
+
+        {showDiscardPopup ? (
+          <DiscardSettingsPopup
+            onCancel={() => setShowDiscardPopup(false)}
+            onConfirm={() => {
+              setShowDiscardPopup(false);
+              onClose();
+            }}
+          />
+        ) : null}
       </div>
     </div>
   );

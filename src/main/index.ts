@@ -33,7 +33,7 @@ const DEFAULT_GLOBAL_UI_SETTINGS: GlobalUiSettings = {
   logoPrimary: '#eb7b27',
   logoSecondary: '#14537e',
   reduceMotion: false,
-  speedUnit: DEFAULT_MEASUREMENT_UNITS.speedUnit
+  measurementUnits: { ...DEFAULT_MEASUREMENT_UNITS }
 }
 let globalUiSettings: GlobalUiSettings = DEFAULT_GLOBAL_UI_SETTINGS
 let isAppQuitting = false

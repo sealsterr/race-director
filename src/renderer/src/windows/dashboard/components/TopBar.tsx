@@ -13,26 +13,26 @@ const connectionConfig: Record<
 > = {
   CONNECTED: {
     label: "CONNECTED",
-    color: "text-rd-success",
-    borderBg: "border-rd-success/30 bg-rd-success/10",
+    color: "text-rd-accent",
+    borderBg: "border-rd-accent/30 bg-rd-accent/10",
     icon: <Wifi size={13} />,
   },
   CONNECTING: {
     label: "CONNECTING",
-    color: "text-rd-gold",
-    borderBg: "border-rd-gold/30 bg-rd-gold/10",
+    color: "text-rd-accent",
+    borderBg: "border-rd-accent/30 bg-rd-accent/10",
     icon: <Loader size={13} className="animate-spin" />,
   },
   DISCONNECTED: {
     label: "DISCONNECTED",
-    color: "text-rd-error",
-    borderBg: "border-rd-error/30 bg-rd-error/10",
+    color: "text-rd-accent",
+    borderBg: "border-rd-accent/30 bg-rd-accent/10",
     icon: <WifiOff size={13} />,
   },
   ERROR: {
     label: "ERROR",
-    color: "text-rd-error",
-    borderBg: "border-rd-error/30 bg-rd-error/10",
+    color: "text-rd-accent",
+    borderBg: "border-rd-accent/30 bg-rd-accent/10",
     icon: <AlertTriangle size={13} />,
   },
 };

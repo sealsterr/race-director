@@ -1,6 +1,7 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { Wifi, WifiOff, RefreshCw, Settings2 } from 'lucide-react'
+import CustomNumberField from '../../../components/ui/CustomNumberField'
 import type { ConnectionStatus } from '../../../types/lmu'
 import type { LogType } from '../../../types/dashboard'
 import useConnectionPanelState from '../hooks/useConnectionPanelState'
@@ -120,19 +121,19 @@ const ConnectionPanel = ({
             <label htmlFor="poll-rate" className="text-xs text-rd-muted">
               Poll Rate (ms)
             </label>
-            <input
+            <CustomNumberField
               id="poll-rate"
-              type="number"
               value={pollRateInput}
               min={MIN_POLL_RATE_MS}
               max={MAX_POLL_RATE_MS}
               step={50}
-              onChange={(e) => {
+              suffix="ms"
+              containerClassName="self-start"
+              ariaInvalid={Boolean(validationMessage)}
+              onChange={(nextValue) => {
                 clearError()
-                setPollRateInput(e.target.value)
+                setPollRateInput(nextValue)
               }}
-              className="[color-scheme:dark] w-full rounded border border-rd-border bg-rd-elevated px-3 py-1.5 font-mono text-xs text-rd-text outline-none focus:border-rd-accent/60"
-              aria-invalid={Boolean(validationMessage)}
             />
           </div>
 

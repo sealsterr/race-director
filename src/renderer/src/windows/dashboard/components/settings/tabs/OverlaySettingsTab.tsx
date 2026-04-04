@@ -19,10 +19,10 @@ const OverlaySettingsTab = ({
 
   return (
     <div className="flex flex-col gap-3">
-      <SectionBlock title="Startup Windows">
+      <SectionBlock title="Startup">
         <SettingsRow
           label="Launch Overlay Dashboard"
-          description="Open the Overlay Dashboard window when RaceDirector starts."
+          description="Open the Overlay Dashboard window when the app starts."
         >
           {({ descriptionId, labelId }) => (
             <SettingsToggle
@@ -60,7 +60,7 @@ const OverlaySettingsTab = ({
 
         <SettingsRow
           label="Close Overlays With Control Window"
-          description="When Overlay Dashboard closes, close spawned overlay windows too."
+          description="When Overlay Dashboard closes, close other overlay windows too."
         >
           {({ descriptionId, labelId }) => (
             <SettingsToggle
@@ -81,7 +81,7 @@ const OverlaySettingsTab = ({
         </SettingsRow>
       </SectionBlock>
 
-      <SectionBlock title="Visual Behavior">
+      <SectionBlock title="Visuals">
         <SettingsRow
           label="Animate Overlay Highlights"
           description={animateHighlightsSetting.description}

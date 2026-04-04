@@ -22,7 +22,7 @@ const AdvancedSettingsTab = ({
       <SectionBlock title="Behavior">
         <SettingsRow
           label="Reduce Motion"
-          description="Limit decorative animations to improve focus and readability."
+          description="Limit decorative animations."
         >
           {({ descriptionId, labelId }) => (
             <SettingsToggle
@@ -87,7 +87,7 @@ const AdvancedSettingsTab = ({
       <SectionBlock title="Tools">
         <SettingsRow
           label="Reset Quit Confirmation Flag"
-          description="Force the quit dialog preference to ask again for testing."
+          description="Forces the quit confirmation to appear again."
         >
           {({ descriptionId, labelId }) => (
             <button

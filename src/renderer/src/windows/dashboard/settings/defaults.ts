@@ -1,11 +1,13 @@
 import type {
   AccentPreset,
-  AccentPresetId,
+  BuiltInAccentPresetId,
   DashboardSettings,
+  PaletteColors,
 } from "./types";
 import { DEFAULT_MEASUREMENT_UNITS } from "../../../../../shared/measurementUnits";
 
 export const DASHBOARD_SETTINGS_STORAGE_KEY = "race-director.dashboard.settings.v1";
+export const CUSTOM_ACCENT_PRESET_ID = "custom" as const;
 
 export const ACCENT_PRESETS: AccentPreset[] = [
   {
@@ -52,13 +54,23 @@ export const ACCENT_PRESETS: AccentPreset[] = [
   },
 ];
 
+export const DEFAULT_CUSTOM_PALETTE: PaletteColors = {
+  accent: ACCENT_PRESETS[0].accent,
+  logoPrimary: ACCENT_PRESETS[0].logoPrimary,
+  logoSecondary: ACCENT_PRESETS[0].logoSecondary,
+};
+
 export const DEFAULT_DASHBOARD_SETTINGS: DashboardSettings = {
   general: {
     uiScale: 1,
     darkMode: true,
     language: "English",
     speedUnit: DEFAULT_MEASUREMENT_UNITS.speedUnit,
+    temperatureUnit: DEFAULT_MEASUREMENT_UNITS.temperatureUnit,
+    distanceUnit: DEFAULT_MEASUREMENT_UNITS.distanceUnit,
+    pressureUnit: DEFAULT_MEASUREMENT_UNITS.pressureUnit,
     accentPreset: "ember-red",
+    customPalette: { ...DEFAULT_CUSTOM_PALETTE },
     activityLogLimit: 400,
   },
   network: {
@@ -75,13 +87,6 @@ export const DEFAULT_DASHBOARD_SETTINGS: DashboardSettings = {
     animateOverlayHighlights: true,
     flashFightRows: true,
   },
-  audio: {
-    enableUiSounds: true,
-    enableConnectionAlerts: true,
-    enableVoiceCallouts: false,
-    masterVolume: 70,
-    calloutVolume: 60,
-  },
   advanced: {
     reduceMotion: false,
     compactTelemetryRows: false,
@@ -89,10 +94,37 @@ export const DEFAULT_DASHBOARD_SETTINGS: DashboardSettings = {
   },
 };
 
-export const getAccentPreset = (id: AccentPresetId): AccentPreset => {
+export const getAccentPreset = (id: BuiltInAccentPresetId): AccentPreset => {
   return (
     ACCENT_PRESETS.find((preset) => preset.id === id) ?? ACCENT_PRESETS[0]
   );
+};
+
+const normalizeHexColor = (value: string, fallback: string): string => {
+  return /^#[0-9a-fA-F]{6}$/.test(value) ? value.toLowerCase() : fallback;
+};
+
+export const normalizePaletteColors = (
+  palette: PaletteColors
+): PaletteColors => ({
+  accent: normalizeHexColor(palette.accent, DEFAULT_CUSTOM_PALETTE.accent),
+  logoPrimary: normalizeHexColor(
+    palette.logoPrimary,
+    DEFAULT_CUSTOM_PALETTE.logoPrimary
+  ),
+  logoSecondary: normalizeHexColor(
+    palette.logoSecondary,
+    DEFAULT_CUSTOM_PALETTE.logoSecondary
+  ),
+});
+
+export const resolvePaletteColors = (
+  general: DashboardSettings["general"]
+): PaletteColors => {
+  if (general.accentPreset === CUSTOM_ACCENT_PRESET_ID) {
+    return normalizePaletteColors(general.customPalette);
+  }
+  return getAccentPreset(general.accentPreset);
 };
 
 export const mergeDashboardSettings = (
@@ -104,7 +136,6 @@ export const mergeDashboardSettings = (
     general: { ...DEFAULT_DASHBOARD_SETTINGS.general, ...stored.general },
     network: { ...DEFAULT_DASHBOARD_SETTINGS.network, ...stored.network },
     overlay: { ...DEFAULT_DASHBOARD_SETTINGS.overlay, ...stored.overlay },
-    audio: { ...DEFAULT_DASHBOARD_SETTINGS.audio, ...stored.audio },
     advanced: { ...DEFAULT_DASHBOARD_SETTINGS.advanced, ...stored.advanced },
   };
 };
@@ -136,6 +167,7 @@ export const clampSettings = (
   general: {
     ...candidate.general,
     uiScale: Math.min(1.5, Math.max(0.75, candidate.general.uiScale)),
+    customPalette: normalizePaletteColors(candidate.general.customPalette),
     activityLogLimit: Math.min(
       2000,
       Math.max(100, Math.round(candidate.general.activityLogLimit))
@@ -148,10 +180,5 @@ export const clampSettings = (
       10000,
       Math.max(300, Math.round(candidate.network.reconnectDelayMs))
     ),
-  },
-  audio: {
-    ...candidate.audio,
-    masterVolume: Math.min(100, Math.max(0, Math.round(candidate.audio.masterVolume))),
-    calloutVolume: Math.min(100, Math.max(0, Math.round(candidate.audio.calloutVolume))),
   },
 });

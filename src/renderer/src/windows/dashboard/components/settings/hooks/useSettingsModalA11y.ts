@@ -11,14 +11,10 @@ const FOCUSABLE_SELECTOR = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(", ");
 
-const DISCARD_CHANGES_MESSAGE =
-  "Discard your unsaved settings changes?";
-
 interface UseSettingsModalA11yParams {
   activeTab: SettingsTabId;
-  isDirty: boolean;
   isOpen: boolean;
-  onClose: () => void;
+  onRequestClose: () => void;
   onTabChange: (tab: SettingsTabId) => void;
   tabs: readonly SettingsTabId[];
 }
@@ -45,9 +41,8 @@ const getFocusableElements = (container: HTMLElement): HTMLElement[] => {
 
 const useSettingsModalA11y = ({
   activeTab,
-  isDirty,
   isOpen,
-  onClose,
+  onRequestClose,
   onTabChange,
   tabs,
 }: UseSettingsModalA11yParams): UseSettingsModalA11yResult => {
@@ -73,12 +68,8 @@ const useSettingsModalA11y = ({
   }, [isOpen]);
 
   const requestClose = useCallback(() => {
-    if (isDirty && !globalThis.confirm(DISCARD_CHANGES_MESSAGE)) {
-      return;
-    }
-
-    onClose();
-  }, [isDirty, onClose]);
+    onRequestClose();
+  }, [onRequestClose]);
 
   const setTabRef = useCallback((index: number, node: HTMLButtonElement | null) => {
     tabRefs.current[index] = node;

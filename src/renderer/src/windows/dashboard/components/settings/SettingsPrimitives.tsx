@@ -87,8 +87,8 @@ const SettingsToggle = ({
         role="switch"
         className="peer sr-only"
       />
-      <span className="h-6 w-11 rounded-full border border-rd-border bg-rd-bg transition-colors peer-checked:border-rd-success/50 peer-checked:bg-rd-success/30 peer-disabled:border-rd-border/60 peer-disabled:bg-rd-elevated/40 peer-focus-visible:ring-2 peer-focus-visible:ring-rd-accent/70 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-rd-surface" />
-      <span className="pointer-events-none absolute left-1 h-4 w-4 rounded-full bg-rd-subtle transition-transform peer-checked:translate-x-5 peer-checked:bg-rd-success peer-disabled:bg-rd-border" />
+      <span className="h-6 w-11 rounded-full border border-rd-border bg-rd-bg transition-colors peer-checked:border-rd-accent/50 peer-checked:bg-rd-accent/30 peer-disabled:border-rd-border/60 peer-disabled:bg-rd-elevated/40 peer-focus-visible:ring-2 peer-focus-visible:ring-rd-accent/70 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-rd-surface" />
+      <span className="pointer-events-none absolute left-1 h-4 w-4 rounded-full bg-rd-subtle transition-transform peer-checked:translate-x-5 peer-checked:bg-rd-accent peer-disabled:bg-rd-border" />
     </label>
   );
 };
@@ -99,7 +99,7 @@ interface SettingsBadgeProps {
 
 const SettingsBadge = ({ label }: SettingsBadgeProps): React.ReactElement => {
   return (
-    <span className="rounded-full border border-rd-warning/35 bg-rd-warning/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-rd-warning">
+    <span className="rounded px-1 text-[8px] font-bold uppercase tracking-wide leading-4 bg-rd-logo-primary/20 text-rd-logo-primary">
       {label}
     </span>
   );
