@@ -1,111 +1,100 @@
-import { Flag } from "lucide-react";
-import type { SessionInfo, FlagState } from "../../../types/lmu";
-import React from "react";
+import { Flag } from 'lucide-react'
+import type { SessionInfo, FlagState } from '../../../types/lmu'
+import React from 'react'
 
 interface SessionPanelProps {
-  session: SessionInfo | null;
+  session: SessionInfo | null
 }
 
 const flagConfig: Record<FlagState, { label: string; color: string }> = {
-  GREEN: { label: "GREEN FLAG", color: "text-rd-success" },
-  YELLOW: { label: "YELLOW FLAG", color: "text-rd-gold" },
-  FULL_COURSE_YELLOW: { label: "FULL COURSE YELLOW", color: "text-rd-gold" },
-  SAFETY_CAR: { label: "SAFETY CAR", color: "text-rd-gold" },
-  RED: { label: "RED FLAG", color: "text-rd-error" },
-  CHEQUERED: { label: "CHEQUERED", color: "text-rd-text" },
-  NONE: { label: "NO FLAG", color: "text-rd-subtle" },
-};
+  GREEN: { label: 'GREEN FLAG', color: 'text-rd-success' },
+  YELLOW: { label: 'YELLOW FLAG', color: 'text-rd-gold' },
+  FULL_COURSE_YELLOW: { label: 'FULL COURSE YELLOW', color: 'text-rd-gold' },
+  SAFETY_CAR: { label: 'SAFETY CAR', color: 'text-rd-gold' },
+  RED: { label: 'RED FLAG', color: 'text-rd-error' },
+  CHEQUERED: { label: 'CHEQUERED', color: 'text-rd-text' },
+  NONE: { label: 'NO FLAG', color: 'text-rd-subtle' }
+}
 
 const formatTime = (seconds: number): string => {
-  const safe = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
+  const safe = Number.isFinite(seconds) ? Math.max(0, seconds) : 0
 
-  const h = Math.floor(safe / 3600);
-  const m = Math.floor((safe % 3600) / 60);
-  const s = Math.floor(safe % 60);
+  const h = Math.floor(safe / 3600)
+  const m = Math.floor((safe % 3600) / 60)
+  const s = Math.floor(safe % 60)
 
   if (h > 0) {
-    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
   }
 
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-};
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
 
 interface DataRowProps {
-  label: string;
-  value: string;
-  mono?: boolean;
-  valueClass?: string;
+  label: string
+  value: string
+  mono?: boolean
+  valueClass?: string
 }
 
 const DataRow = ({
   label,
   value,
   mono = false,
-  valueClass = "text-rd-text",
+  valueClass = 'text-rd-text'
 }: DataRowProps): React.ReactElement => (
   <div className="flex items-center justify-between rounded px-3 py-2 hover:bg-rd-elevated">
     <span className="text-xs text-rd-subtle">{label}</span>
-    <span className={`text-xs ${mono ? "font-mono" : ""} ${valueClass}`}>
-      {value}
-    </span>
+    <span className={`text-xs ${mono ? 'font-mono' : ''} ${valueClass}`}>{value}</span>
   </div>
-);
+)
 
 const SessionPanel = ({ session }: SessionPanelProps): React.ReactElement => {
-  const flag = session ? flagConfig[session.flagState] : null;
+  const flag = session ? flagConfig[session.flagState] : null
 
   return (
-    <div className="flex flex-col rounded border border-rd-border bg-rd-surface">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded border border-rd-border bg-rd-surface">
       {/* -- panel header -- */}
       <div className="flex items-center gap-2 border-b border-rd-border px-4 py-3">
         <Flag size={14} className="text-rd-muted" />
-        <span className="text-xs font-semibold uppercase tracking-wider text-rd-text">
-          Session
-        </span>
+        <span className="text-xs font-semibold uppercase tracking-wider text-rd-text">Session</span>
         {flag && (
-          <span
-            className={`ml-auto font-mono text-xs font-semibold ${flag.color}`}
-          >
+          <span className={`ml-auto font-mono text-xs font-semibold ${flag.color}`}>
             {flag.label}
           </span>
         )}
       </div>
 
       {/* -- session data -- */}
-      <div className="flex flex-col gap-px p-1">
+      <div className="flex min-h-0 flex-1 flex-col gap-px p-1">
         {session ? (
           <>
             <DataRow label="Track" value={session.trackName} />
             <DataRow label="Session" value={session.sessionType} />
             <DataRow
               label="Lap"
-              value={session.totalLaps > 0
-                      ? `${session.currentLap} / ${session.totalLaps}`
-                      : `${session.currentLap} / —`
+              value={
+                session.totalLaps > 0
+                  ? `${session.currentLap} / ${session.totalLaps}`
+                  : `${session.currentLap} / —`
               }
               mono
             />
-            <DataRow
-              label="Time Remaining"
-              value={formatTime(session.timeRemaining)}
-              mono
-            />
+            <DataRow label="Time Remaining" value={formatTime(session.timeRemaining)} mono />
             <DataRow
               label="Cars"
               value={`${session.numCars} total, ${session.numCarsOnTrack} on track`}
             />
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center gap-2 py-8">
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-4 text-center">
             <p className="text-xs text-rd-subtle">No active session detected</p>
-            <p className="font-mono text-xs text-rd-subtle/60">
-              Launch Le Mans Ultimate to begin!
-            </p>
+            <p className="font-mono text-xs text-rd-subtle/60">Launch Le Mans Ultimate to begin!</p>
           </div>
         )}
       </div>
     </div>
-    );
-};
+  )
+}
 
-export default SessionPanel;
+export default SessionPanel

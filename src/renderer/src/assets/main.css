@@ -1,5 +1,5 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oxanium:wght@400;500;600;700;800&display=swap");
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oxanium:wght@400;500;600;700;800&display=swap');
+@import 'tailwindcss';
 
 @theme {
   --color-rd-bg: #08090c;
@@ -17,11 +17,11 @@
   --color-rd-logo-primary: #eb7b27;
   --color-rd-logo-secondary: #14537e;
 
-  --font-ui: "Inter", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  --font-ui: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
-:root[data-rd-theme="light"] {
+:root[data-rd-theme='light'] {
   --color-rd-bg: #dbe4ef;
   --color-rd-surface: #f6f8fc;
   --color-rd-elevated: #ffffff;
@@ -31,6 +31,14 @@
   --color-rd-subtle: #64748b;
   --color-rd-success: #15803d;
   --color-rd-warning: #b45309;
+}
+
+:root {
+  --rd-titlebar-controls-surface: #0f1117;
+}
+
+:root[data-rd-theme='light'] {
+  --rd-titlebar-controls-surface: #e9edf3;
 }
 
 @keyframes rd-flash {
@@ -61,15 +69,10 @@ body {
   padding: 0;
 }
 
-[style*="--rd-reduce-motion: 1"] * {
+[style*='--rd-reduce-motion: 1'] * {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important;
-}
-
-:root[data-rd-modal-open="true"] .rd-titlebar-controls-strip {
-  background: rgba(2, 6, 23, 0.72) !important;
-  backdrop-filter: blur(10px) saturate(0.85);
 }
 
 ::-webkit-scrollbar {

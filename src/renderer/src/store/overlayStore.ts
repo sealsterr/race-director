@@ -164,8 +164,8 @@ const DEFAULT_CONFIGS: OverlayConfig[] = [
     enabled: false,
     opacity: 90,
     scale: 1,
-    x: 0,
-    y: 0,
+    x: 20,
+    y: 20,
     displayId: 0,
     dragMode: false,
     settings: {

@@ -13,6 +13,18 @@ import { initializeAutoUpdater } from './updater'
 
 const DASHBOARD_WIDTH = 1100
 const DASHBOARD_HEIGHT = 700
+const INFO_WINDOW_DEFAULTS = {
+  width: 1400,
+  height: 800,
+  minWidth: 900,
+  minHeight: 400
+} as const
+const OVERLAY_CONTROL_WINDOW_DEFAULTS = {
+  width: 1240,
+  height: 760,
+  minWidth: 1180,
+  minHeight: 680
+} as const
 
 interface UiPrefs {
   showQuitConfirm: boolean
@@ -172,7 +184,7 @@ function getSolidWindowBackground(): string {
 function getModalMaskedTitlebarOverlayTheme(height: number): Electron.TitleBarOverlay {
   const modalBackdropColor = globalUiSettings.darkMode
     ? 'rgba(6, 10, 16, 0.74)'
-    : 'rgba(20, 28, 42, 0.58)'
+    : 'rgba(148, 163, 184, 0.34)'
 
   return {
     color: modalBackdropColor,
@@ -246,6 +258,44 @@ function focusMainWindow(mainWindow: BrowserWindow): void {
   }
   mainWindow.show()
   mainWindow.focus()
+}
+
+function resetWindowToDefaultSize(
+  win: BrowserWindow,
+  width: number,
+  height: number
+): void {
+  if (win.isDestroyed()) return
+  if (win.isFullScreen()) {
+    win.setFullScreen(false)
+  }
+  if (win.isMaximized()) {
+    win.unmaximize()
+  }
+  if (win.isMinimized()) {
+    win.restore()
+  }
+
+  win.setSize(width, height)
+  win.center()
+}
+
+function resetManagedWindowLayouts(mainWindow: BrowserWindow): void {
+  resetWindowToDefaultSize(mainWindow, DASHBOARD_WIDTH, DASHBOARD_HEIGHT)
+
+  const infoWindow = childWindows.get('INFO')
+  if (infoWindow && !infoWindow.isDestroyed()) {
+    resetWindowToDefaultSize(infoWindow, INFO_WINDOW_DEFAULTS.width, INFO_WINDOW_DEFAULTS.height)
+  }
+
+  const overlayControlWindow = childWindows.get('OVERLAY-CONTROL')
+  if (overlayControlWindow && !overlayControlWindow.isDestroyed()) {
+    resetWindowToDefaultSize(
+      overlayControlWindow,
+      OVERLAY_CONTROL_WINDOW_DEFAULTS.width,
+      OVERLAY_CONTROL_WINDOW_DEFAULTS.height
+    )
+  }
 }
 
 function dismissDisconnectNotice(mainWindow: BrowserWindow): void {
@@ -552,10 +602,7 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
         'INFO',
         'info',
         {
-          width: 1400,
-          height: 800,
-          minWidth: 900,
-          minHeight: 400,
+          ...INFO_WINDOW_DEFAULTS,
           title: 'RaceDirector | Info Window'
         },
         mainWindow
@@ -568,10 +615,7 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
         'OVERLAY-CONTROL',
         'overlay-control',
         {
-          width: 1240,
-          height: 760,
-          minWidth: 1180,
-          minHeight: 680,
+          ...OVERLAY_CONTROL_WINDOW_DEFAULTS,
           title: 'RaceDirector | Overlay Control'
         },
         mainWindow
@@ -584,7 +628,7 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
       'OVERLAY-TOWER': { route: 'overlay/tower', w: 400, h: 700 },
       'OVERLAY-DRIVER': { route: 'overlay/driver', w: 896, h: 286 },
       'OVERLAY-GAP': { route: 'overlay/gap', w: 1904, h: 316 },
-      'OVERLAY-SESSION': { route: 'overlay/session', w: 1920, h: 60 }
+      'OVERLAY-SESSION': { route: 'overlay/session', w: 1120, h: 430 }
     }
 
     const def = OVERLAY_SIZES[id]
@@ -648,6 +692,10 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
 
   registerIpcHandle('system:getQuitConfirmPreference', (): boolean => {
     return uiPrefs.showQuitConfirm
+  })
+
+  registerIpcHandle('system:resetWindowLayouts', (): void => {
+    resetManagedWindowLayouts(mainWindow)
   })
 
   registerIpcHandle('system:resetQuitConfirmPreference', (): void => {

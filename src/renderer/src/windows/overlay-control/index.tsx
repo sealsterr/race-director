@@ -59,23 +59,23 @@ const OVERLAY_META: OverlayMeta[] = [
   {
     id: 'OVERLAY-DRIVER',
     label: 'Driver Card',
-    description: 'Driver information',
+    description: '',
     icon: User,
     defaultSize: { w: 896, h: 286 }
   },
   {
     id: 'OVERLAY-GAP',
     label: 'Gap',
-    description: 'Close battle graphic',
+    description: '',
     icon: Gauge,
     defaultSize: { w: 1904, h: 316 }
   },
   {
     id: 'OVERLAY-SESSION',
-    label: 'Session Bar',
-    description: 'Session information',
+    label: 'Session Info',
+    description: '',
     icon: Timer,
-    defaultSize: { w: 1920, h: 60 }
+    defaultSize: { w: 1120, h: 430 }
   }
 ]
 
@@ -570,17 +570,17 @@ const DriverSettingsPanel = ({ cfg }: { cfg: OverlayConfig }): React.ReactElemen
     <div className="flex flex-col gap-3">
       <PanelSection title="Parts" />
       <Toggle
-        label="Part 1: Left shapes"
+        label="Left Part"
         value={s.showPart1}
         onChange={(v) => set({ showPart1: v })}
       />
       <Toggle
-        label="Part 2: Center data"
+        label="Center Part"
         value={s.showPart2}
         onChange={(v) => set({ showPart2: v })}
       />
       <Toggle
-        label="Part 3: Right container"
+        label="Right Part"
         value={s.showPart3}
         onChange={(v) => set({ showPart3: v })}
       />
@@ -597,7 +597,7 @@ const DriverSettingsPanel = ({ cfg }: { cfg: OverlayConfig }): React.ReactElemen
         onChange={(v) => set({ colorPersonalBest: v })}
       />
       <ColorPicker
-        label="Completed"
+        label="Slower"
         value={s.colorCompleted}
         onChange={(v) => set({ colorCompleted: v })}
       />
@@ -671,11 +671,6 @@ const SessionSettingsPanel = ({ cfg }: { cfg: OverlayConfig }): React.ReactEleme
         label="Show lap count"
         value={s.showLapCount}
         onChange={(v) => set({ showLapCount: v })}
-      />
-      <Toggle
-        label="Show flag state"
-        value={s.showFlagState}
-        onChange={(v) => set({ showFlagState: v })}
       />
     </div>
   )
@@ -751,9 +746,8 @@ const SettingsDrawer = ({
         <div className="flex h-8 w-8 items-center justify-center rounded bg-rd-border/40 text-rd-muted">
           <Icon size={15} className="text-rd-muted" />
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="flex min-w-0 flex-1 items-center">
           <p className="text-sm font-semibold text-rd-text">{meta.label}</p>
-          <p className="text-xs text-rd-subtle">Settings</p>
         </div>
         <button
           onClick={onClose}
@@ -799,32 +793,38 @@ const SettingsDrawer = ({
             Position
           </p>
           <div className="flex flex-col gap-3">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-rd-muted">X</span>
-                <CustomNumberField
-                  value={cfg.x}
-                  allowNegative
-                  suffix="px"
-                  onChange={(nextValue) => {
-                    const parsed = Number(nextValue)
-                    if (!Number.isFinite(parsed)) return
-                    setOverlayConfig(cfg.id, { x: parsed })
-                  }}
-                />
+            <div className="flex items-center justify-evenly gap-6 px-1">
+              <div className="flex flex-1 justify-center">
+                <div className="inline-flex items-center gap-2">
+                  <span className="text-xs text-rd-muted">X</span>
+                  <CustomNumberField
+                    value={cfg.x}
+                    allowNegative
+                    suffix="px"
+                    containerClassName="shrink-0"
+                    onChange={(nextValue) => {
+                      const parsed = Number(nextValue)
+                      if (!Number.isFinite(parsed)) return
+                      setOverlayConfig(cfg.id, { x: parsed })
+                    }}
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-rd-muted">Y</span>
-                <CustomNumberField
-                  value={cfg.y}
-                  allowNegative
-                  suffix="px"
-                  onChange={(nextValue) => {
-                    const parsed = Number(nextValue)
-                    if (!Number.isFinite(parsed)) return
-                    setOverlayConfig(cfg.id, { y: parsed })
-                  }}
-                />
+              <div className="flex flex-1 justify-center">
+                <div className="inline-flex items-center gap-2">
+                  <span className="text-xs text-rd-muted">Y</span>
+                  <CustomNumberField
+                    value={cfg.y}
+                    allowNegative
+                    suffix="px"
+                    containerClassName="shrink-0"
+                    onChange={(nextValue) => {
+                      const parsed = Number(nextValue)
+                      if (!Number.isFinite(parsed)) return
+                      setOverlayConfig(cfg.id, { y: parsed })
+                    }}
+                  />
+                </div>
               </div>
             </div>
 
@@ -941,7 +941,7 @@ const OverlayCard = ({
     <motion.div
       layout
       className={cls(
-        'relative flex flex-col rounded-lg border transition-colors duration-150 overflow-hidden',
+        'relative flex h-[106px] flex-col rounded-lg border transition-colors duration-150 overflow-hidden',
         cfg.enabled ? 'border-rd-accent/40 bg-rd-elevated' : 'border-rd-border bg-rd-surface'
       )}
     >
@@ -954,7 +954,7 @@ const OverlayCard = ({
       )}
 
       {/* top section: icon + name */}
-      <div className="flex items-start gap-3 px-4 pt-4 pb-3 pr-8">
+      <div className="flex min-h-0 flex-1 items-center gap-3 px-4 py-3 pr-8">
         <div
           className={cls(
             'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
@@ -965,12 +965,12 @@ const OverlayCard = ({
         </div>
         <div className="min-w-0 flex-1">
           {isTowerCard && towerCfg ? (
-            <div className="flex items-center gap-3 pr-3">
+            <div className="flex min-h-9 items-center gap-3 pr-2">
               <div className="shrink-0">
                 <p className="text-sm font-semibold text-rd-text leading-tight">{meta.label}</p>
               </div>
               <div className="h-5 w-px shrink-0 bg-rd-border/80" />
-              <div className="flex min-w-0 items-center gap-2 rounded-lg border border-rd-border/70 bg-rd-surface/55 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+              <div className="flex min-w-0 items-center gap-2">
                 <CustomSelect
                   value={towerModeValue ?? ''}
                   options={
@@ -991,7 +991,7 @@ const OverlayCard = ({
                   onChange={handleTowerModeChange}
                   stopPropagation
                   title="Data mode"
-                  buttonClassName="h-8 min-w-[84px] rounded-md border border-rd-border bg-rd-elevated px-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-rd-text hover:border-rd-muted hover:bg-rd-surface"
+                  buttonClassName="h-8 w-[118px] min-w-[118px] rounded-md border border-rd-border bg-rd-elevated px-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-rd-text hover:border-rd-muted hover:bg-rd-surface"
                   optionClassName="text-[10px] font-bold uppercase tracking-[0.12em]"
                 />
                 <CustomSelect
@@ -1006,39 +1006,31 @@ const OverlayCard = ({
                   onChange={handleTowerScopeChange}
                   stopPropagation
                   title="Display scope"
-                  buttonClassName="h-8 min-w-[148px] rounded-md border border-rd-border bg-rd-elevated px-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-rd-text hover:border-rd-muted hover:bg-rd-surface"
+                  buttonClassName="h-8 w-[118px] min-w-[118px] rounded-md border border-rd-border bg-rd-elevated px-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-rd-text hover:border-rd-muted hover:bg-rd-surface"
                   optionClassName="text-[10px] font-bold uppercase tracking-[0.12em]"
                 />
               </div>
             </div>
           ) : isDriverCard && driverCfg ? (
-            <div className="shrink-0 pr-3">
+            <div className="flex min-h-9 items-center pr-3">
               <p className="text-sm font-semibold text-rd-text leading-tight">{meta.label}</p>
             </div>
           ) : (
-            <>
+            <div className="flex min-h-9 flex-col justify-center">
               <p className="text-sm font-semibold text-rd-text leading-tight">{meta.label}</p>
-              <p className="text-[11px] text-rd-subtle leading-tight">{meta.description}</p>
-            </>
+              {meta.description ? (
+                <p className="text-[11px] text-rd-subtle leading-tight">{meta.description}</p>
+              ) : null}
+            </div>
           )}
         </div>
       </div>
 
-      {/* opacity bar only when live */}
-      {cfg.enabled && (
-        <div className="mx-4 mb-3 h-0.5 rounded-full bg-rd-border overflow-hidden">
-          <div
-            className="h-full rounded-full bg-rd-accent/60 transition-all duration-300"
-            style={{ width: `${cfg.opacity}%` }}
-          />
-        </div>
-      )}
-
       {/* divider */}
-      <div className="mx-4 h-px bg-rd-border" />
+      <div className="mx-4 h-px shrink-0 bg-rd-border" />
 
       {/* action row */}
-      <div className="flex items-stretch bg-rd-surface/40">
+      <div className="mt-auto flex shrink-0 items-stretch bg-rd-surface/40">
         {/* on/off */}
         <button
           onClick={onToggleEnabled}

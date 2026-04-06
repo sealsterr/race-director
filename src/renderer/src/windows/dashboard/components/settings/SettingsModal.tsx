@@ -22,6 +22,8 @@ interface SettingsModalProps {
   onClose: () => void;
   onSave: () => void;
   onResetDefaults: () => void;
+  onResetPanelLayouts: () => Promise<void>;
+  onResetWindowSizes: () => Promise<void>;
   onResetQuitConfirm: () => Promise<void>;
 }
 
@@ -47,6 +49,8 @@ const SettingsModal = ({
   onClose,
   onSave,
   onResetDefaults,
+  onResetPanelLayouts,
+  onResetWindowSizes,
   onResetQuitConfirm,
 }: SettingsModalProps): React.ReactElement | null => {
   const [activeTab, setActiveTab] = useState<SettingsTabId>("general");
@@ -93,10 +97,12 @@ const SettingsModal = ({
       <AdvancedSettingsTab
         settings={settings}
         onChange={onChange}
+        onResetPanelLayouts={onResetPanelLayouts}
+        onResetWindowSizes={onResetWindowSizes}
         onResetQuitConfirm={onResetQuitConfirm}
       />
     );
-  }, [activeTab, onChange, onResetQuitConfirm, settings]);
+  }, [activeTab, onChange, onResetPanelLayouts, onResetQuitConfirm, onResetWindowSizes, settings]);
 
   if (!isOpen) return null;
 
@@ -190,14 +196,7 @@ const SettingsModal = ({
         </div>
 
         <div className="flex h-14 items-center gap-3 border-t border-rd-border bg-rd-bg/55 px-4">
-          <p
-            aria-live="polite"
-            className={`flex-1 text-xs ${
-              hasUnsavedChanges ? "text-rd-warning" : "text-rd-muted"
-            }`}
-          >
-            {hasUnsavedChanges ? "Unsaved changes" : "No unsaved changes"}
-          </p>
+          <div className="flex-1" />
           <button
             type="button"
             onClick={onResetDefaults}

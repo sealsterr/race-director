@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import {
   clampSettings,
@@ -31,19 +31,6 @@ const useDashboardSettings = (): UseDashboardSettingsResult => {
     () => JSON.stringify(settings) !== JSON.stringify(draftSettings),
     [draftSettings, settings]
   );
-
-  useEffect(() => {
-    document.documentElement.setAttribute(
-      "data-rd-modal-open",
-      isSettingsOpen ? "true" : "false"
-    );
-    void globalThis.api.windows.setModalBackdropActive(isSettingsOpen);
-
-    return () => {
-      document.documentElement.setAttribute("data-rd-modal-open", "false");
-      void globalThis.api.windows.setModalBackdropActive(false);
-    };
-  }, [isSettingsOpen]);
 
   const scaledContainerStyle = useMemo(
     () => ({ zoom: settings.general.uiScale }),

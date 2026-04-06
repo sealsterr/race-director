@@ -5,6 +5,7 @@ import OverlayControl from './windows/overlay-control'
 import TowerOverlay from './windows/overlay/tower/index'
 import DriverOverlay from './windows/overlay/driver'
 import GapOverlay from './windows/overlay/gap'
+import SessionOverlay from './windows/overlay/session'
 import useGlobalUiSettings from './hooks/useGlobalUiSettings'
 
 const ROUTES: Record<string, React.ReactElement> = {
@@ -13,7 +14,8 @@ const ROUTES: Record<string, React.ReactElement> = {
   'overlay-control': <OverlayControl />,
   'overlay/tower': <TowerOverlay />,
   'overlay/driver': <DriverOverlay />,
-  'overlay/gap': <GapOverlay />
+  'overlay/gap': <GapOverlay />,
+  'overlay/session': <SessionOverlay />
 }
 
 const App = (): React.ReactElement => {

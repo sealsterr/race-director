@@ -1,9 +1,7 @@
 import React, { useState, useCallback } from 'react'
 import TopBar from './components/TopBar'
-import Sidebar, { WINDOW_DEFINITIONS } from './components/Sidebar'
-import ConnectionPanel from './components/ConnectionPanel'
-import SessionPanel from './components/SessionPanel'
-import ActivityLog from './components/ActivityLog'
+import { WINDOW_DEFINITIONS } from './components/Sidebar'
+import DashboardWorkspace from './components/DashboardWorkspace'
 import SettingsModal from './components/settings/SettingsModal'
 import SystemPopups from './components/system-popups/SystemPopups'
 import useAppUpdater from './hooks/useAppUpdater'
@@ -11,6 +9,8 @@ import useAutoReconnect from './hooks/useAutoReconnect'
 import useDashboardIpcSync from './hooks/useDashboardIpcSync'
 import useDashboardSettings from './hooks/useDashboardSettings'
 import useDashboardStartup from './hooks/useDashboardStartup'
+import { DASHBOARD_LAYOUT_RESET_EVENT } from './hooks/useDashboardPaneLayout'
+import useDashboardViewportScale from './hooks/useDashboardViewportScale'
 import useSystemPopups from './hooks/useSystemPopups'
 import { useRaceStore } from '../../store/raceStore'
 import type { LogEntry, LogType, WindowId, WindowItem } from '../../types/dashboard'
@@ -32,7 +32,6 @@ const Dashboard = (): React.ReactElement => {
     draftSettings,
     hasUnsavedChanges,
     isSettingsOpen,
-    scaledContainerStyle,
     openSettings,
     closeSettings,
     updateDraft,
@@ -112,77 +111,81 @@ const Dashboard = (): React.ReactElement => {
   const handleSettingsClick = useCallback(() => {
     openSettings()
   }, [openSettings])
+  useDashboardViewportScale(settings.general.uiScale)
+
+  const handleResetPanelLayouts = useCallback(async (): Promise<void> => {
+    globalThis.dispatchEvent(new Event(DASHBOARD_LAYOUT_RESET_EVENT))
+  }, [])
+
+  const handleResetWindowSizes = useCallback(async (): Promise<void> => {
+    await globalThis.api.system.resetWindowLayouts()
+  }, [])
+
+  const handleConnectionChange = useCallback(
+    (status: typeof connection) => {
+      setConnection(status)
+
+      if (status === 'DISCONNECTED' || status === 'ERROR') {
+        setSession(null)
+        setStandings([])
+      }
+    },
+    [setConnection, setSession, setStandings]
+  )
 
   return (
-    <div
-      style={scaledContainerStyle}
-      className="relative flex h-screen w-screen flex-col overflow-hidden bg-rd-bg"
-    >
-      <TopBar connection={connection} />
+    <div className="relative h-screen w-screen overflow-hidden bg-rd-bg">
+      <div className="relative flex h-full w-full flex-col overflow-hidden bg-rd-bg">
+        <TopBar connection={connection} />
 
-      <div className="flex min-h-0 flex-1">
-        <Sidebar
+        <DashboardWorkspace
+          connection={connection}
+          session={session}
+          entries={log}
+          settings={settings}
+          updaterState={updaterState}
           windows={windows}
           onLaunch={handleLaunch}
           onSettingsClick={handleSettingsClick}
-          updaterState={updaterState}
+          onConnectionChange={handleConnectionChange}
+          onLog={addLog}
           onDownloadUpdate={downloadUpdate}
         />
 
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-4">
-          <div className="grid grid-cols-2 gap-3">
-            <ConnectionPanel
-              connection={connection}
-              defaultApiUrl={settings.network.apiUrl}
-              defaultPollRateMs={settings.network.pollRateMs}
-              onConnectionChange={(status) => {
-                setConnection(status)
+        <SystemPopups
+          showDisconnectNotice={showDisconnectNotice}
+          showQuitConfirm={showQuitConfirm}
+          dontAskAgain={dontAskAgain}
+          isBusy={isBusy}
+          errorMessage={errorMessage}
+          onDontAskAgainChange={setDontAskAgain}
+          onDismissDisconnect={async () => {
+            clearError()
+            await dismissDisconnectNotice()
+          }}
+          onCancelQuit={async () => {
+            clearError()
+            await cancelQuit()
+          }}
+          onConfirmQuit={async () => {
+            clearError()
+            await confirmQuit()
+          }}
+        />
 
-                if (status === 'DISCONNECTED' || status === 'ERROR') {
-                  setSession(null)
-                  setStandings([])
-                }
-              }}
-              onLog={addLog}
-            />
-            <SessionPanel session={session} />
-          </div>
-
-          <ActivityLog entries={log} />
-        </div>
+        <SettingsModal
+          isOpen={isSettingsOpen}
+          hasUnsavedChanges={hasUnsavedChanges}
+          settings={draftSettings}
+          onChange={updateDraft}
+          onClose={closeSettings}
+          onSave={saveDraft}
+          onResetDefaults={resetDraftToDefaults}
+          onResetPanelLayouts={handleResetPanelLayouts}
+          onResetWindowSizes={handleResetWindowSizes}
+          onResetQuitConfirm={globalThis.api.system.resetQuitConfirmPreference}
+        />
       </div>
-
-      <SystemPopups
-        showDisconnectNotice={showDisconnectNotice}
-        showQuitConfirm={showQuitConfirm}
-        dontAskAgain={dontAskAgain}
-        isBusy={isBusy}
-        errorMessage={errorMessage}
-        onDontAskAgainChange={setDontAskAgain}
-        onDismissDisconnect={async () => {
-          clearError()
-          await dismissDisconnectNotice()
-        }}
-        onCancelQuit={async () => {
-          clearError()
-          await cancelQuit()
-        }}
-        onConfirmQuit={async () => {
-          clearError()
-          await confirmQuit()
-        }}
-      />
-
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        hasUnsavedChanges={hasUnsavedChanges}
-        settings={draftSettings}
-        onChange={updateDraft}
-        onClose={closeSettings}
-        onSave={saveDraft}
-        onResetDefaults={resetDraftToDefaults}
-        onResetQuitConfirm={globalThis.api.system.resetQuitConfirmPreference}
-      />
     </div>
   )
 }

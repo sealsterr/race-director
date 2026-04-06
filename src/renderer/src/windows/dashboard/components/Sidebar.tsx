@@ -1,96 +1,94 @@
-import React from "react";
-import { motion } from "framer-motion";
-import {
-  Table2,
-  Monitor,
-  Mic2,
-  ExternalLink,
-  Lock,
-} from "lucide-react";
-import type { WindowId, WindowItem } from "../../../types/dashboard";
-import type { AppUpdaterState } from "../../../types/updater";
-import SidebarSettingsButton from "./SidebarSettingsButton";
+import React from 'react'
+import { motion } from 'framer-motion'
+import { Table2, Monitor, Mic2, ExternalLink, Lock } from 'lucide-react'
+import type { WindowId, WindowItem } from '../../../types/dashboard'
+import type { AppUpdaterState } from '../../../types/updater'
+import SidebarSettingsButton from './SidebarSettingsButton'
 
 interface SidebarProps {
-  windows: WindowItem[];
-  onLaunch: (id: WindowId) => void;
-  onSettingsClick?: () => void;
-  updaterState: AppUpdaterState | null;
-  onDownloadUpdate: () => void;
+  windows: WindowItem[]
+  onLaunch: (id: WindowId) => void
+  onSettingsClick?: () => void
+  updaterState: AppUpdaterState | null
+  onDownloadUpdate: () => void
 }
 
 // * -- icon map --
-const WINDOW_DEFINITIONS: Omit<WindowItem, "isOpen">[] = [
+const WINDOW_DEFINITIONS: Omit<WindowItem, 'isOpen'>[] = [
   {
-    id: "INFO",
-    label: "Info Window",
-    description: "Live timing & driver data",
+    id: 'INFO',
+    label: 'Info Window',
+    description: 'Live timing & driver data',
     icon: Table2,
-    isAvailable: true,
+    isAvailable: true
   },
   {
-    id: "OVERLAY-CONTROL",
-    label: "Overlay Dashboard",
-    description: "Broadcast overlay control",
+    id: 'OVERLAY-CONTROL',
+    label: 'Overlay Dashboard',
+    description: 'Broadcast overlay control',
     icon: Monitor,
-    isAvailable: true,
+    isAvailable: true
   },
   {
-    id: "TELEPROMPTER",
-    label: "Teleprompter",
-    description: "AI commentary assistant",
+    id: 'TELEPROMPTER',
+    label: 'Teleprompter',
+    description: 'AI commentary assistant',
     icon: Mic2,
-    isAvailable: false,
-  },
-];
+    isAvailable: false
+  }
+]
 
 interface WindowButtonProps {
-  item: WindowItem;
-  onLaunch: (id: WindowId) => void;
+  item: WindowItem
+  onLaunch: (id: WindowId) => void
 }
 
-const COMING_SOON_BADGE = "Coming soon";
+const COMING_SOON_BADGE = 'Coming soon'
 const COMING_SOON_BADGE_CLASS =
-  "rounded px-1 text-[8px] font-bold uppercase tracking-wide leading-4 bg-rd-logo-primary/20 text-rd-logo-primary";
+  'rounded px-1 text-[8px] font-bold uppercase tracking-wide leading-4 bg-rd-logo-primary/20 text-rd-logo-primary'
 
 const getButtonClass = (item: WindowItem): string => {
-    if (item.isOpen) {
-        return "border-rd-accent/40 bg-rd-accent/10 cursor-pointer";
-    }
-    if (item.isAvailable) {
-        return "border-rd-border bg-rd-elevated hover:border-rd-border/80 hover:bg-rd-border/40 cursor-pointer";
-    }
-    return "border-rd-border/40 bg-rd-surface cursor-not-allowed opacity-50";
-};
+  if (item.isOpen) {
+    return 'border-rd-accent/40 bg-rd-accent/10 cursor-pointer'
+  }
+  if (item.isAvailable) {
+    return 'border-rd-border bg-rd-elevated hover:border-rd-border/80 hover:bg-rd-border/40 cursor-pointer'
+  }
+  return 'border-rd-border/40 bg-rd-surface cursor-not-allowed opacity-50'
+}
 
 const getIconClass = (item: WindowItem): string => {
-    if (item.isOpen) {
-        return "bg-rd-accent/20 text-rd-accent";
-    }
-    return "bg-rd-border/50 text-rd-muted";
+  if (item.isOpen) {
+    return 'bg-rd-accent/20 text-rd-accent'
+  }
+  return 'bg-rd-border/50 text-rd-muted'
 }
 
 const getLabelClass = (item: WindowItem): string => {
-    if (item.isOpen) {
-        return "text-rd-accent";
-    }
-    return "text-rd-text";
-};
+  if (item.isOpen) {
+    return 'text-rd-accent'
+  }
+  return 'text-rd-text'
+}
 
 const RightIndicator = ({ item }: { item: WindowItem }): React.ReactElement => {
-    if (item.isAvailable) {
-        if (item.isOpen) {
-            return <div className="h-1.5 w-1.5 rounded-full bg-rd-accent" />;
-        }
-        return (<ExternalLink size={11} className="text-rd-subtle opacity-0 transition-opacity group-hover:opacity-100" />
-        );
+  if (item.isAvailable) {
+    if (item.isOpen) {
+      return <div className="h-1.5 w-1.5 rounded-full bg-rd-accent" />
     }
-    return <Lock size={11} className="text-rd-subtle opacity-40" />;
-};
+    return (
+      <ExternalLink
+        size={11}
+        className="text-rd-subtle opacity-0 transition-opacity group-hover:opacity-100"
+      />
+    )
+  }
+  return <Lock size={11} className="text-rd-subtle opacity-40" />
+}
 
 const WindowButton = ({ item, onLaunch }: WindowButtonProps): React.ReactElement => {
-  const Icon = item.icon;
-  const showComingSoonBadge = !item.isAvailable;
+  const Icon = item.icon
+  const showComingSoonBadge = !item.isAvailable
 
   return (
     <motion.button
@@ -121,10 +119,14 @@ const WindowButton = ({ item, onLaunch }: WindowButtonProps): React.ReactElement
 
       {/* -- labels -- */}
       <div className="min-w-0 flex-1">
-        <p className={`flex items-center gap-2 text-xs font-semibold tracking-wide ${getLabelClass(item)}`}>
+        <p
+          className={`flex items-center gap-2 text-xs font-semibold tracking-wide ${getLabelClass(item)}`}
+        >
           {item.label}
         </p>
-        <p className="text-xs leading-snug text-rd-subtle whitespace-normal break-words">{item.description}</p>
+        <p className="text-xs leading-snug text-rd-subtle whitespace-normal break-words">
+          {item.description}
+        </p>
       </div>
 
       {/* -- right indicator -- */}
@@ -132,28 +134,26 @@ const WindowButton = ({ item, onLaunch }: WindowButtonProps): React.ReactElement
         <RightIndicator item={item} />
       </div>
     </motion.button>
-  );
-};
+  )
+}
 
 const Sidebar = ({
   windows,
   onLaunch,
   onSettingsClick,
   updaterState,
-  onDownloadUpdate,
+  onDownloadUpdate
 }: SidebarProps): React.ReactElement => {
   return (
     <div
       className="
-        flex min-h-0 w-64 shrink-0 flex-col border-r border-rd-border
+        flex h-full min-h-0 w-full shrink-0 flex-col border-r border-rd-border
         bg-rd-surface
       "
     >
       {/* -- section header -- */}
       <div className="px-4 pb-2 pt-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-rd-subtle">
-          Options
-        </p>
+        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-rd-subtle">Options</p>
       </div>
 
       {/* -- window buttons -- */}
@@ -173,8 +173,8 @@ const Sidebar = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export { WINDOW_DEFINITIONS };
-export default Sidebar;
+export { WINDOW_DEFINITIONS }
+export default Sidebar

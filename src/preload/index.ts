@@ -135,6 +135,9 @@ const api = {
     getQuitConfirmPreference: (): Promise<boolean> =>
       ipcRenderer.invoke("system:getQuitConfirmPreference"),
 
+    resetWindowLayouts: (): Promise<void> =>
+      ipcRenderer.invoke("system:resetWindowLayouts"),
+
     resetQuitConfirmPreference: (): Promise<void> =>
       ipcRenderer.invoke("system:resetQuitConfirmPreference"),
 
