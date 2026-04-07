@@ -39,7 +39,11 @@ const renderCell = (key: ColumnKey, driver: DriverStanding): React.ReactElement 
     case 'position':
       return <td className={`${cellBase} font-mono text-xs font-semibold`}>{driver.position}</td>
     case 'class':
-      return <td className={cellBase}><ClassBadge carClass={driver.carClass} /></td>
+      return (
+        <td className={cellBase}>
+          <ClassBadge carClass={driver.carClass} />
+        </td>
+      )
     case 'carNumber':
       return <td className={`${cellBase} font-mono text-xs text-rd-muted`}>#{driver.carNumber}</td>
     case 'driver':
@@ -62,19 +66,39 @@ const renderCell = (key: ColumnKey, driver: DriverStanding): React.ReactElement 
         </td>
       )
     case 'lastLap':
-      return <td className={`${cellBase} font-mono text-xs text-rd-muted`}>{formatTime(driver.lastLapTime)}</td>
+      return (
+        <td className={`${cellBase} font-mono text-xs text-rd-muted`}>
+          {formatTime(driver.lastLapTime)}
+        </td>
+      )
     case 'bestLap':
-      return <td className={`${cellBase} font-mono text-xs text-rd-text`}>{formatTime(driver.bestLapTime)}</td>
+      return (
+        <td className={`${cellBase} font-mono text-xs text-rd-text`}>
+          {formatTime(driver.bestLapTime)}
+        </td>
+      )
     case 'gap':
       return (
-        <td className={`${cellBase} font-mono text-xs ${driver.position === 1 ? 'font-semibold text-rd-success' : 'text-rd-muted'}`}>
+        <td
+          className={`${cellBase} font-mono text-xs ${driver.position === 1 ? 'font-semibold text-rd-success' : 'text-rd-muted'}`}
+        >
           {formatGap(driver.gapToLeader, driver.position === 1)}
         </td>
       )
     case 'interval':
-      return <td className={`${cellBase} font-mono text-xs text-rd-subtle`}>{driver.position === 1 ? '—' : formatGap(driver.intervalToAhead, false)}</td>
+      return (
+        <td className={`${cellBase} font-mono text-xs text-rd-subtle`}>
+          {driver.position === 1 ? '—' : formatGap(driver.intervalToAhead, false)}
+        </td>
+      )
     case 'lapsDown':
-      return <td className={`${cellBase} font-mono text-xs ${driver.lapsDown > 0 ? 'text-rd-warning' : 'text-rd-subtle'}`}>{driver.lapsDown > 0 ? `+${driver.lapsDown}L` : '—'}</td>
+      return (
+        <td
+          className={`${cellBase} font-mono text-xs ${driver.lapsDown > 0 ? 'text-rd-warning' : 'text-rd-subtle'}`}
+        >
+          {driver.lapsDown > 0 ? `+${driver.lapsDown}L` : '—'}
+        </td>
+      )
     case 'fuel': {
       const fuelClass =
         driver.fuel !== null && driver.fuel < 10
@@ -83,12 +107,20 @@ const renderCell = (key: ColumnKey, driver: DriverStanding): React.ReactElement 
             ? 'text-rd-warning'
             : 'text-rd-muted'
 
-      return <td className={`${cellBase} font-mono text-xs ${fuelClass}`}>{formatFuel(driver.fuel)}</td>
+      return (
+        <td className={`${cellBase} font-mono text-xs ${fuelClass}`}>{formatFuel(driver.fuel)}</td>
+      )
     }
     case 'tyres':
-      return <td className={`${cellBase} font-mono text-xs text-rd-subtle`}>{driver.tyreCompound === 'UNKNOWN' ? '—' : driver.tyreCompound}</td>
+      return (
+        <td className={`${cellBase} font-mono text-xs text-rd-subtle`}>
+          {driver.tyreCompound === 'UNKNOWN' ? '—' : driver.tyreCompound}
+        </td>
+      )
     case 'pits':
-      return <td className={`${cellBase} font-mono text-xs text-rd-muted`}>{driver.pitStopCount}</td>
+      return (
+        <td className={`${cellBase} font-mono text-xs text-rd-muted`}>{driver.pitStopCount}</td>
+      )
     case 'penalties':
       return (
         <td className={cellBase}>
@@ -109,7 +141,11 @@ const renderCell = (key: ColumnKey, driver: DriverStanding): React.ReactElement 
         </td>
       )
     case 'status':
-      return <td className={cellBase}><StatusBadge status={driver.status} /></td>
+      return (
+        <td className={cellBase}>
+          <StatusBadge status={driver.status} />
+        </td>
+      )
   }
 }
 
@@ -123,9 +159,13 @@ const InfoStandingsTable = ({
   if (standings.length === 0) {
     return (
       <div className="rd-empty-state m-4 flex h-[calc(100%-2rem)] flex-col items-center justify-center gap-2 rounded-2xl px-4 text-center">
-        <p className="text-sm text-rd-muted">{hasStandings ? 'No cars match the filter!' : 'No standings yet!'}</p>
+        <p className="text-sm text-rd-muted">
+          {hasStandings ? 'No cars match the filter!' : 'No standings yet!'}
+        </p>
         <p className="font-mono text-xs text-rd-subtle">
-          {hasStandings ? 'Enable a class filter above!' : 'Connect to LMU and load into a session!'}
+          {hasStandings
+            ? 'Enable a class filter above!'
+            : 'Connect to LMU and load into a session!'}
         </p>
       </div>
     )

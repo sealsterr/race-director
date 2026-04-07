@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { DriverStanding } from '../../../types/lmu'
 import { useBufferedAppState } from '../tower/useBufferedAppState'
@@ -93,7 +94,9 @@ export function useGapBattleSelection(triggerThresholdSeconds: number): GapBattl
 
   const pair = useMemo(() => {
     if (selectedPairIds) {
-      const ahead = appState.standings.find((standing) => standing.slotId === selectedPairIds.aheadSlotId)
+      const ahead = appState.standings.find(
+        (standing) => standing.slotId === selectedPairIds.aheadSlotId
+      )
       const behind = appState.standings.find(
         (standing) => standing.slotId === selectedPairIds.behindSlotId
       )

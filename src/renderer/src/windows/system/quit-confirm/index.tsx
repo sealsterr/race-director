@@ -1,27 +1,27 @@
-import React, { useEffect, useState } from "react";
-import { AlertTriangle, Power, X } from "lucide-react";
+import React, { useEffect, useState } from 'react'
+import { AlertTriangle, Power, X } from 'lucide-react'
 
 const QuitConfirm = (): React.ReactElement => {
-  const [dontAskAgain, setDontAskAgain] = useState(false);
+  const [dontAskAgain, setDontAskAgain] = useState(false)
 
   useEffect(() => {
     globalThis.api.system
       .getQuitConfirmPreference()
       .then((showConfirm) => {
-        setDontAskAgain(!showConfirm);
+        setDontAskAgain(!showConfirm)
       })
-      .catch(() => undefined);
-  }, []);
+      .catch(() => undefined)
+  }, [])
 
   return (
     <div
       className="h-screen w-screen bg-transparent p-3 text-rd-text"
-      style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+      style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
     >
       <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-rd-accent/25 bg-rd-surface shadow-2xl">
         <div
           className="flex items-start justify-between gap-4 border-b border-rd-border px-6 py-5"
-          style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
+          style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
         >
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-rd-accent/12 text-rd-accent">
@@ -31,31 +31,27 @@ const QuitConfirm = (): React.ReactElement => {
               <p className="text-xs font-bold uppercase tracking-[0.24em] text-rd-accent">
                 Confirm Quit
               </p>
-              <h1 className="mt-1 text-2xl font-semibold text-rd-text">
-                Quit RaceDirector?
-              </h1>
+              <h1 className="mt-1 text-2xl font-semibold text-rd-text">Quit RaceDirector?</h1>
             </div>
           </div>
           <button
             aria-label="Cancel quit"
             onClick={async () => {
-              await globalThis.api.system.cancelQuit();
+              await globalThis.api.system.cancelQuit()
             }}
             className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rd-border bg-rd-elevated text-rd-subtle transition-colors hover:border-rd-muted hover:text-rd-text"
-            style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
           >
             <X size={15} />
           </button>
         </div>
 
         <div className="flex-1 px-6 py-5">
-          <p className="text-sm leading-6 text-rd-muted">
-            This action will close everything.
-          </p>
+          <p className="text-sm leading-6 text-rd-muted">This action will close everything.</p>
 
           <label
             className="mt-5 flex cursor-pointer items-center gap-3 rounded-xl border border-rd-border bg-rd-elevated px-4 py-3"
-            style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
           >
             <input
               type="checkbox"
@@ -71,11 +67,11 @@ const QuitConfirm = (): React.ReactElement => {
 
         <div
           className="flex justify-end gap-3 border-t border-rd-border px-6 py-4"
-          style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
           <button
             onClick={async () => {
-              await globalThis.api.system.cancelQuit();
+              await globalThis.api.system.cancelQuit()
             }}
             className="inline-flex items-center rounded-lg border border-rd-border bg-rd-elevated px-4 py-2 text-sm font-semibold text-rd-text transition-colors hover:border-rd-muted hover:bg-rd-bg"
           >
@@ -83,7 +79,7 @@ const QuitConfirm = (): React.ReactElement => {
           </button>
           <button
             onClick={async () => {
-              await globalThis.api.system.confirmQuit(dontAskAgain);
+              await globalThis.api.system.confirmQuit(dontAskAgain)
             }}
             className="inline-flex items-center gap-2 rounded-lg border border-rd-accent/30 bg-rd-accent/10 px-4 py-2 text-sm font-semibold text-rd-accent transition-colors hover:bg-rd-accent/20"
           >
@@ -93,7 +89,7 @@ const QuitConfirm = (): React.ReactElement => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default QuitConfirm;
+export default QuitConfirm

@@ -1,7 +1,4 @@
-import {
-  DEFAULT_MEASUREMENT_UNITS,
-  type MeasurementUnits
-} from '../../../shared/measurementUnits'
+import { DEFAULT_MEASUREMENT_UNITS, type MeasurementUnits } from '../../../shared/measurementUnits'
 
 let currentUnits: MeasurementUnits = DEFAULT_MEASUREMENT_UNITS
 const listeners = new Set<() => void>()

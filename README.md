@@ -32,6 +32,7 @@ No setup required!
 ### Option B - Run from source
 
 #### Requirements
+
 - [Node.js](https://nodejs.org/) v22 or higher
 - Le Mans Ultimate (running with REST API enabled)
 
@@ -57,6 +58,7 @@ Before launching RaceDirector, make sure the REST API is active in LMU:
 ## ✨ Features - v0.1.0
 
 ### 🖥️ Main Dashboard
+
 - Central control hub for the entire application
 - Connect / disconnect to LMU REST API
 - Live session info
@@ -64,6 +66,7 @@ Before launching RaceDirector, make sure the REST API is active in LMU:
 - Activity log
 
 ### 📋 Info Window
+
 - Live standings table with 15 configurable columns
 - Car status badges
 - Car class filter
@@ -72,14 +75,14 @@ Before launching RaceDirector, make sure the REST API is active in LMU:
 
 ## 🗺️ Roadmap
 
-| Feature | Status |
-|---|---|
-| Main Dashboard | ✅ Done |
-| Info Window | ✅ Done |
-| Overlay Dashboard | 🔜 Coming soon |
+| Feature               | Status         |
+| --------------------- | -------------- |
+| Main Dashboard        | ✅ Done        |
+| Info Window           | ✅ Done        |
+| Overlay Dashboard     | 🔜 Coming soon |
 | Flag & Penalty System | 🔜 Coming soon |
-| Stream Overlays | 🔜 Coming soon |
-| Teleprompter | 🔜 Coming soon
+| Stream Overlays       | 🔜 Coming soon |
+| Teleprompter          | 🔜 Coming soon |
 
 ## 📄 License
 

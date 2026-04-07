@@ -1,1 +1,1 @@
-export type { AppUpdaterState } from "../../../shared/updater";
+export type { AppUpdaterState } from '../../../shared/updater'

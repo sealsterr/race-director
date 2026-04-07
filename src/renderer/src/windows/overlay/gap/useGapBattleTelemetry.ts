@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useRef, useState } from 'react'
 import type { DriverStanding, TelemetrySnapshot } from '../../../types/lmu'
 import { createTelemetryLookup, findTelemetryForDriver } from '../driver/driverTelemetryUtils'

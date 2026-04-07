@@ -1,19 +1,21 @@
 import type { ReactElement } from 'react'
 import { motion } from 'framer-motion'
 import type { SessionSettings } from '../../../store/overlayStore'
+import { SessionFlagIndicator } from './SessionFlagIndicator'
 import { SessionProgressBar } from './SessionProgressBar'
-import { withAlpha } from './sessionOverlayUtils'
+import type { SessionFlagBarState } from './sessionOverlayUtils'
 
 interface SessionInfoPanelProps {
   readonly settings: SessionSettings
+  readonly customLabel: string
   readonly headline: string
   readonly lapLabel: string
   readonly timeLabel: string
   readonly progress: number
+  readonly flagBarState: SessionFlagBarState
   readonly accent: {
     accent: string
     glow: string
-    muted: string
     border: string
   }
   readonly disableEnterAnimation: boolean
@@ -21,117 +23,167 @@ interface SessionInfoPanelProps {
 
 export function SessionInfoPanel({
   settings,
+  customLabel,
   headline,
   lapLabel,
   timeLabel,
   progress,
+  flagBarState,
   accent,
   disableEnterAnimation
 }: SessionInfoPanelProps): ReactElement {
   return (
     <motion.section
-      initial={disableEnterAnimation ? false : { opacity: 0, y: -18, scale: 0.985 }}
+      initial={disableEnterAnimation ? false : { opacity: 0, y: -10, scale: 0.985 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
       aria-label="Session information overlay"
       style={{
         position: 'relative',
-        width: 1120,
-        minHeight: 430,
-        borderRadius: 24,
+        width: 320,
+        minHeight: 78,
+        padding: '0 12px 6px',
+        borderRadius: 6,
         overflow: 'hidden',
-        background: 'rgba(8, 10, 14, 0.88)',
-        backdropFilter: 'blur(28px) saturate(1.28) brightness(0.76)',
-        WebkitBackdropFilter: 'blur(28px) saturate(1.28) brightness(0.76)',
-        border: `2px solid ${withAlpha(accent.border, 'cc')}`,
-        boxShadow: `0 0 0 1px ${withAlpha(accent.accent, '12')} inset, 0 0 40px ${withAlpha(
-          accent.accent,
-          '18'
-        )}, inset 0 0 110px rgba(0,0,0,0.38)`,
-        fontFamily: "'Arial Narrow', 'Bahnschrift Condensed', 'Roboto Condensed', sans-serif"
+        backgroundColor: 'rgba(8, 9, 14, 0.75)',
+        backdropFilter: 'blur(18px) saturate(1.4) brightness(0.7)',
+        WebkitBackdropFilter: 'blur(18px) saturate(1.4) brightness(0.7)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
+        fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif"
       }}
     >
       <div
         style={{
           position: 'absolute',
-          inset: 0,
-          background: `radial-gradient(circle at 8% 16%, ${withAlpha(accent.accent, '36')}, transparent 26%), radial-gradient(circle at 50% 88%, ${withAlpha(accent.accent, '24')}, transparent 26%), linear-gradient(180deg, ${withAlpha(accent.muted, 'a8')} 0%, rgba(7,9,13,0.96) 40%, rgba(7,9,13,0.98) 100%)`,
-          pointerEvents: 'none'
+          top: 0,
+          right: 0,
+          left: 0
         }}
-      />
-      <motion.div
-        animate={{ opacity: [0.72, 1, 0.72] }}
-        transition={{ duration: 3.2, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }}
+      >
+        <SessionFlagIndicator flagBarState={flagBarState} />
+      </div>
+
+      <div
         style={{
           position: 'absolute',
           inset: 0,
-          boxShadow: `inset 0 0 34px ${withAlpha(accent.accent, '1c')}`,
+          background:
+            'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 28%, transparent 100%)',
           pointerEvents: 'none'
         }}
       />
 
-      <div style={{ position: 'relative', zIndex: 1, padding: '62px 70px 56px' }}>
-        {settings.showTimeRemaining ? (
-          <div
-            style={{
-              fontSize: 118,
-              lineHeight: 0.88,
-              fontWeight: 800,
-              letterSpacing: '-0.06em',
-              color: '#f8fafc',
-              textShadow: '0 3px 14px rgba(0,0,0,0.42)'
-            }}
-          >
-            {timeLabel}
-          </div>
-        ) : null}
-
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          display: 'grid',
+          gap: 6,
+          minHeight: 70,
+          alignContent: 'center',
+          paddingTop: 2
+        }}
+      >
         <div
           style={{
-            marginTop: settings.showTimeRemaining ? 54 : 20,
-            height: 1,
-            background: 'rgba(248,250,252,0.46)'
+            display: 'grid',
+            gridTemplateColumns: settings.showLapCount ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)',
+            alignItems: 'center',
+            gap: settings.showLapCount ? 12 : 0,
+            minHeight: 11
           }}
-        />
-
-        <div style={{ marginTop: 28 }}>
-          <SessionProgressBar progress={progress} accent={accent} />
+        >
+          <span
+            style={{
+              minWidth: 0,
+              fontSize: 10,
+              lineHeight: 1,
+              fontWeight: 500,
+              letterSpacing: '0.05em',
+              color: 'rgba(226, 232, 240, 0.8)',
+              textTransform: 'uppercase',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}
+          >
+            {customLabel}
+          </span>
+          {settings.showLapCount ? (
+            <span
+              style={{
+                fontSize: 11,
+                lineHeight: 1,
+                fontWeight: 800,
+                letterSpacing: '0.12em',
+                color: 'rgba(236, 240, 248, 0.88)',
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {lapLabel}
+            </span>
+          ) : null}
         </div>
 
         <div
           style={{
-            marginTop: 42,
             display: 'grid',
-            gap: 18
+            gridTemplateColumns: 'minmax(0, 1fr) auto',
+            alignItems: 'end',
+            gap: 14
           }}
         >
           <h1
             style={{
-              maxWidth: 920,
-              fontSize: 76,
-              lineHeight: 0.94,
-              fontWeight: 800,
-              letterSpacing: '-0.03em',
-              color: '#ffffff',
+              minWidth: 0,
+              margin: 0,
+              fontSize: 23,
+              lineHeight: 0.92,
+              fontWeight: 900,
+              letterSpacing: '0.06em',
+              color: '#f2f5fa',
               textTransform: 'uppercase',
-              textWrap: 'balance'
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
             }}
           >
             {headline}
           </h1>
-          <div
-            style={{
-              fontSize: 56,
-              lineHeight: 0.92,
-              fontWeight: 800,
-              letterSpacing: '-0.02em',
-              color: '#ffffff',
-              textTransform: 'uppercase'
-            }}
-          >
-            {lapLabel}
-          </div>
+          {settings.showTimeRemaining ? (
+            <div
+              style={{
+                fontSize: 25,
+                lineHeight: 0.9,
+                fontWeight: 800,
+                letterSpacing: '0.02em',
+                color: '#f2f5fa',
+                whiteSpace: 'nowrap',
+                fontVariantNumeric: 'tabular-nums',
+                textShadow: '0 1px 10px rgba(0,0,0,0.28)'
+              }}
+            >
+              {timeLabel}
+            </div>
+          ) : null}
         </div>
+      </div>
+
+      <div
+        style={{
+          position: 'absolute',
+          right: 0,
+          bottom: 0,
+          left: 0
+        }}
+      >
+        <SessionProgressBar
+          progress={progress}
+          animatePulse={settings.animateProgressPulse}
+          accent={accent}
+        />
       </div>
     </motion.section>
   )

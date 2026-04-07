@@ -1,14 +1,15 @@
-import React from "react";
-import type { DashboardSettings } from "../../../settings/types";
-import { getPendingSettingCopy } from "../pendingSettings";
-import { SectionBlock, SettingsRow, SettingsToggle } from "../SettingsPrimitives";
+import React from 'react'
+import type { DashboardSettings } from '../../../settings/types'
+import { getPendingSettingCopy } from '../pendingSettings'
+import { SectionBlock, SettingsRow, SettingsToggle } from '../SettingsPrimitives'
+import UpdateCheckerRow from './UpdateCheckerRow'
 
 interface AdvancedSettingsTabProps {
-  settings: DashboardSettings;
-  onChange: (updater: (prev: DashboardSettings) => DashboardSettings) => void;
-  onResetPanelLayouts: () => Promise<void>;
-  onResetWindowSizes: () => Promise<void>;
-  onResetQuitConfirm: () => Promise<void>;
+  settings: DashboardSettings
+  onChange: (updater: (prev: DashboardSettings) => DashboardSettings) => void
+  onResetPanelLayouts: () => Promise<void>
+  onResetWindowSizes: () => Promise<void>
+  onResetQuitConfirm: () => Promise<void>
 }
 
 const AdvancedSettingsTab = ({
@@ -16,25 +17,22 @@ const AdvancedSettingsTab = ({
   onChange,
   onResetPanelLayouts,
   onResetWindowSizes,
-  onResetQuitConfirm,
+  onResetQuitConfirm
 }: AdvancedSettingsTabProps): React.ReactElement => {
-  const compactRowsSetting = getPendingSettingCopy("advanced.compactTelemetryRows");
-  const verboseLogsSetting = getPendingSettingCopy("advanced.verboseLogs");
+  const compactRowsSetting = getPendingSettingCopy('advanced.compactTelemetryRows')
+  const verboseLogsSetting = getPendingSettingCopy('advanced.verboseLogs')
 
   return (
     <div className="flex flex-col gap-3">
       <SectionBlock title="Behavior">
-        <SettingsRow
-          label="Reduce Motion"
-          description="Limit decorative animations."
-        >
+        <SettingsRow label="Reduce Motion" description="Limit decorative animations.">
           {({ descriptionId, labelId }) => (
             <SettingsToggle
               checked={settings.advanced.reduceMotion}
               onChange={(checked) =>
                 onChange((prev) => ({
                   ...prev,
-                  advanced: { ...prev.advanced, reduceMotion: checked },
+                  advanced: { ...prev.advanced, reduceMotion: checked }
                 }))
               }
               describedBy={descriptionId}
@@ -55,7 +53,7 @@ const AdvancedSettingsTab = ({
               onChange={(checked) =>
                 onChange((prev) => ({
                   ...prev,
-                  advanced: { ...prev.advanced, compactTelemetryRows: checked },
+                  advanced: { ...prev.advanced, compactTelemetryRows: checked }
                 }))
               }
               describedBy={descriptionId}
@@ -77,7 +75,7 @@ const AdvancedSettingsTab = ({
               onChange={(checked) =>
                 onChange((prev) => ({
                   ...prev,
-                  advanced: { ...prev.advanced, verboseLogs: checked },
+                  advanced: { ...prev.advanced, verboseLogs: checked }
                 }))
               }
               describedBy={descriptionId}
@@ -89,6 +87,8 @@ const AdvancedSettingsTab = ({
       </SectionBlock>
 
       <SectionBlock title="Tools">
+        <UpdateCheckerRow />
+
         <SettingsRow
           label="Reset Panel Layout"
           description="Restores the dashboard panel to its default layout."
@@ -141,7 +141,7 @@ const AdvancedSettingsTab = ({
         </SettingsRow>
       </SectionBlock>
     </div>
-  );
-};
+  )
+}
 
-export default AdvancedSettingsTab;
+export default AdvancedSettingsTab

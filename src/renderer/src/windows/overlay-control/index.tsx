@@ -39,7 +39,7 @@ import type { CarClass, DriverStanding } from '../../types/lmu'
 import { TOWER_DEFAULT_WIDTH, TOWER_DEFAULT_HEIGHT } from '../overlay/tower/constants'
 import { getTowerBaseHeight } from '../overlay/tower/windowLayout'
 
-// * -- overlay metadata --
+//* overlay metadata
 interface OverlayMeta {
   id: OverlayId
   label: string
@@ -275,11 +275,11 @@ function syncRuntimePositionFromBounds(
   useOverlayStore.getState().setOverlayRuntimePosition(id, nextPosition)
 }
 
-// * -- helpers --
+//* helpers
 const cls = (...classes: (string | false | undefined | null)[]): string =>
   classes.filter(Boolean).join(' ')
 
-// * -- toast --
+//* toast
 interface Toast {
   id: number
   type: 'success' | 'error'
@@ -300,7 +300,7 @@ function pushToast(
   }, 3500)
 }
 
-// * -- slider --
+//* slider
 interface SliderProps {
   label: string
   value: number
@@ -345,7 +345,7 @@ const Slider = ({
   </div>
 )
 
-// * -- toggle --
+//* toggle
 interface ToggleProps {
   label: string
   value: boolean
@@ -377,7 +377,7 @@ const Toggle = ({ label, value, onChange }: ToggleProps): React.ReactElement => 
   </div>
 )
 
-// * -- select --
+//* select
 interface SelectProps {
   label: string
   value: string
@@ -398,7 +398,27 @@ const Select = ({ label, value, options, onChange }: SelectProps): React.ReactEl
   </div>
 )
 
-// * -- color picker --
+interface TextInputProps {
+  readonly label: string
+  readonly value: string
+  readonly maxLength?: number
+  readonly onChange: (value: string) => void
+}
+
+const TextInput = ({ label, value, maxLength, onChange }: TextInputProps): React.ReactElement => (
+  <label className="flex flex-col gap-1">
+    <span className="text-xs text-rd-muted">{label}</span>
+    <input
+      type="text"
+      value={value}
+      maxLength={maxLength}
+      onChange={(event) => onChange(event.target.value)}
+      className="h-8 rounded border border-rd-border bg-rd-bg px-2 py-1 text-xs text-rd-text outline-none transition-colors focus:border-rd-accent"
+    />
+  </label>
+)
+
+//* color picker
 interface ColorPickerProps {
   readonly label: string
   readonly value: string
@@ -421,7 +441,7 @@ const ColorPicker = ({ label, value, onChange }: ColorPickerProps): React.ReactE
   </div>
 )
 
-// * -- section heading inside a settings panel --
+//* section heading inside a settings panel
 const PanelSection = ({ title }: { readonly title: string }): React.ReactElement => (
   <p className="pt-1 text-[10px] font-bold uppercase tracking-widest text-rd-subtle border-t border-rd-border/60">
     {title}
@@ -569,21 +589,9 @@ const DriverSettingsPanel = ({ cfg }: { cfg: OverlayConfig }): React.ReactElemen
   return (
     <div className="flex flex-col gap-3">
       <PanelSection title="Parts" />
-      <Toggle
-        label="Left Part"
-        value={s.showPart1}
-        onChange={(v) => set({ showPart1: v })}
-      />
-      <Toggle
-        label="Center Part"
-        value={s.showPart2}
-        onChange={(v) => set({ showPart2: v })}
-      />
-      <Toggle
-        label="Right Part"
-        value={s.showPart3}
-        onChange={(v) => set({ showPart3: v })}
-      />
+      <Toggle label="Left Part" value={s.showPart1} onChange={(v) => set({ showPart1: v })} />
+      <Toggle label="Center Part" value={s.showPart2} onChange={(v) => set({ showPart2: v })} />
+      <Toggle label="Right Part" value={s.showPart3} onChange={(v) => set({ showPart3: v })} />
 
       <PanelSection title="Sector colors" />
       <ColorPicker
@@ -642,30 +650,21 @@ const SessionSettingsPanel = ({ cfg }: { cfg: OverlayConfig }): React.ReactEleme
 
   return (
     <div className="flex flex-col gap-3">
-      <Select
-        label="Color scheme"
-        value={s.colorScheme}
-        options={[
-          { label: 'Default', value: 'default' },
-          { label: 'Minimal', value: 'minimal' },
-          { label: 'Bold', value: 'bold' }
-        ]}
-        onChange={(v) => set({ colorScheme: v as SessionSettings['colorScheme'] })}
+      <TextInput
+        label="Custom label"
+        value={s.customLabel}
+        maxLength={40}
+        onChange={(value) => set({ customLabel: value })}
+      />
+      <ColorPicker
+        label="Progress bar color"
+        value={s.progressBarColor}
+        onChange={(value) => set({ progressBarColor: value })}
       />
       <Toggle
-        label="Show track name"
-        value={s.showTrackName}
-        onChange={(v) => set({ showTrackName: v })}
-      />
-      <Toggle
-        label="Show session type"
-        value={s.showSessionType}
-        onChange={(v) => set({ showSessionType: v })}
-      />
-      <Toggle
-        label="Show time remaining"
-        value={s.showTimeRemaining}
-        onChange={(v) => set({ showTimeRemaining: v })}
+        label="Animate progress pulse"
+        value={s.animateProgressPulse}
+        onChange={(value) => set({ animateProgressPulse: value })}
       />
       <Toggle
         label="Show lap count"
@@ -683,11 +682,10 @@ const SPECIFIC_PANELS: Record<OverlayId, (props: { cfg: OverlayConfig }) => Reac
   'OVERLAY-SESSION': SessionSettingsPanel
 }
 
-// * -- settings drawer --
+//* settings drawer
 interface SettingsDrawerProps {
   cfg: OverlayConfig
   meta: OverlayMeta
-  displays: DisplayInfo[]
   onClose: () => void
 }
 
@@ -698,12 +696,7 @@ interface DisplayInfo {
   isPrimary: boolean
 }
 
-const SettingsDrawer = ({
-  cfg,
-  meta,
-  displays,
-  onClose
-}: SettingsDrawerProps): React.ReactElement => {
+const SettingsDrawer = ({ cfg, meta, onClose }: SettingsDrawerProps): React.ReactElement => {
   const { setOverlayConfig } = useOverlayStore()
   const SpecificPanel = SPECIFIC_PANELS[cfg.id]
   const Icon = meta.icon
@@ -827,18 +820,6 @@ const SettingsDrawer = ({
                 </div>
               </div>
             </div>
-
-            {displays.length > 1 && (
-              <Select
-                label="Display"
-                value={String(cfg.displayId)}
-                options={displays.map((d) => ({
-                  label: d.label,
-                  value: String(d.id)
-                }))}
-                onChange={(v) => setOverlayConfig(cfg.id, { displayId: Number(v) })}
-              />
-            )}
           </div>
         </section>
 
@@ -854,7 +835,7 @@ const SettingsDrawer = ({
   )
 }
 
-// * -- overlay card --
+//* overlay card
 interface OverlayCardProps {
   cfg: OverlayConfig
   meta: OverlayMeta
@@ -1089,16 +1070,10 @@ const OverlayCard = ({
   )
 }
 
-// * -- main component --
+//* main component
 const OverlayControl = (): React.ReactElement => {
-  const {
-    overlays,
-    savePath,
-    setOverlayConfig,
-    setOverlaySettings,
-    setSavePath,
-    loadFromPreset
-  } = useOverlayStore()
+  const { overlays, savePath, setOverlayConfig, setOverlaySettings, setSavePath, loadFromPreset } =
+    useOverlayStore()
   const connection = useRaceStore((s) => s.connection)
   const standings = useRaceStore((s) => s.standings)
 
@@ -1107,7 +1082,7 @@ const OverlayControl = (): React.ReactElement => {
   const [toasts, setToasts] = useState<Toast[]>([])
   const [isSaving, setIsSaving] = useState(false)
 
-  // * -- overlay control does not need the full live push stream; pull snapshots instead --
+  //* overlay control does not need the full live push stream; pull snapshots instead
   useEffect(() => {
     let cancelled = false
 
@@ -1134,7 +1109,7 @@ const OverlayControl = (): React.ReactElement => {
     }
   }, [])
 
-  // * -- load displays + default save path --
+  //* load displays + default save path
   useEffect(() => {
     ;(async () => {
       const d = await globalThis.api.overlay.getDisplays()
@@ -1192,7 +1167,7 @@ const OverlayControl = (): React.ReactElement => {
     }
   }, [displays, overlays, standings])
 
-  // * -- auto-save on overlay change --
+  //* auto-save on overlay change
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     if (!savePath) return
@@ -1212,7 +1187,7 @@ const OverlayControl = (): React.ReactElement => {
     }
   }, [overlays, savePath])
 
-  // * -- save / load --
+  //* save / load
   const handleSave = async (): Promise<void> => {
     setIsSaving(true)
     const r = await globalThis.api.overlay.savePreset(overlays, savePath)
@@ -1247,7 +1222,7 @@ const OverlayControl = (): React.ReactElement => {
     }
   }
 
-  // * -- overlay actions --
+  //* overlay actions
   const handleToggleEnabled = async (id: OverlayId): Promise<void> => {
     const cfg = overlays.find((o) => o.id === id)
     const meta = OVERLAY_META.find((item) => item.id === id)
@@ -1406,7 +1381,6 @@ const OverlayControl = (): React.ReactElement => {
             <SettingsDrawer
               cfg={openSettingsCfg}
               meta={openSettingsMeta}
-              displays={displays}
               onClose={() => setOpenSettings(null)}
             />
           )}

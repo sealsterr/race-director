@@ -1,409 +1,361 @@
-import { useMemo } from "react";
-import type { DriverStanding, SessionInfo, CarClass } from "../../../types/lmu";
-import type { TowerSettings } from "../../../store/overlayStore";
-import { CLASS_ORDER } from "./constants";
+/* eslint-disable react-hooks/preserve-manual-memoization */
+import { useMemo } from 'react'
+import type { DriverStanding, SessionInfo, CarClass } from '../../../types/lmu'
+import type { TowerSettings } from '../../../store/overlayStore'
+import { CLASS_ORDER } from './constants'
 
-// * -- types --
+//* types
 export interface TowerRow {
-    /* unique key for framer-motion layout animations */
-    key: string;
-    standing: DriverStanding;
-    /* position within own class */
-    classPosition: number;
-    /* gap value to display */
-    displayValue: string;
-    /* numeric gap in s, null if leader */
-    intervalSeconds: number | null;
-    /* positions gained or lost since race start */
-    positionsChange: number | null;
+  /* unique key for framer-motion layout animations */
+  key: string
+  standing: DriverStanding
+  /* position within own class */
+  classPosition: number
+  /* gap value to display */
+  displayValue: string
+  /* numeric gap in s, null if leader */
+  intervalSeconds: number | null
+  /* positions gained or lost since race start */
+  positionsChange: number | null
 }
 
 export interface TowerSection {
-    carClass: CarClass;
-    rows: TowerRow[];
+  carClass: CarClass
+  rows: TowerRow[]
 }
 
-// * -- helpers --
+//* helpers
 function formatGap(seconds: number | null, isLeader: boolean): string {
-    if (isLeader) return "LEADER";
-    if (seconds === null) return "—";
-    if (seconds >= 60) {
-        const m = Math.floor(seconds / 60);
-        const s = (seconds % 60).toFixed(3).padStart(6, "0");
-        return `+${m}:${s}`;
-    }
-    return `+${seconds.toFixed(3)}`;
+  if (isLeader) return 'LEADER'
+  if (seconds === null) return '—'
+  if (seconds >= 60) {
+    const m = Math.floor(seconds / 60)
+    const s = (seconds % 60).toFixed(3).padStart(6, '0')
+    return `+${m}:${s}`
+  }
+  return `+${seconds.toFixed(3)}`
 }
 
 function formatPositionChange(change: number): string {
-  if (change > 0) return `▲${change}`;
-  if (change < 0) return `▼${Math.abs(change)}`;
-  return "—";
+  if (change > 0) return `▲${change}`
+  if (change < 0) return `▼${Math.abs(change)}`
+  return '—'
 }
 
 function formatFuel(fuel: number | null): string {
-    if (fuel === null) return "—";
-    return `${Math.round(fuel)}%`;
+  if (fuel === null) return '—'
+  return `${Math.round(fuel)}%`
 }
 
 function formatLapDelta(lapsDown: number): string {
-    if (lapsDown <= 0) return "â€”";
-    return lapsDown === 1 ? "+1 LAP" : `+${lapsDown} LAPS`;
+  if (lapsDown <= 0) return 'â€”'
+  return lapsDown === 1 ? '+1 LAP' : `+${lapsDown} LAPS`
 }
 
 function resolveGapToClassLeader(
-    standing: DriverStanding,
-    classLeader: DriverStanding
+  standing: DriverStanding,
+  classLeader: DriverStanding
 ): number | null {
-    if (standing.slotId === classLeader.slotId) {
-        return null;
-    }
+  if (standing.slotId === classLeader.slotId) {
+    return null
+  }
 
-    if (standing.lapsDown > classLeader.lapsDown) {
-        return null;
-    }
+  if (standing.lapsDown > classLeader.lapsDown) {
+    return null
+  }
 
-    if (standing.gapToLeader !== null && classLeader.gapToLeader !== null) {
-        return Math.max(0, standing.gapToLeader - classLeader.gapToLeader);
-    }
+  if (standing.gapToLeader !== null && classLeader.gapToLeader !== null) {
+    return Math.max(0, standing.gapToLeader - classLeader.gapToLeader)
+  }
 
-    if (standing.gapToLeader !== null && classLeader.gapToLeader === null) {
-        return standing.gapToLeader;
-    }
+  if (standing.gapToLeader !== null && classLeader.gapToLeader === null) {
+    return standing.gapToLeader
+  }
 
-    return null;
+  return null
 }
 
 function buildClassGapMap(standings: DriverStanding[]): Map<number, number | null> {
-    const gapBySlotId = new Map<number, number | null>();
-    let cumulativeGap = 0;
-    let hasGapData = true;
-    const classLeader = standings[0];
+  const gapBySlotId = new Map<number, number | null>()
+  let cumulativeGap = 0
+  let hasGapData = true
+  const classLeader = standings[0]
 
-    if (!classLeader) {
-        return gapBySlotId;
+  if (!classLeader) {
+    return gapBySlotId
+  }
+
+  gapBySlotId.set(classLeader.slotId, 0)
+
+  for (let index = 1; index < standings.length; index += 1) {
+    const standing = standings[index]
+
+    if (standing.lapsDown > classLeader.lapsDown) {
+      gapBySlotId.set(standing.slotId, null)
+      continue
     }
 
-    gapBySlotId.set(classLeader.slotId, 0);
-
-    for (let index = 1; index < standings.length; index += 1) {
-        const standing = standings[index];
-
-        if (standing.lapsDown > classLeader.lapsDown) {
-            gapBySlotId.set(standing.slotId, null);
-            continue;
-        }
-
-        if (hasGapData && standing.intervalToAhead !== null) {
-            cumulativeGap += standing.intervalToAhead;
-            gapBySlotId.set(standing.slotId, cumulativeGap);
-            continue;
-        }
-
-        hasGapData = false;
-        gapBySlotId.set(standing.slotId, null);
+    if (hasGapData && standing.intervalToAhead !== null) {
+      cumulativeGap += standing.intervalToAhead
+      gapBySlotId.set(standing.slotId, cumulativeGap)
+      continue
     }
 
-    return gapBySlotId;
+    hasGapData = false
+    gapBySlotId.set(standing.slotId, null)
+  }
+
+  return gapBySlotId
 }
 
-function getFirstValidBestLapTime(
-    standings: DriverStanding[]
-): number | null {
-    for (const standing of standings) {
-        if (standing.bestLapTime !== null) {
-            return standing.bestLapTime;
-        }
+function getFirstValidBestLapTime(standings: DriverStanding[]): number | null {
+  for (const standing of standings) {
+    if (standing.bestLapTime !== null) {
+      return standing.bestLapTime
     }
-    return null;
+  }
+  return null
 }
 
-// * -- main hook --
+//* main hook
 interface UseTowerDataOptions {
-    standings: DriverStanding[];
-    session: SessionInfo | null;
-    settings: TowerSettings;
-    /* map of slotId -> grid start position */
-    startPositions: Map<number, number>;
+  standings: DriverStanding[]
+  session: SessionInfo | null
+  settings: TowerSettings
+  /* map of slotId -> grid start position */
+  startPositions: Map<number, number>
 }
 
 interface UseTowerDataResult {
-    sections: TowerSection[];
-    isQuali: boolean;
-    isRace: boolean;
-    activeClasses: CarClass[];
+  sections: TowerSection[]
+  isQuali: boolean
+  isRace: boolean
+  activeClasses: CarClass[]
 }
 
 export function useTowerData({
-    standings,
-    session,
-    settings,
-    startPositions,
+  standings,
+  session,
+  settings,
+  startPositions
 }: UseTowerDataOptions): UseTowerDataResult {
-    const isQuali = useMemo(() => {
-        if (!session) return false;
-        return (
-            session.sessionType === "QUALIFYING" ||
-            session.sessionType === "PRACTICE"
-        );
-    }, [session]);
+  const isQuali = useMemo(() => {
+    if (!session) return false
+    return session.sessionType === 'QUALIFYING' || session.sessionType === 'PRACTICE'
+  }, [session])
 
-    const isRace = useMemo(() => {
-        if (!session) return false;
-        return session.sessionType === "RACE";
-    }, [session]);
+  const isRace = useMemo(() => {
+    if (!session) return false
+    return session.sessionType === 'RACE'
+  }, [session])
 
-    // filter out retired/dq cars; sort by overall position
-    const activeStandings = useMemo(() => {
-        return standings
-        .filter(
-            (s) =>
-                s.status !== "RETIRED" && s.status !== "DISQUALIFIED"
+  // filter out retired/dq cars; sort by overall position
+  const activeStandings = useMemo(() => {
+    return standings
+      .filter((s) => s.status !== 'RETIRED' && s.status !== 'DISQUALIFIED')
+      .sort((a, b) => a.position - b.position)
+  }, [standings])
+
+  // determine which classes are actually present
+  const activeClasses = useMemo<CarClass[]>(() => {
+    const present = new Set<CarClass>(activeStandings.map((s) => s.carClass))
+    return CLASS_ORDER.filter((c) => present.has(c))
+  }, [activeStandings])
+
+  const effectiveViewLayout = useMemo(() => {
+    return settings.viewLayout === 'PER_CLASS' || settings.viewLayout === 'EVERYONE_TOP'
+      ? 'MIXED_TOP'
+      : settings.viewLayout
+  }, [settings.viewLayout])
+
+  const effectiveSpecificClass = useMemo(() => {
+    if (settings.specificClass && activeClasses.includes(settings.specificClass)) {
+      return settings.specificClass
+    }
+
+    return activeClasses[0] ?? null
+  }, [activeClasses, settings.specificClass])
+
+  // group standings by class
+  const byClass = useMemo(() => {
+    const map = new Map<CarClass, DriverStanding[]>()
+    for (const s of activeStandings) {
+      if (!map.has(s.carClass)) map.set(s.carClass, [])
+      map.get(s.carClass)?.push(s)
+    }
+    return map
+  }, [activeStandings])
+
+  // build TowerRow for a single standing within class
+  function buildRow(
+    standing: DriverStanding,
+    classPosition: number,
+    leaderBestLapTime: number | null,
+    classLeader: DriverStanding,
+    classGapSeconds: number | null
+  ): TowerRow {
+    const base: Omit<TowerRow, never> = {
+      key: `row-${standing.slotId}`,
+      standing,
+      classPosition,
+      intervalSeconds: null,
+      positionsChange: null,
+      displayValue: '—'
+    }
+
+    if (isQuali) {
+      if (settings.qualiMode === 'QUALI_TIMES') {
+        return {
+          ...base,
+          displayValue:
+            standing.bestLapTime === null ? 'NO TIME' : formatLapTime(standing.bestLapTime)
+        }
+      }
+
+      if (classPosition === 1) {
+        return {
+          ...base,
+          displayValue: leaderBestLapTime === null ? 'NO TIME' : formatLapTime(leaderBestLapTime)
+        }
+      }
+
+      if (standing.bestLapTime === null || leaderBestLapTime === null) {
+        return {
+          ...base,
+          displayValue: 'NO TIME'
+        }
+      }
+
+      return {
+        ...base,
+        displayValue: formatGap(Math.max(0, standing.bestLapTime - leaderBestLapTime), false)
+      }
+    }
+
+    return buildRaceRow(base, standing, classPosition, classLeader, classGapSeconds)
+  }
+
+  function buildRaceRow(
+    base: Omit<TowerRow, 'displayValue'>,
+    standing: DriverStanding,
+    classPosition: number,
+    classLeader: DriverStanding,
+    classGapSeconds: number | null
+  ): TowerRow {
+    const mode = settings.raceMode
+
+    if (mode === 'GAP_AHEAD') {
+      return {
+        ...base,
+        displayValue: formatGap(standing.intervalToAhead, classPosition === 1),
+        intervalSeconds: standing.intervalToAhead
+      }
+    }
+
+    if (mode === 'GAP_LEADER') {
+      if (classPosition === 1) {
+        return {
+          ...base,
+          displayValue: 'LEADER'
+        }
+      }
+
+      if (standing.lapsDown > classLeader.lapsDown) {
+        return {
+          ...base,
+          displayValue: formatLapDelta(standing.lapsDown - classLeader.lapsDown)
+        }
+      }
+
+      return {
+        ...base,
+        displayValue: formatGap(
+          classGapSeconds ?? resolveGapToClassLeader(standing, classLeader),
+          false
         )
-        .sort((a, b) => a.position - b.position);
-    }, [standings]);
-
-    // determine which classes are actually present
-    const activeClasses = useMemo<CarClass[]>(() => {
-        const present = new Set<CarClass>(
-        activeStandings.map((s) => s.carClass)
-        );
-        return CLASS_ORDER.filter((c) => present.has(c));
-    }, [activeStandings]);
-
-    const effectiveViewLayout = useMemo(() => {
-        return settings.viewLayout === "PER_CLASS" || settings.viewLayout === "EVERYONE_TOP"
-            ? "MIXED_TOP"
-            : settings.viewLayout;
-    }, [settings.viewLayout]);
-
-    const effectiveSpecificClass = useMemo(() => {
-        if (
-            settings.specificClass &&
-            activeClasses.includes(settings.specificClass)
-        ) {
-            return settings.specificClass;
-        }
-
-        return activeClasses[0] ?? null;
-    }, [activeClasses, settings.specificClass]);
-
-    // group standings by class
-    const byClass = useMemo(() => {
-        const map = new Map<CarClass, DriverStanding[]>();
-        for (const s of activeStandings) {
-            if (!map.has(s.carClass)) map.set(s.carClass, []);
-            map.get(s.carClass)?.push(s);
-        }
-        return map;
-    }, [activeStandings]);
-
-    // build TowerRow for a single standing within class
-    function buildRow(
-        standing: DriverStanding,
-        classPosition: number,
-        leaderBestLapTime: number | null,
-        classLeader: DriverStanding,
-        classGapSeconds: number | null
-    ): TowerRow {
-        const base: Omit<TowerRow, never> = {
-            key: `row-${standing.slotId}`,
-            standing,
-            classPosition,
-            intervalSeconds: null,
-            positionsChange: null,
-            displayValue: "—",
-        };
-
-        if (isQuali) {
-            if (settings.qualiMode === "QUALI_TIMES") {
-                return {
-                    ...base,
-                    displayValue:
-                        standing.bestLapTime === null
-                            ? "NO TIME"
-                            : formatLapTime(standing.bestLapTime),
-                };
-            }
-
-            if (classPosition === 1) {
-                return {
-                    ...base,
-                    displayValue:
-                        leaderBestLapTime === null
-                            ? "NO TIME"
-                            : formatLapTime(leaderBestLapTime),
-                };
-            }
-
-            if (
-                standing.bestLapTime === null ||
-                leaderBestLapTime === null
-            ) {
-                return {
-                    ...base,
-                    displayValue: "NO TIME",
-                };
-            }
-
-            return {
-                ...base,
-                displayValue: formatGap(
-                    Math.max(0, standing.bestLapTime - leaderBestLapTime),
-                    false
-                ),
-            };
-        }
-        
-        return buildRaceRow(
-            base,
-            standing,
-            classPosition,
-            classLeader,
-            classGapSeconds
-        );
+      }
     }
 
-    function buildRaceRow(
-        base: Omit<TowerRow, "displayValue">,
-        standing: DriverStanding,
-        classPosition: number,
-        classLeader: DriverStanding,
-        classGapSeconds: number | null
-    ): TowerRow {
-        const mode = settings.raceMode;
-
-        if (mode === "GAP_AHEAD") {
-            return {
-                ...base,
-                displayValue: formatGap(standing.intervalToAhead, classPosition === 1),
-                intervalSeconds: standing.intervalToAhead,
-            };
-        }
-
-        if (mode === "GAP_LEADER") {
-            if (classPosition === 1) {
-                return {
-                    ...base,
-                    displayValue: "LEADER",
-                };
-            }
-
-            if (standing.lapsDown > classLeader.lapsDown) {
-                return {
-                    ...base,
-                    displayValue: formatLapDelta(
-                        standing.lapsDown - classLeader.lapsDown
-                    ),
-                };
-            }
-
-            return {
-                ...base,
-                displayValue: formatGap(
-                    classGapSeconds ??
-                        resolveGapToClassLeader(standing, classLeader),
-                    false
-                ),
-            };
-        }
-
-        if (mode === "PITS") {
-            return { ...base, displayValue: String(standing.pitStopCount) };
-        }
-
-        if (mode === "FUEL") {
-            return { ...base, displayValue: formatFuel(standing.fuel) };
-        }
-
-        if (mode === "TYRES") {
-            return {
-                ...base,
-                displayValue: standing.tyreCompound
-                    ? String(standing.tyreCompound)
-                    : "UNKNOWN",
-            };
-        }
-
-        if (mode === "POSITIONS") {
-            const startPos = startPositions.get(standing.slotId);
-            if (startPos !== undefined) {
-                const change = startPos - standing.position;
-                const displayValue = formatPositionChange(change);
-                return { ...base, displayValue, positionsChange: change };
-            }
-            return { ...base, displayValue: "—" };
-        }
-
-        return { ...base, displayValue: "—" };
+    if (mode === 'PITS') {
+      return { ...base, displayValue: String(standing.pitStopCount) }
     }
 
-    const sections = useMemo<TowerSection[]>(() => {
-        const visibleClasses =
-            effectiveViewLayout === "CLASS_ONLY" && effectiveSpecificClass
-                ? [effectiveSpecificClass]
-                : activeClasses;
+    if (mode === 'FUEL') {
+      return { ...base, displayValue: formatFuel(standing.fuel) }
+    }
 
-        if (effectiveViewLayout === "MIXED_TOP") {
-            return visibleClasses.map((carClass) => {
-                const classStandings = byClass.get(carClass) ?? [];
-                const sliced = classStandings.slice(0, settings.maxRowsPerClass);
-                const leaderBestLapTime =
-                    getFirstValidBestLapTime(classStandings);
-                const classLeader = classStandings[0];
-                const classGapMap = buildClassGapMap(classStandings);
-                if (!classLeader) return { carClass, rows: [] };
-                const rows = sliced.map((s, i) =>
-                    buildRow(
-                        s,
-                        i + 1,
-                        leaderBestLapTime,
-                        classLeader,
-                        classGapMap.get(s.slotId) ?? null
-                    )
-                );
-                return { carClass, rows };
-            });
-        }
+    if (mode === 'TYRES') {
+      return {
+        ...base,
+        displayValue: standing.tyreCompound ? String(standing.tyreCompound) : 'UNKNOWN'
+      }
+    }
 
-        return visibleClasses.map((carClass) => {
-                const classStandings = byClass.get(carClass) ?? [];
-                const leaderBestLapTime =
-                    getFirstValidBestLapTime(classStandings);
-                const classLeader = classStandings[0];
-                const classGapMap = buildClassGapMap(classStandings);
-                if (!classLeader) return { carClass, rows: [] };
-                const rows = classStandings.map((s, i) =>
-                    buildRow(
-                        s,
-                        i + 1,
-                        leaderBestLapTime,
-                        classLeader,
-                        classGapMap.get(s.slotId) ?? null
-                    )
-                );
-                return { carClass, rows };
-            });
-    }, [
-        activeClasses,
-        byClass,
-        effectiveSpecificClass,
-        effectiveViewLayout,
-        settings.raceMode,
-        settings.qualiMode,
-        settings.maxRowsPerClass,
-        isQuali,
-        startPositions,
-    ]);
+    if (mode === 'POSITIONS') {
+      const startPos = startPositions.get(standing.slotId)
+      if (startPos !== undefined) {
+        const change = startPos - standing.position
+        const displayValue = formatPositionChange(change)
+        return { ...base, displayValue, positionsChange: change }
+      }
+      return { ...base, displayValue: '—' }
+    }
 
-    return { sections, isQuali, isRace, activeClasses };
+    return { ...base, displayValue: '—' }
+  }
+
+  const sections = useMemo<TowerSection[]>(() => {
+    const visibleClasses =
+      effectiveViewLayout === 'CLASS_ONLY' && effectiveSpecificClass
+        ? [effectiveSpecificClass]
+        : activeClasses
+
+    if (effectiveViewLayout === 'MIXED_TOP') {
+      return visibleClasses.map((carClass) => {
+        const classStandings = byClass.get(carClass) ?? []
+        const sliced = classStandings.slice(0, settings.maxRowsPerClass)
+        const leaderBestLapTime = getFirstValidBestLapTime(classStandings)
+        const classLeader = classStandings[0]
+        const classGapMap = buildClassGapMap(classStandings)
+        if (!classLeader) return { carClass, rows: [] }
+        const rows = sliced.map((s, i) =>
+          buildRow(s, i + 1, leaderBestLapTime, classLeader, classGapMap.get(s.slotId) ?? null)
+        )
+        return { carClass, rows }
+      })
+    }
+
+    return visibleClasses.map((carClass) => {
+      const classStandings = byClass.get(carClass) ?? []
+      const leaderBestLapTime = getFirstValidBestLapTime(classStandings)
+      const classLeader = classStandings[0]
+      const classGapMap = buildClassGapMap(classStandings)
+      if (!classLeader) return { carClass, rows: [] }
+      const rows = classStandings.map((s, i) =>
+        buildRow(s, i + 1, leaderBestLapTime, classLeader, classGapMap.get(s.slotId) ?? null)
+      )
+      return { carClass, rows }
+    })
+  }, [
+    activeClasses,
+    byClass,
+    effectiveSpecificClass,
+    effectiveViewLayout,
+    settings.raceMode,
+    settings.qualiMode,
+    settings.maxRowsPerClass,
+    isQuali,
+    startPositions
+  ])
+
+  return { sections, isQuali, isRace, activeClasses }
 }
 
-// * -- lap time formatter --
+//* lap time formatter
 export function formatLapTime(seconds: number): string {
-    if (seconds <= 0) return "NO TIME";
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    const sStr = s.toFixed(3).padStart(6, "0");
-    return m > 0 ? `${m}:${sStr}` : `0:${sStr}`;
+  if (seconds <= 0) return 'NO TIME'
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  const sStr = s.toFixed(3).padStart(6, '0')
+  return m > 0 ? `${m}:${sStr}` : `0:${sStr}`
 }

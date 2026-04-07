@@ -16,10 +16,12 @@ const rootStyle: CSSProperties = {
 export default function SessionOverlay(): ReactElement {
   const {
     settings,
+    customLabel,
     headline,
     lapLabel,
     timeLabel,
     progress,
+    flagBarState,
     accent,
     dragMode,
     opacity,
@@ -67,10 +69,12 @@ export default function SessionOverlay(): ReactElement {
       >
         <SessionInfoPanel
           settings={settings}
+          customLabel={customLabel}
           headline={headline}
           lapLabel={lapLabel}
           timeLabel={timeLabel}
           progress={progress}
+          flagBarState={flagBarState}
           accent={accent}
           disableEnterAnimation={disableEnterAnimation}
         />

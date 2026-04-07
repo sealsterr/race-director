@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react'
+import type { CSSProperties, ReactElement } from 'react'
 import type { TyreCompound, TyreSet } from '../../../types/lmu'
 import { GapTyreDisplay } from './GapTyreDisplay'
 
@@ -68,7 +68,7 @@ const stripWrapStyle = {
   borderTop: '1px solid rgba(255,255,255,0.08)'
 }
 
-function gridStyle(align: 'left' | 'right') {
+function gridStyle(align: 'left' | 'right'): CSSProperties {
   return {
     display: 'grid',
     gridTemplateColumns:
@@ -82,7 +82,7 @@ function gridStyle(align: 'left' | 'right') {
   }
 }
 
-function valueStyle(compact: boolean) {
+function valueStyle(compact: boolean): CSSProperties {
   return {
     display: 'grid',
     alignItems: 'end',

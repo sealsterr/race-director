@@ -1,65 +1,59 @@
-import React from "react";
-import { motion } from "framer-motion";
-import { Download, RotateCw, Settings2 } from "lucide-react";
-import type { AppUpdaterState } from "../../../types/updater";
+import React from 'react'
+import { motion } from 'framer-motion'
+import { Download, RotateCw, Settings2 } from 'lucide-react'
+import type { AppUpdaterState } from '../../../types/updater'
 
 interface SidebarSettingsButtonProps {
-  onSettingsClick?: () => void;
-  updaterState: AppUpdaterState | null;
-  onDownloadUpdate: () => void;
+  onSettingsClick?: () => void
+  updaterState: AppUpdaterState | null
+  onDownloadUpdate: () => void
 }
 
 interface UpdateActionState {
-  title: string;
-  canClick: boolean;
-  mode: "download" | "apply";
+  title: string
+  canClick: boolean
+  mode: 'download' | 'apply'
 }
 
-const getUpdateActionState = (
-  updaterState: AppUpdaterState | null
-): UpdateActionState => {
+const getUpdateActionState = (updaterState: AppUpdaterState | null): UpdateActionState => {
   if (updaterState?.hasUpdate && updaterState.downloading) {
     return {
-      title: "Downloading update in background.",
+      title: 'Downloading update in background.',
       canClick: false,
-      mode: "download",
-    };
+      mode: 'download'
+    }
   }
 
   if (updaterState?.hasUpdate && updaterState.downloaded) {
     return {
-      title: "Update is ready. Click to apply and restart!",
+      title: 'Update is ready. Click to apply and restart!',
       canClick: true,
-      mode: "apply",
-    };
+      mode: 'apply'
+    }
   }
 
   if (updaterState?.hasUpdate) {
-    const latestVersion = updaterState.latestVersion;
+    const latestVersion = updaterState.latestVersion
     return {
-      title: `${latestVersion ?? ""} is available. Click to download!`,
-      canClick: Boolean(
-        updaterState &&
-          !updaterState.checking &&
-          !updaterState.downloading
-      ),
-      mode: "download",
-    };
+      title: `${latestVersion ?? ''} is available. Click to download!`,
+      canClick: Boolean(updaterState && !updaterState.checking && !updaterState.downloading),
+      mode: 'download'
+    }
   }
 
   return {
-    title: "Up to date!",
+    title: 'Up to date!',
     canClick: false,
-    mode: "download",
-  };
-};
+    mode: 'download'
+  }
+}
 
 const SidebarSettingsButton = ({
   onSettingsClick,
   updaterState,
-  onDownloadUpdate,
+  onDownloadUpdate
 }: SidebarSettingsButtonProps): React.ReactElement => {
-  const actionState = getUpdateActionState(updaterState);
+  const actionState = getUpdateActionState(updaterState)
 
   return (
     <div
@@ -83,9 +77,7 @@ const SidebarSettingsButton = ({
         </div>
 
         <div className="min-w-0">
-          <p className="text-sm font-semibold uppercase tracking-[0.1em] text-rd-text">
-            Settings
-          </p>
+          <p className="text-sm font-semibold uppercase tracking-[0.1em] text-rd-text">Settings</p>
         </div>
       </motion.button>
 
@@ -98,19 +90,15 @@ const SidebarSettingsButton = ({
           flex h-8 w-8 shrink-0 items-center justify-center bg-transparent
           ${
             actionState.canClick
-              ? "cursor-pointer text-rd-gold"
-              : "cursor-not-allowed text-rd-subtle opacity-45"
+              ? 'cursor-pointer text-rd-gold'
+              : 'cursor-not-allowed text-rd-subtle opacity-45'
           }
         `}
       >
-        {actionState.mode === "apply" ? (
-          <RotateCw size={16} />
-        ) : (
-          <Download size={16} />
-        )}
+        {actionState.mode === 'apply' ? <RotateCw size={16} /> : <Download size={16} />}
       </button>
     </div>
-  );
-};
+  )
+}
 
-export default SidebarSettingsButton;
+export default SidebarSettingsButton

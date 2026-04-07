@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react'
+import type { CSSProperties, ReactElement } from 'react'
 import { motion } from 'framer-motion'
 import type { SpeedUnit } from '../../../../../shared/measurementUnits'
 import { formatSpeedValue, getSpeedUnitLabel } from '../../../../../shared/measurementUnits'
@@ -74,10 +74,10 @@ const cornerCarNumberStyle = {
   fontWeight: 700,
   letterSpacing: '0.12em',
   color: '#e8ebf2',
-  fontVariantNumeric: 'tabular-nums',
+  fontVariantNumeric: 'tabular-nums'
 }
 
-function headerStyle(align: 'left' | 'right') {
+function headerStyle(align: 'left' | 'right'): CSSProperties {
   return {
     display: 'flex',
     justifyContent: 'space-between',
@@ -87,7 +87,7 @@ function headerStyle(align: 'left' | 'right') {
   }
 }
 
-function metaLineStyle(align: 'left' | 'right') {
+function metaLineStyle(align: 'left' | 'right'): CSSProperties {
   return {
     marginTop: 8,
     fontSize: 18,

@@ -14,7 +14,7 @@ const getViewportSize = (): { width: number; height: number } => ({
   height: Math.max(globalThis.innerHeight, 1)
 })
 
-const useDashboardViewportScale = (uiScale: number): DashboardViewportScaleResult => {
+const useDashboardViewportScale = (): DashboardViewportScaleResult => {
   const [viewportSize, setViewportSize] = useState(getViewportSize)
 
   useEffect(() => {
@@ -51,8 +51,8 @@ const useDashboardViewportScale = (uiScale: number): DashboardViewportScaleResul
         ? Math.min(MAX_RESPONSIVE_SCALE, 1 + (fitScale - 1) * 0.22)
         : Math.max(MIN_RESPONSIVE_SCALE, fitScale)
 
-    return responsiveScale * uiScale
-  }, [uiScale, viewportSize.height, viewportSize.width])
+    return responsiveScale
+  }, [viewportSize.height, viewportSize.width])
 
   useEffect(() => {
     const root = document.documentElement

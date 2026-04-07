@@ -154,20 +154,20 @@ const ConnectionPanel = ({
         </motion.div>
 
         <div className="mt-auto border-t border-rd-border p-3">
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={() => void handleConnect()}
-          disabled={isBusy || Boolean(validationMessage && connection !== 'CONNECTED')}
-          className={`
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={() => void handleConnect()}
+            disabled={isBusy || Boolean(validationMessage && connection !== 'CONNECTED')}
+            className={`
             flex w-full items-center justify-center gap-2 rounded
             py-2 text-xs font-semibold uppercase tracking-wider
             transition-colors duration-150
             ${getConnectionButtonClass(connection)}
           `}
-        >
-          {isBusy ? <RefreshCw size={12} className="animate-spin" /> : null}
-          {getConnectionButtonLabel(connection)}
-        </motion.button>
+          >
+            {isBusy ? <RefreshCw size={12} className="animate-spin" /> : null}
+            {getConnectionButtonLabel(connection)}
+          </motion.button>
         </div>
       </div>
     </div>

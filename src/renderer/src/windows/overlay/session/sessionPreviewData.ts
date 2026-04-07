@@ -1,15 +1,69 @@
 import type { SessionInfo } from '../../../types/lmu'
 
-export const SESSION_PREVIEW_STEP_MS = 2200
+export const SESSION_PREVIEW_STEP_MS = 3000
+const PREVIEW_TOTAL_SESSION_TIME = 144 * 60
 
 export const SESSION_PREVIEW_SEQUENCE: readonly SessionInfo[] = [
   {
     sessionType: 'RACE',
     trackName: 'Circuit de la Sarthe',
-    currentLap: 19,
+    currentLap: 1,
     totalLaps: 24,
-    timeRemaining: 1542,
-    sessionTime: 7200,
+    timeRemaining: PREVIEW_TOTAL_SESSION_TIME,
+    totalSessionTime: PREVIEW_TOTAL_SESSION_TIME,
+    sessionTime: 0,
+    flagState: 'NONE',
+    numCars: 36,
+    numCarsOnTrack: 35,
+    isActive: true
+  },
+  {
+    sessionType: 'RACE',
+    trackName: 'Circuit de la Sarthe',
+    currentLap: 6,
+    totalLaps: 24,
+    timeRemaining: 6105,
+    totalSessionTime: PREVIEW_TOTAL_SESSION_TIME,
+    sessionTime: PREVIEW_TOTAL_SESSION_TIME - 6105,
+    flagState: 'YELLOW',
+    numCars: 36,
+    numCarsOnTrack: 34,
+    isActive: true
+  },
+  {
+    sessionType: 'RACE',
+    trackName: 'Circuit de la Sarthe',
+    currentLap: 6,
+    totalLaps: 24,
+    timeRemaining: 6102,
+    totalSessionTime: PREVIEW_TOTAL_SESSION_TIME,
+    sessionTime: PREVIEW_TOTAL_SESSION_TIME - 6102,
+    flagState: 'GREEN',
+    numCars: 36,
+    numCarsOnTrack: 35,
+    isActive: true
+  },
+  {
+    sessionType: 'RACE',
+    trackName: 'Circuit de la Sarthe',
+    currentLap: 18,
+    totalLaps: 24,
+    timeRemaining: 1680,
+    totalSessionTime: PREVIEW_TOTAL_SESSION_TIME,
+    sessionTime: PREVIEW_TOTAL_SESSION_TIME - 1680,
+    flagState: 'RED',
+    numCars: 36,
+    numCarsOnTrack: 29,
+    isActive: true
+  },
+  {
+    sessionType: 'RACE',
+    trackName: 'Circuit de la Sarthe',
+    currentLap: 18,
+    totalLaps: 24,
+    timeRemaining: 1677,
+    totalSessionTime: PREVIEW_TOTAL_SESSION_TIME,
+    sessionTime: PREVIEW_TOTAL_SESSION_TIME - 1677,
     flagState: 'GREEN',
     numCars: 36,
     numCarsOnTrack: 34,
@@ -18,23 +72,12 @@ export const SESSION_PREVIEW_SEQUENCE: readonly SessionInfo[] = [
   {
     sessionType: 'RACE',
     trackName: 'Circuit de la Sarthe',
-    currentLap: 19,
+    currentLap: 24,
     totalLaps: 24,
-    timeRemaining: 1538,
-    sessionTime: 7204,
-    flagState: 'YELLOW',
-    numCars: 36,
-    numCarsOnTrack: 31,
-    isActive: true
-  },
-  {
-    sessionType: 'RACE',
-    trackName: 'Circuit de la Sarthe',
-    currentLap: 20,
-    totalLaps: 24,
-    timeRemaining: 1534,
-    sessionTime: 7208,
-    flagState: 'GREEN',
+    timeRemaining: 0,
+    totalSessionTime: PREVIEW_TOTAL_SESSION_TIME,
+    sessionTime: PREVIEW_TOTAL_SESSION_TIME,
+    flagState: 'CHEQUERED',
     numCars: 36,
     numCarsOnTrack: 35,
     isActive: true

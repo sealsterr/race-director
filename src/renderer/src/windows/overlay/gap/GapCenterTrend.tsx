@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react'
+import type { CSSProperties, ReactElement } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import type { GapTrend } from './gapTypes'
 import { formatGapTime, withAlpha } from './gapOverlayUtils'
@@ -54,7 +54,7 @@ export function GapCenterTrend({
   )
 }
 
-function centerGlowStyle(color: string) {
+function centerGlowStyle(color: string): CSSProperties {
   return {
     position: 'absolute' as const,
     inset: '-34px 6px',
@@ -81,7 +81,15 @@ const valueWrapStyle = {
   textAlign: 'center' as const
 }
 
-function gapValueStyle(color: string) {
+function gapValueStyle(color: string): {
+  color: string
+  fontSize: number
+  fontWeight: number
+  lineHeight: number
+  letterSpacing: string
+  fontVariantNumeric: string
+  textShadow: string
+} {
   return {
     color,
     fontSize: 64,

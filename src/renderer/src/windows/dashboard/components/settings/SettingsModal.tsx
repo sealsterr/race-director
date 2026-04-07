@@ -1,45 +1,39 @@
-import React, { useMemo, useState } from "react";
-import {
-  Gauge,
-  Network,
-  MonitorPlay,
-  Wrench,
-  X,
-} from "lucide-react";
-import type { DashboardSettings, SettingsTabId } from "../../settings/types";
-import DiscardSettingsPopup from "./DiscardSettingsPopup";
-import useSettingsModalA11y from "./hooks/useSettingsModalA11y";
-import AdvancedSettingsTab from "./tabs/AdvancedSettingsTab";
-import GeneralSettingsTab from "./tabs/GeneralSettingsTab";
-import NetworkSettingsTab from "./tabs/NetworkSettingsTab";
-import OverlaySettingsTab from "./tabs/OverlaySettingsTab";
+import React, { useMemo, useState } from 'react'
+import { Gauge, Network, MonitorPlay, Wrench, X } from 'lucide-react'
+import type { DashboardSettings, SettingsTabId } from '../../settings/types'
+import DiscardSettingsPopup from './DiscardSettingsPopup'
+import useSettingsModalA11y from './hooks/useSettingsModalA11y'
+import AdvancedSettingsTab from './tabs/AdvancedSettingsTab'
+import GeneralSettingsTab from './tabs/GeneralSettingsTab'
+import NetworkSettingsTab from './tabs/NetworkSettingsTab'
+import OverlaySettingsTab from './tabs/OverlaySettingsTab'
 
 interface SettingsModalProps {
-  hasUnsavedChanges: boolean;
-  isOpen: boolean;
-  settings: DashboardSettings;
-  onChange: (updater: (prev: DashboardSettings) => DashboardSettings) => void;
-  onClose: () => void;
-  onSave: () => void;
-  onResetDefaults: () => void;
-  onResetPanelLayouts: () => Promise<void>;
-  onResetWindowSizes: () => Promise<void>;
-  onResetQuitConfirm: () => Promise<void>;
+  hasUnsavedChanges: boolean
+  isOpen: boolean
+  settings: DashboardSettings
+  onChange: (updater: (prev: DashboardSettings) => DashboardSettings) => void
+  onClose: () => void
+  onSave: () => void
+  onResetDefaults: () => void
+  onResetPanelLayouts: () => Promise<void>
+  onResetWindowSizes: () => Promise<void>
+  onResetQuitConfirm: () => Promise<void>
 }
 
-const SETTINGS_MODAL_TITLE_ID = "settings-modal-title";
-const SETTINGS_MODAL_DESCRIPTION_ID = "settings-modal-description";
+const SETTINGS_MODAL_TITLE_ID = 'settings-modal-title'
+const SETTINGS_MODAL_DESCRIPTION_ID = 'settings-modal-description'
 
 const TAB_ITEMS: ReadonlyArray<{
-  id: SettingsTabId;
-  label: string;
-  icon: React.ReactElement;
+  id: SettingsTabId
+  label: string
+  icon: React.ReactElement
 }> = [
-  { id: "general", label: "General", icon: <Gauge size={14} /> },
-  { id: "network", label: "Network", icon: <Network size={14} /> },
-  { id: "overlay", label: "Overlay", icon: <MonitorPlay size={14} /> },
-  { id: "advanced", label: "Advanced", icon: <Wrench size={14} /> },
-];
+  { id: 'general', label: 'General', icon: <Gauge size={14} /> },
+  { id: 'network', label: 'Network', icon: <Network size={14} /> },
+  { id: 'overlay', label: 'Overlay', icon: <MonitorPlay size={14} /> },
+  { id: 'advanced', label: 'Advanced', icon: <Wrench size={14} /> }
+]
 
 const SettingsModal = ({
   hasUnsavedChanges,
@@ -51,17 +45,17 @@ const SettingsModal = ({
   onResetDefaults,
   onResetPanelLayouts,
   onResetWindowSizes,
-  onResetQuitConfirm,
+  onResetQuitConfirm
 }: SettingsModalProps): React.ReactElement | null => {
-  const [activeTab, setActiveTab] = useState<SettingsTabId>("general");
-  const [showDiscardPopup, setShowDiscardPopup] = useState(false);
+  const [activeTab, setActiveTab] = useState<SettingsTabId>('general')
+  const [showDiscardPopup, setShowDiscardPopup] = useState(false)
   const handleRequestClose = (): void => {
     if (hasUnsavedChanges) {
-      setShowDiscardPopup(true);
-      return;
+      setShowDiscardPopup(true)
+      return
     }
-    onClose();
-  };
+    onClose()
+  }
 
   const {
     closeButtonRef,
@@ -69,29 +63,29 @@ const SettingsModal = ({
     handleDialogKeyDown,
     handleTabKeyDown,
     requestClose,
-    setTabRef,
+    setTabRef
   } = useSettingsModalA11y({
     activeTab,
     isOpen,
     onRequestClose: handleRequestClose,
     onTabChange: setActiveTab,
-    tabs: TAB_ITEMS.map((tab) => tab.id),
-  });
+    tabs: TAB_ITEMS.map((tab) => tab.id)
+  })
 
   React.useEffect(() => {
-    if (isOpen) return;
-    setShowDiscardPopup(false);
-  }, [isOpen]);
+    if (isOpen) return
+    setShowDiscardPopup(false)
+  }, [isOpen])
 
   const currentPanel = useMemo(() => {
-    if (activeTab === "general") {
-      return <GeneralSettingsTab settings={settings} onChange={onChange} />;
+    if (activeTab === 'general') {
+      return <GeneralSettingsTab settings={settings} onChange={onChange} />
     }
-    if (activeTab === "network") {
-      return <NetworkSettingsTab settings={settings} onChange={onChange} />;
+    if (activeTab === 'network') {
+      return <NetworkSettingsTab settings={settings} onChange={onChange} />
     }
-    if (activeTab === "overlay") {
-      return <OverlaySettingsTab settings={settings} onChange={onChange} />;
+    if (activeTab === 'overlay') {
+      return <OverlaySettingsTab settings={settings} onChange={onChange} />
     }
     return (
       <AdvancedSettingsTab
@@ -101,17 +95,17 @@ const SettingsModal = ({
         onResetWindowSizes={onResetWindowSizes}
         onResetQuitConfirm={onResetQuitConfirm}
       />
-    );
-  }, [activeTab, onChange, onResetPanelLayouts, onResetQuitConfirm, onResetWindowSizes, settings]);
+    )
+  }, [activeTab, onChange, onResetPanelLayouts, onResetQuitConfirm, onResetWindowSizes, settings])
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   return (
     <div
       className="absolute inset-0 z-40 flex items-center justify-center bg-black/65 px-4 py-6 backdrop-blur-[2px]"
       onClick={(event) => {
-        if (event.target !== event.currentTarget) return;
-        requestClose();
+        if (event.target !== event.currentTarget) return
+        requestClose()
       }}
     >
       <div
@@ -123,21 +117,18 @@ const SettingsModal = ({
         tabIndex={-1}
         className="relative flex h-full max-h-[620px] w-full max-w-[820px] flex-col overflow-hidden rounded-xl border border-rd-border bg-rd-surface/95 shadow-[0_28px_80px_rgba(0,0,0,0.75)]"
         onKeyDown={(event) => {
-          if (showDiscardPopup) return;
-          handleDialogKeyDown(event);
+          if (showDiscardPopup) return
+          handleDialogKeyDown(event)
         }}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex h-12 items-center border-b border-rd-border px-4">
-          <h2
-            id={SETTINGS_MODAL_TITLE_ID}
-            className="text-xl font-semibold text-rd-text"
-          >
+          <h2 id={SETTINGS_MODAL_TITLE_ID} className="text-xl font-semibold text-rd-text">
             Settings
           </h2>
           <p id={SETTINGS_MODAL_DESCRIPTION_ID} className="sr-only">
-            Configure dashboard behavior. Press Escape to close this dialog. If
-            you have unsaved changes, closing requires confirmation.
+            Configure dashboard behavior. Press Escape to close this dialog. If you have unsaved
+            changes, closing requires confirmation.
           </p>
           <button
             ref={closeButtonRef}
@@ -157,9 +148,9 @@ const SettingsModal = ({
         >
           <div className="mx-auto flex w-max min-w-full justify-center px-4">
             {TAB_ITEMS.map((tab, index) => {
-              const isActive = tab.id === activeTab;
-              const tabButtonId = `settings-tab-${tab.id}`;
-              const tabPanelId = `settings-panel-${tab.id}`;
+              const isActive = tab.id === activeTab
+              const tabButtonId = `settings-tab-${tab.id}`
+              const tabPanelId = `settings-panel-${tab.id}`
               return (
                 <button
                   key={tab.id}
@@ -174,14 +165,14 @@ const SettingsModal = ({
                   onKeyDown={(event) => handleTabKeyDown(event, index)}
                   className={`flex items-center gap-2 border-b-2 px-5 py-3 text-sm ${
                     isActive
-                      ? "border-rd-accent text-rd-text"
-                      : "border-transparent text-rd-muted hover:text-rd-text"
+                      ? 'border-rd-accent text-rd-text'
+                      : 'border-transparent text-rd-muted hover:text-rd-text'
                   } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rd-accent/70 focus-visible:ring-offset-2 focus-visible:ring-offset-rd-surface`}
                 >
                   {tab.icon}
                   <span>{tab.label}</span>
                 </button>
-              );
+              )
             })}
           </div>
         </div>
@@ -209,7 +200,7 @@ const SettingsModal = ({
             onClick={hasUnsavedChanges ? onSave : onClose}
             className="rounded-md border border-rd-accent/40 bg-rd-accent/15 px-4 py-2 text-sm font-semibold text-rd-text transition-colors hover:bg-rd-accent/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rd-accent/70 focus-visible:ring-offset-2 focus-visible:ring-offset-rd-surface"
           >
-            {hasUnsavedChanges ? "Save & Close" : "Close"}
+            {hasUnsavedChanges ? 'Save & Close' : 'Close'}
           </button>
         </div>
 
@@ -217,14 +208,14 @@ const SettingsModal = ({
           <DiscardSettingsPopup
             onCancel={() => setShowDiscardPopup(false)}
             onConfirm={() => {
-              setShowDiscardPopup(false);
-              onClose();
+              setShowDiscardPopup(false)
+              onClose()
             }}
           />
         ) : null}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default SettingsModal;
+export default SettingsModal

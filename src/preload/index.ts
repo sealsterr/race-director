@@ -1,220 +1,159 @@
-import { contextBridge, ipcRenderer } from "electron";
-import type {
-  ConnectionStatus,
-  AppState,
-  TelemetrySnapshot,
-} from "../renderer/src/types/lmu";
-import type { AppUpdaterState } from "../shared/updater";
-import type { GlobalUiSettingsPayload } from "../shared/globalUi";
+import { contextBridge, ipcRenderer } from 'electron'
+import type { ConnectionStatus, AppState, TelemetrySnapshot } from '../renderer/src/types/lmu'
+import type { AppUpdaterState } from '../shared/updater'
+import type { GlobalUiSettingsPayload } from '../shared/globalUi'
 
-// * -- preload bridge surface --
+//* preload bridge surface
 // Keep methods small and explicit so IPC contracts stay auditable.
 const api = {
-  // * -- connection --
+  //* connection
   connect: (url: string, pollRate: number): Promise<void> =>
-    ipcRenderer.invoke("lmu:connect", url, pollRate),
+    ipcRenderer.invoke('lmu:connect', url, pollRate),
 
-  disconnect: (): Promise<void> =>
-    ipcRenderer.invoke("lmu:disconnect"),
+  disconnect: (): Promise<void> => ipcRenderer.invoke('lmu:disconnect'),
 
-  focusVehicle: (slotId: number): Promise<void> =>
-    ipcRenderer.invoke("lmu:focusVehicle", slotId),
+  focusVehicle: (slotId: number): Promise<void> => ipcRenderer.invoke('lmu:focusVehicle', slotId),
 
   setCameraAngle: (
     cameraType: number,
     trackSideGroup: number,
     shouldAdvance: boolean
   ): Promise<void> =>
-    ipcRenderer.invoke("lmu:setCameraAngle", cameraType, trackSideGroup, shouldAdvance),
+    ipcRenderer.invoke('lmu:setCameraAngle', cameraType, trackSideGroup, shouldAdvance),
 
-  // * -- state --
-  getState: (): Promise<AppState> =>
-    ipcRenderer.invoke("lmu:getState"),
+  //* state
+  getState: (): Promise<AppState> => ipcRenderer.invoke('lmu:getState'),
 
-  getTelemetry: (): Promise<TelemetrySnapshot> =>
-    ipcRenderer.invoke("lmu:getTelemetry"),
+  getTelemetry: (): Promise<TelemetrySnapshot> => ipcRenderer.invoke('lmu:getTelemetry'),
 
-  // * -- event subscriptions --
-  onStateUpdate: (
-    callback: (state: AppState) => void
-  ): (() => void) => {
-    const handler = (
-      _event: Electron.IpcRendererEvent,
-      state: AppState
-    ): void => {
-      callback(state);
-    };
-    ipcRenderer.on("lmu:stateUpdate", handler);
-    return () => ipcRenderer.removeListener("lmu:stateUpdate", handler);
+  //* event subscriptions
+  onStateUpdate: (callback: (state: AppState) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, state: AppState): void => {
+      callback(state)
+    }
+    ipcRenderer.on('lmu:stateUpdate', handler)
+    return () => ipcRenderer.removeListener('lmu:stateUpdate', handler)
   },
 
-  onConnectionChange: (
-    callback: (status: ConnectionStatus) => void
-  ): (() => void) => {
-    const handler = (
-      _event: Electron.IpcRendererEvent,
-      status: ConnectionStatus
-    ): void => {
-      callback(status);
-    };
-    ipcRenderer.on("lmu:connectionChange", handler);
-    return () => ipcRenderer.removeListener("lmu:connectionChange", handler);
+  onConnectionChange: (callback: (status: ConnectionStatus) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, status: ConnectionStatus): void => {
+      callback(status)
+    }
+    ipcRenderer.on('lmu:connectionChange', handler)
+    return () => ipcRenderer.removeListener('lmu:connectionChange', handler)
   },
 
-  onTelemetryUpdate: (
-    callback: (snapshot: TelemetrySnapshot) => void
-  ): (() => void) => {
-    const handler = (
-      _event: Electron.IpcRendererEvent,
-      snapshot: TelemetrySnapshot
-    ): void => {
-      callback(snapshot);
-    };
-    ipcRenderer.on("lmu:telemetryUpdate", handler);
-    return () => ipcRenderer.removeListener("lmu:telemetryUpdate", handler);
+  onTelemetryUpdate: (callback: (snapshot: TelemetrySnapshot) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, snapshot: TelemetrySnapshot): void => {
+      callback(snapshot)
+    }
+    ipcRenderer.on('lmu:telemetryUpdate', handler)
+    return () => ipcRenderer.removeListener('lmu:telemetryUpdate', handler)
   },
 
-  // * -- window management --
+  //* window management
   windows: {
-    open: (id: string): Promise<boolean> =>
-      ipcRenderer.invoke("window:open", id),
+    open: (id: string): Promise<boolean> => ipcRenderer.invoke('window:open', id),
 
-    close: (id: string): Promise<void> =>
-      ipcRenderer.invoke("window:close", id),
+    close: (id: string): Promise<void> => ipcRenderer.invoke('window:close', id),
 
-    getOpen: (): Promise<string[]> =>
-      ipcRenderer.invoke("window:getOpen"),
+    getOpen: (): Promise<string[]> => ipcRenderer.invoke('window:getOpen'),
 
     setModalBackdropActive: (isActive: boolean): Promise<void> =>
-      ipcRenderer.invoke("window:setModalBackdropActive", isActive),
+      ipcRenderer.invoke('window:setModalBackdropActive', isActive),
 
     onClosed: (cb: (id: string) => void): (() => void) => {
-      const handler = (
-        _event: Electron.IpcRendererEvent,
-        id: string
-      ): void => {
-        cb(id);
-      };
-      ipcRenderer.on("window:closed", handler);
-      return () => ipcRenderer.removeListener("window:closed", handler);
-    },
+      const handler = (_event: Electron.IpcRendererEvent, id: string): void => {
+        cb(id)
+      }
+      ipcRenderer.on('window:closed', handler)
+      return () => ipcRenderer.removeListener('window:closed', handler)
+    }
   },
 
   system: {
-    ackDisconnect: (): Promise<void> =>
-      ipcRenderer.invoke("system:ackDisconnect"),
+    ackDisconnect: (): Promise<void> => ipcRenderer.invoke('system:ackDisconnect'),
 
-    onDisconnectNoticeVisibilityChange: (
-      cb: (isVisible: boolean) => void
-    ): (() => void) => {
-      const handler = (
-        _event: Electron.IpcRendererEvent,
-        isVisible: boolean
-      ): void => {
-        cb(isVisible);
-      };
-      ipcRenderer.on("system:disconnectNoticeVisibility", handler);
-      return () =>
-        ipcRenderer.removeListener("system:disconnectNoticeVisibility", handler);
+    onDisconnectNoticeVisibilityChange: (cb: (isVisible: boolean) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, isVisible: boolean): void => {
+        cb(isVisible)
+      }
+      ipcRenderer.on('system:disconnectNoticeVisibility', handler)
+      return () => ipcRenderer.removeListener('system:disconnectNoticeVisibility', handler)
     },
 
-    onQuitConfirmVisibilityChange: (
-      cb: (isVisible: boolean) => void
-    ): (() => void) => {
-      const handler = (
-        _event: Electron.IpcRendererEvent,
-        isVisible: boolean
-      ): void => {
-        cb(isVisible);
-      };
-      ipcRenderer.on("system:quitConfirmVisibility", handler);
-      return () =>
-        ipcRenderer.removeListener("system:quitConfirmVisibility", handler);
+    onQuitConfirmVisibilityChange: (cb: (isVisible: boolean) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, isVisible: boolean): void => {
+        cb(isVisible)
+      }
+      ipcRenderer.on('system:quitConfirmVisibility', handler)
+      return () => ipcRenderer.removeListener('system:quitConfirmVisibility', handler)
     },
 
     getQuitConfirmPreference: (): Promise<boolean> =>
-      ipcRenderer.invoke("system:getQuitConfirmPreference"),
+      ipcRenderer.invoke('system:getQuitConfirmPreference'),
 
-    resetWindowLayouts: (): Promise<void> =>
-      ipcRenderer.invoke("system:resetWindowLayouts"),
+    resetWindowLayouts: (): Promise<void> => ipcRenderer.invoke('system:resetWindowLayouts'),
 
     resetQuitConfirmPreference: (): Promise<void> =>
-      ipcRenderer.invoke("system:resetQuitConfirmPreference"),
+      ipcRenderer.invoke('system:resetQuitConfirmPreference'),
 
-    cancelQuit: (): Promise<void> =>
-      ipcRenderer.invoke("system:cancelQuit"),
+    cancelQuit: (): Promise<void> => ipcRenderer.invoke('system:cancelQuit'),
 
     confirmQuit: (dontAskAgain: boolean): Promise<void> =>
-      ipcRenderer.invoke("system:confirmQuit", dontAskAgain),
+      ipcRenderer.invoke('system:confirmQuit', dontAskAgain)
   },
 
   settings: {
     applyGlobalUi: (payload: GlobalUiSettingsPayload): Promise<void> =>
-      ipcRenderer.invoke("settings:applyGlobalUi", payload),
+      ipcRenderer.invoke('settings:applyGlobalUi', payload),
 
-    onGlobalUiChanged: (
-      callback: (payload: GlobalUiSettingsPayload) => void
-    ): (() => void) => {
+    onGlobalUiChanged: (callback: (payload: GlobalUiSettingsPayload) => void): (() => void) => {
       const handler = (
         _event: Electron.IpcRendererEvent,
         payload: GlobalUiSettingsPayload
       ): void => {
-        callback(payload);
-      };
-      ipcRenderer.on("settings:globalUiChanged", handler);
-      return () => ipcRenderer.removeListener("settings:globalUiChanged", handler);
-    },
+        callback(payload)
+      }
+      ipcRenderer.on('settings:globalUiChanged', handler)
+      return () => ipcRenderer.removeListener('settings:globalUiChanged', handler)
+    }
   },
 
   updater: {
-    getState: (): Promise<AppUpdaterState> =>
-      ipcRenderer.invoke("updater:getState"),
+    getState: (): Promise<AppUpdaterState> => ipcRenderer.invoke('updater:getState'),
 
-    check: (): Promise<AppUpdaterState> =>
-      ipcRenderer.invoke("updater:check"),
+    check: (): Promise<AppUpdaterState> => ipcRenderer.invoke('updater:check'),
 
-    download: (): Promise<AppUpdaterState> =>
-      ipcRenderer.invoke("updater:download"),
+    download: (): Promise<AppUpdaterState> => ipcRenderer.invoke('updater:download'),
 
-    install: (): Promise<AppUpdaterState> =>
-      ipcRenderer.invoke("updater:install"),
+    install: (): Promise<AppUpdaterState> => ipcRenderer.invoke('updater:install'),
 
-    onStateChange: (
-      callback: (state: AppUpdaterState) => void
-    ): (() => void) => {
-      const handler = (
-        _event: Electron.IpcRendererEvent,
-        state: AppUpdaterState
-      ): void => {
-        callback(state);
-      };
-      ipcRenderer.on("updater:state", handler);
-      return () => ipcRenderer.removeListener("updater:state", handler);
-    },
+    onStateChange: (callback: (state: AppUpdaterState) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, state: AppUpdaterState): void => {
+        callback(state)
+      }
+      ipcRenderer.on('updater:state', handler)
+      return () => ipcRenderer.removeListener('updater:state', handler)
+    }
   },
 
-  // * -- overlay management --
+  //* overlay management
   overlay: {
-    getDisplays: () =>
-      ipcRenderer.invoke("overlay:getDisplays"),
+    getDisplays: () => ipcRenderer.invoke('overlay:getDisplays'),
 
-    getDefaultSavePath: () =>
-      ipcRenderer.invoke("overlay:getDefaultSavePath"),
+    getDefaultSavePath: () => ipcRenderer.invoke('overlay:getDefaultSavePath'),
 
     savePreset: (overlays: unknown[], savePath: string) =>
-      ipcRenderer.invoke("overlay:savePreset", overlays, savePath),
+      ipcRenderer.invoke('overlay:savePreset', overlays, savePath),
 
-    loadPreset: (savePath: string) =>
-      ipcRenderer.invoke("overlay:loadPreset", savePath),
+    loadPreset: (savePath: string) => ipcRenderer.invoke('overlay:loadPreset', savePath),
 
-    pickSavePath: () =>
-      ipcRenderer.invoke("overlay:pickSavePath"),
+    pickSavePath: () => ipcRenderer.invoke('overlay:pickSavePath'),
 
-    pickLoadPath: () =>
-      ipcRenderer.invoke("overlay:pickLoadPath"),
+    pickLoadPath: () => ipcRenderer.invoke('overlay:pickLoadPath'),
 
-    getConfig: (id: string) =>
-      ipcRenderer.invoke("overlay:getConfig", id),
+    getConfig: (id: string) => ipcRenderer.invoke('overlay:getConfig', id),
 
     updateBounds: (
       id: string,
@@ -223,34 +162,32 @@ const api = {
       w: number,
       h: number
     ): Promise<{ x: number; y: number; width: number; height: number } | null> =>
-      ipcRenderer.invoke("overlay:updateBounds", id, x, y, w, h),
+      ipcRenderer.invoke('overlay:updateBounds', id, x, y, w, h),
 
     setDragMode: (id: string, enabled: boolean) =>
-      ipcRenderer.invoke("overlay:setDragMode", id, enabled),
+      ipcRenderer.invoke('overlay:setDragMode', id, enabled),
 
-    getBounds: (id: string) =>
-      ipcRenderer.invoke("overlay:getBounds", id),
-    broadcastConfig: (config: unknown) =>
-      ipcRenderer.invoke("overlay:broadcastConfig", config),
+    getBounds: (id: string) => ipcRenderer.invoke('overlay:getBounds', id),
+    broadcastConfig: (config: unknown) => ipcRenderer.invoke('overlay:broadcastConfig', config),
     onBoundsChanged: (
       cb: (payload: { id: string; x: number; y: number; displayId: number }) => void
     ) => {
       const handler = (
         _e: Electron.IpcRendererEvent,
         payload: { id: string; x: number; y: number; displayId: number }
-      ): void => cb(payload);
-      ipcRenderer.on("overlay:boundsChanged", handler);
-      return () => ipcRenderer.removeListener("overlay:boundsChanged", handler);
+      ): void => cb(payload)
+      ipcRenderer.on('overlay:boundsChanged', handler)
+      return () => ipcRenderer.removeListener('overlay:boundsChanged', handler)
     },
     onConfigUpdate: (cb: (config: unknown) => void) => {
-      const handler = (_e: unknown, config: unknown): void => cb(config);
-      ipcRenderer.on("overlay:configUpdate", handler);
-      return () => ipcRenderer.removeListener("overlay:configUpdate", handler);
-    },
-  },
-};
+      const handler = (_e: unknown, config: unknown): void => cb(config)
+      ipcRenderer.on('overlay:configUpdate', handler)
+      return () => ipcRenderer.removeListener('overlay:configUpdate', handler)
+    }
+  }
+}
 
 // TODO: Keep new bridge methods grouped by domain section.
-contextBridge.exposeInMainWorld("api", api);
+contextBridge.exposeInMainWorld('api', api)
 
-export type ElectronAPI = typeof api;
+export type ElectronAPI = typeof api

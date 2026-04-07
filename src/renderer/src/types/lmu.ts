@@ -1,148 +1,126 @@
-// * -- session --
-export type SessionType = 
-    | "PRACTICE"
-    | "QUALIFYING"
-    | "RACE"
-    | "UNKNOWN";
+//* session
+export type SessionType = 'PRACTICE' | 'QUALIFYING' | 'RACE' | 'UNKNOWN'
 
 export type FlagState =
-    | "GREEN" // custom
-    | "YELLOW"
-    | "FULL_COURSE_YELLOW" // custom
-    | "SAFETY_CAR" // custom
-    | "RED" // custom
-    | "CHEQUERED" 
-    | "NONE";
+  | 'GREEN' // custom
+  | 'YELLOW'
+  | 'FULL_COURSE_YELLOW' // custom
+  | 'SAFETY_CAR' // custom
+  | 'RED' // custom
+  | 'CHEQUERED'
+  | 'NONE'
 
-// * -- for dashboard info panel --
+//* for dashboard info panel
 export interface SessionInfo {
-    sessionType: SessionType;
-    trackName: string;
-    currentLap: number;
-    totalLaps: number;
-    timeRemaining: number; // in s
-    sessionTime: number; // elapsed time in s
-    flagState: FlagState;
-    numCars: number;
-    numCarsOnTrack: number;
-    isActive: boolean;
+  sessionType: SessionType
+  trackName: string
+  currentLap: number
+  totalLaps: number
+  timeRemaining: number // in s
+  totalSessionTime: number // full scheduled session length in s
+  sessionTime: number // elapsed time in s
+  flagState: FlagState
+  numCars: number
+  numCarsOnTrack: number
+  isActive: boolean
 }
 
-// * -- car --
-export type CarClass = 
-    | "LMGT3"
-    | "GTE"
-    | "LMP2"
-    | "LMP3"
-    | "HYPERCAR"
-    | "UNKNOWN";
+//* car
+export type CarClass = 'LMGT3' | 'GTE' | 'LMP2' | 'LMP3' | 'HYPERCAR' | 'UNKNOWN'
 
-export type TyreCompound = 
-    | "SOFT"
-    | "MEDIUM"
-    | "HARD"
-    | "WET"
-    | "UNKNOWN";
+export type TyreCompound = 'SOFT' | 'MEDIUM' | 'HARD' | 'WET' | 'UNKNOWN'
 
 export interface TyreSet {
-    frontLeft: TyreCompound;
-    frontRight: TyreCompound;
-    rearLeft: TyreCompound;
-    rearRight: TyreCompound;
+  frontLeft: TyreCompound
+  frontRight: TyreCompound
+  rearLeft: TyreCompound
+  rearRight: TyreCompound
 }
 
-// * -- custom detect --
-export type DriverStatus =  
-    | "RACING"
-    | "PITTING"
-    | "RETIRED"
-    | "FINISHED"
-    | "DISQUALIFIED"
-    | "CONTACT"
-    | "CRASHED"
-    | "FIGHTING"
-    | "UNKNOWN";
+//* custom detect
+export type DriverStatus =
+  | 'RACING'
+  | 'PITTING'
+  | 'RETIRED'
+  | 'FINISHED'
+  | 'DISQUALIFIED'
+  | 'CONTACT'
+  | 'CRASHED'
+  | 'FIGHTING'
+  | 'UNKNOWN'
 
 export interface SectorTime {
-    sector1: number | null; // in s, null if not completed
-    sector2: number | null;
-    sector3: number | null;
+  sector1: number | null // in s, null if not completed
+  sector2: number | null
+  sector3: number | null
 }
 
 export interface DriverStanding {
-    position: number;
-    carNumber: string;
-    driverName: string;
-    nationalityCode: string | null;
-    teamName: string;
-    carClass: CarClass;
-    carName: string;
-    lastLapTime: number | null; // in s, null if not completed
-    bestLapTime: number | null;
-    currentSectors: SectorTime;
-    bestSectors: SectorTime;
-    gapToLeader: number | null; // in s, null if leader
-    intervalToAhead: number | null; // in s, null if leader
-    lapsCompleted: number;
-    lapsDown: number; // compared to class leader, 0 on lead lap
-    fuel: number | null; // percentage
-    tyreCompound: TyreCompound;
-    tyreSet: TyreSet | null;
-    pitStopCount: number;
-    penalties: Penalty[];
-    status: DriverStatus;
-    isPlayer: boolean; // is this the local player?
-    isFocused: boolean; // is this the currently spectated car?
-    slotId: number;
-    telemetryId: number | null;
+  position: number
+  carNumber: string
+  driverName: string
+  nationalityCode: string | null
+  teamName: string
+  carClass: CarClass
+  carName: string
+  lastLapTime: number | null // in s, null if not completed
+  bestLapTime: number | null
+  currentSectors: SectorTime
+  bestSectors: SectorTime
+  gapToLeader: number | null // in s, null if leader
+  intervalToAhead: number | null // in s, null if leader
+  lapsCompleted: number
+  lapsDown: number // compared to class leader, 0 on lead lap
+  fuel: number | null // percentage
+  tyreCompound: TyreCompound
+  tyreSet: TyreSet | null
+  pitStopCount: number
+  penalties: Penalty[]
+  status: DriverStatus
+  isPlayer: boolean // is this the local player?
+  isFocused: boolean // is this the currently spectated car?
+  slotId: number
+  telemetryId: number | null
 }
 
 export interface DriverTelemetrySnapshot {
-    id: number;
-    driverName: string;
-    vehicleName: string;
-    carNumber: string;
-    fuelPercentage: number | null;
-    batteryChargePercentage: number | null;
-    engineMap: number | null;
-    gear: number | null;
-    speedKph: number | null;
-    rpm: number | null;
-    throttle: number | null;
-    brake: number | null;
-    frontTyreCompound: string;
-    rearTyreCompound: string;
+  id: number
+  driverName: string
+  vehicleName: string
+  carNumber: string
+  fuelPercentage: number | null
+  batteryChargePercentage: number | null
+  engineMap: number | null
+  gear: number | null
+  speedKph: number | null
+  rpm: number | null
+  throttle: number | null
+  brake: number | null
+  frontTyreCompound: string
+  rearTyreCompound: string
 }
 
 export interface TelemetrySnapshot {
-    timestamp: number;
-    cars: DriverTelemetrySnapshot[];
-    error: string | null;
+  timestamp: number
+  cars: DriverTelemetrySnapshot[]
+  error: string | null
 }
 
-export type PenaltyType =
-    | "DRIVE_THROUGH"
-    | "STOP_AND_GO"
-    | "TIME_PENALTY"
-    | "DISQUALIFICATION";
+export type PenaltyType = 'DRIVE_THROUGH' | 'STOP_AND_GO' | 'TIME_PENALTY' | 'DISQUALIFICATION'
 
 export interface Penalty {
-    type: PenaltyType;
-    time: number; // in s
-    reason: string;
+  type: PenaltyType
+  time: number // in s
+  reason: string
 }
 
-// * -- connection --
-export type ConnectionStatus =
-    | "CONNECTED"
-    | "CONNECTING"
-    | "DISCONNECTED"
-    | "ERROR";
+//* connection
+export type ConnectionStatus = 'CONNECTED' | 'CONNECTING' | 'DISCONNECTED' | 'ERROR'
 
-// * -- app-level state --
+//* app-level state
 export interface AppState {
-    connection: ConnectionStatus;
-    session: SessionInfo | null;
-    standings: DriverStanding[];
-    lastUpdated: number | null; // timestamp
+  connection: ConnectionStatus
+  session: SessionInfo | null
+  standings: DriverStanding[]
+  lastUpdated: number | null // timestamp
 }

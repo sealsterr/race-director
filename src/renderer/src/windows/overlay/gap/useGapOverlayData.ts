@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from 'react'
 import { useOverlayStore } from '../../../store/overlayStore'
 import type { DriverSettings, GapSettings, OverlayConfig } from '../../../store/overlayStore'

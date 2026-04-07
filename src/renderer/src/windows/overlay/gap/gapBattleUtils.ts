@@ -53,10 +53,7 @@ export function buildGapBattle(
   }
 }
 
-function buildGapDriver(
-  standing: DriverStanding,
-  metrics: GapDriverMetrics
-): GapOverlayDriver {
+function buildGapDriver(standing: DriverStanding, metrics: GapDriverMetrics): GapOverlayDriver {
   const nameParts = getDriverNameParts(standing.driverName)
 
   return {

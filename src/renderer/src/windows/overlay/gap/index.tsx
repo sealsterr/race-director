@@ -27,8 +27,7 @@ export default function GapOverlay(): ReactElement {
     speedUnit,
     trendPalette,
     trendColors
-  } =
-    useGapOverlayData()
+  } = useGapOverlayData()
   const effectiveScale = scale * GAP_OVERLAY_RENDER_SCALE
   const contentRef = useRef<HTMLDivElement>(null)
   const [disableEnterAnimation, setDisableEnterAnimation] = useState(true)

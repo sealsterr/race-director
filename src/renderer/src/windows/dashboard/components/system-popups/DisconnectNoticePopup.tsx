@@ -1,16 +1,16 @@
-import React from "react";
-import { WifiOff, X } from "lucide-react";
+import React from 'react'
+import { WifiOff, X } from 'lucide-react'
 
 interface DisconnectNoticePopupProps {
-  onDismiss: () => void | Promise<void>;
-  isBusy?: boolean;
-  errorMessage?: string | null;
+  onDismiss: () => void | Promise<void>
+  isBusy?: boolean
+  errorMessage?: string | null
 }
 
 const DisconnectNoticePopup = ({
   onDismiss,
   isBusy = false,
-  errorMessage = null,
+  errorMessage = null
 }: DisconnectNoticePopupProps): React.ReactElement => {
   return (
     <div className="w-full max-w-[460px] p-3 text-rd-text">
@@ -24,9 +24,7 @@ const DisconnectNoticePopup = ({
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-rd-warning">
                 Connection Lost
               </p>
-              <h1 className="mt-0.5 text-xl font-semibold text-rd-text">
-                Disconnected from lobby
-              </h1>
+              <h1 className="mt-0.5 text-xl font-semibold text-rd-text">Disconnected from lobby</h1>
             </div>
           </div>
           <button
@@ -60,7 +58,7 @@ const DisconnectNoticePopup = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default DisconnectNoticePopup;
+export default DisconnectNoticePopup

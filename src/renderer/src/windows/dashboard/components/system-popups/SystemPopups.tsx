@@ -1,17 +1,17 @@
-import React from "react";
-import DisconnectNoticePopup from "./DisconnectNoticePopup";
-import QuitConfirmPopup from "./QuitConfirmPopup";
+import React from 'react'
+import DisconnectNoticePopup from './DisconnectNoticePopup'
+import QuitConfirmPopup from './QuitConfirmPopup'
 
 interface SystemPopupsProps {
-  showDisconnectNotice: boolean;
-  showQuitConfirm: boolean;
-  dontAskAgain: boolean;
-  isBusy: boolean;
-  errorMessage: string | null;
-  onDontAskAgainChange: (value: boolean) => void;
-  onDismissDisconnect: () => void | Promise<void>;
-  onCancelQuit: () => void | Promise<void>;
-  onConfirmQuit: () => void | Promise<void>;
+  showDisconnectNotice: boolean
+  showQuitConfirm: boolean
+  dontAskAgain: boolean
+  isBusy: boolean
+  errorMessage: string | null
+  onDontAskAgainChange: (value: boolean) => void
+  onDismissDisconnect: () => void | Promise<void>
+  onCancelQuit: () => void | Promise<void>
+  onConfirmQuit: () => void | Promise<void>
 }
 
 const SystemPopups = ({
@@ -23,16 +23,12 @@ const SystemPopups = ({
   onDontAskAgainChange,
   onDismissDisconnect,
   onCancelQuit,
-  onConfirmQuit,
+  onConfirmQuit
 }: SystemPopupsProps): React.ReactElement | null => {
-  const activePopup = showQuitConfirm
-    ? "quit"
-    : showDisconnectNotice
-      ? "disconnect"
-      : null;
+  const activePopup = showQuitConfirm ? 'quit' : showDisconnectNotice ? 'disconnect' : null
 
   if (!activePopup) {
-    return null;
+    return null
   }
 
   return (
@@ -40,7 +36,7 @@ const SystemPopups = ({
       className="absolute inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/45 px-4 py-6"
       aria-live="assertive"
     >
-      {activePopup === "disconnect" ? (
+      {activePopup === 'disconnect' ? (
         <DisconnectNoticePopup
           isBusy={isBusy}
           errorMessage={errorMessage}
@@ -48,7 +44,7 @@ const SystemPopups = ({
         />
       ) : null}
 
-      {activePopup === "quit" ? (
+      {activePopup === 'quit' ? (
         <QuitConfirmPopup
           dontAskAgain={dontAskAgain}
           isBusy={isBusy}
@@ -59,7 +55,7 @@ const SystemPopups = ({
         />
       ) : null}
     </div>
-  );
-};
+  )
+}
 
-export default SystemPopups;
+export default SystemPopups

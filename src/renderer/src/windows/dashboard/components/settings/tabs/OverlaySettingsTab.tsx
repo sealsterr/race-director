@@ -1,21 +1,19 @@
-import React from "react";
-import type { DashboardSettings } from "../../../settings/types";
-import { getPendingSettingCopy } from "../pendingSettings";
-import { SectionBlock, SettingsRow, SettingsToggle } from "../SettingsPrimitives";
+import React from 'react'
+import type { DashboardSettings } from '../../../settings/types'
+import { getPendingSettingCopy } from '../pendingSettings'
+import { SectionBlock, SettingsRow, SettingsToggle } from '../SettingsPrimitives'
 
 interface OverlaySettingsTabProps {
-  settings: DashboardSettings;
-  onChange: (updater: (prev: DashboardSettings) => DashboardSettings) => void;
+  settings: DashboardSettings
+  onChange: (updater: (prev: DashboardSettings) => DashboardSettings) => void
 }
 
 const OverlaySettingsTab = ({
   settings,
-  onChange,
+  onChange
 }: OverlaySettingsTabProps): React.ReactElement => {
-  const animateHighlightsSetting = getPendingSettingCopy(
-    "overlay.animateOverlayHighlights"
-  );
-  const flashFightRowsSetting = getPendingSettingCopy("overlay.flashFightRows");
+  const animateHighlightsSetting = getPendingSettingCopy('overlay.animateOverlayHighlights')
+  const flashFightRowsSetting = getPendingSettingCopy('overlay.flashFightRows')
 
   return (
     <div className="flex flex-col gap-3">
@@ -30,7 +28,7 @@ const OverlaySettingsTab = ({
               onChange={(checked) =>
                 onChange((prev) => ({
                   ...prev,
-                  overlay: { ...prev.overlay, startupOverlayDashboard: checked },
+                  overlay: { ...prev.overlay, startupOverlayDashboard: checked }
                 }))
               }
               describedBy={descriptionId}
@@ -49,7 +47,7 @@ const OverlaySettingsTab = ({
               onChange={(checked) =>
                 onChange((prev) => ({
                   ...prev,
-                  overlay: { ...prev.overlay, startupInfoWindow: checked },
+                  overlay: { ...prev.overlay, startupInfoWindow: checked }
                 }))
               }
               describedBy={descriptionId}
@@ -70,8 +68,8 @@ const OverlaySettingsTab = ({
                   ...prev,
                   overlay: {
                     ...prev.overlay,
-                    closeOverlaysWhenControlCloses: checked,
-                  },
+                    closeOverlaysWhenControlCloses: checked
+                  }
                 }))
               }
               describedBy={descriptionId}
@@ -96,8 +94,8 @@ const OverlaySettingsTab = ({
                   ...prev,
                   overlay: {
                     ...prev.overlay,
-                    animateOverlayHighlights: checked,
-                  },
+                    animateOverlayHighlights: checked
+                  }
                 }))
               }
               describedBy={descriptionId}
@@ -119,7 +117,7 @@ const OverlaySettingsTab = ({
               onChange={(checked) =>
                 onChange((prev) => ({
                   ...prev,
-                  overlay: { ...prev.overlay, flashFightRows: checked },
+                  overlay: { ...prev.overlay, flashFightRows: checked }
                 }))
               }
               describedBy={descriptionId}
@@ -130,7 +128,7 @@ const OverlaySettingsTab = ({
         </SettingsRow>
       </SectionBlock>
     </div>
-  );
-};
+  )
+}
 
-export default OverlaySettingsTab;
+export default OverlaySettingsTab

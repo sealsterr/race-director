@@ -14,9 +14,23 @@ tmp/
 
 # env / secrets
 .env
+.env.*
 .env.local
 .codex/
 .impeccable.md
+*.pem
+*.key
+*.pfx
+*.p12
+*.cer
+*.crt
+*.kdbx
+*.jks
+*.keystore
+*.ovpn
+*.db
+*.sqlite
+*.sqlite3
 
 # editor
 .vscode/

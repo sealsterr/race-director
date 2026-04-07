@@ -14,8 +14,7 @@ function createStanding(
     carName: standing.carName ?? 'Prototype',
     lastLapTime: standing.lastLapTime ?? 191.214,
     bestLapTime: standing.bestLapTime ?? 190.982,
-    currentSectors:
-      standing.currentSectors ?? { sector1: 32.114, sector2: 58.224, sector3: null },
+    currentSectors: standing.currentSectors ?? { sector1: 32.114, sector2: 58.224, sector3: null },
     bestSectors: standing.bestSectors ?? { sector1: 31.982, sector2: 57.941, sector3: null },
     gapToLeader: standing.gapToLeader ?? null,
     intervalToAhead: standing.intervalToAhead ?? null,
@@ -39,6 +38,7 @@ export const TOWER_PREVIEW_SESSION: SessionInfo = {
   currentLap: 19,
   totalLaps: 24,
   timeRemaining: 1542,
+  totalSessionTime: 8640,
   sessionTime: 7200,
   flagState: 'GREEN',
   numCars: 8,

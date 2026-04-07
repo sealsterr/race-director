@@ -1,66 +1,62 @@
-import React, {
-  useEffect,
-  useRef,
-  type KeyboardEvent as ReactKeyboardEvent,
-} from "react";
-import { AlertTriangle, Trash2, X } from "lucide-react";
+import React, { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { AlertTriangle, Trash2, X } from 'lucide-react'
 
 interface DiscardSettingsPopupProps {
-  onCancel: () => void;
-  onConfirm: () => void;
+  onCancel: () => void
+  onConfirm: () => void
 }
 
 const DiscardSettingsPopup = ({
   onCancel,
-  onConfirm,
+  onConfirm
 }: DiscardSettingsPopupProps): React.ReactElement => {
-  const popupRef = useRef<HTMLDivElement | null>(null);
+  const popupRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    popupRef.current?.querySelector<HTMLButtonElement>("[data-discard-cancel='true']")?.focus();
-  }, []);
+    popupRef.current?.querySelector<HTMLButtonElement>("[data-discard-cancel='true']")?.focus()
+  }, [])
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>): void => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      event.stopPropagation();
-      onCancel();
-      return;
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      event.stopPropagation()
+      onCancel()
+      return
     }
 
-    if (event.key !== "Tab" || !popupRef.current) return;
+    if (event.key !== 'Tab' || !popupRef.current) return
 
     const focusable = Array.from(
       popupRef.current.querySelectorAll<HTMLElement>(
         'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
       )
-    );
+    )
     if (focusable.length === 0) {
-      event.preventDefault();
-      return;
+      event.preventDefault()
+      return
     }
 
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    const active = document.activeElement instanceof HTMLElement ? document.activeElement : null
 
     if (!event.shiftKey && active === last) {
-      event.preventDefault();
-      first.focus();
+      event.preventDefault()
+      first.focus()
     }
 
     if (event.shiftKey && active === first) {
-      event.preventDefault();
-      last.focus();
+      event.preventDefault()
+      last.focus()
     }
-  };
+  }
 
   return (
     <div
       className="absolute inset-0 z-20 flex items-center justify-center bg-black/68 px-4 py-6 backdrop-blur-[2px]"
       onClick={(event) => {
-        if (event.target !== event.currentTarget) return;
-        onCancel();
+        if (event.target !== event.currentTarget) return
+        onCancel()
       }}
     >
       <div
@@ -83,10 +79,7 @@ const DiscardSettingsPopup = ({
               <p className="text-xs font-bold uppercase tracking-[0.24em] text-rd-accent">
                 Unsaved Changes
               </p>
-              <h2
-                id="discard-settings-title"
-                className="mt-1 text-2xl font-semibold text-rd-text"
-              >
+              <h2 id="discard-settings-title" className="mt-1 text-2xl font-semibold text-rd-text">
                 Discard changes?
               </h2>
             </div>
@@ -130,7 +123,7 @@ const DiscardSettingsPopup = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default DiscardSettingsPopup;
+export default DiscardSettingsPopup

@@ -1,64 +1,61 @@
-import { useEffect, useRef } from "react";
-import type { LogType, WindowId } from "../../../types/dashboard";
-import type { DashboardSettings } from "../settings/types";
+import { useEffect, useRef } from 'react'
+import type { LogType, WindowId } from '../../../types/dashboard'
+import type { DashboardSettings } from '../settings/types'
 
 interface UseDashboardStartupParams {
-  settings: DashboardSettings;
-  onLog: (message: string, type?: LogType) => void;
-  onWindowOpenStatus: (id: WindowId, isOpen: boolean) => void;
+  settings: DashboardSettings
+  onLog: (message: string, type?: LogType) => void
+  onWindowOpenStatus: (id: WindowId, isOpen: boolean) => void
 }
 
-const STARTUP_WINDOWS: Array<{ enabled: boolean; id: WindowId; label: string }> = [];
+const STARTUP_WINDOWS: Array<{ enabled: boolean; id: WindowId; label: string }> = []
 
 const useDashboardStartup = ({
   settings,
   onLog,
-  onWindowOpenStatus,
+  onWindowOpenStatus
 }: UseDashboardStartupParams): void => {
-  const hasAppliedStartupRef = useRef(false);
+  const hasAppliedStartupRef = useRef(false)
 
   useEffect(() => {
-    if (hasAppliedStartupRef.current) return;
-    hasAppliedStartupRef.current = true;
+    if (hasAppliedStartupRef.current) return
+    hasAppliedStartupRef.current = true
 
     const startupWindows = [
       {
         enabled: settings.overlay.startupInfoWindow,
-        id: "INFO" as const,
-        label: "Info Window",
+        id: 'INFO' as const,
+        label: 'Info Window'
       },
       {
         enabled: settings.overlay.startupOverlayDashboard,
-        id: "OVERLAY-CONTROL" as const,
-        label: "Overlay Dashboard",
+        id: 'OVERLAY-CONTROL' as const,
+        label: 'Overlay Dashboard'
       },
-      ...STARTUP_WINDOWS,
-    ];
+      ...STARTUP_WINDOWS
+    ]
 
     const run = async (): Promise<void> => {
       for (const startupWindow of startupWindows) {
-        if (!startupWindow.enabled) continue;
-        await globalThis.api.windows.open(startupWindow.id);
-        onWindowOpenStatus(startupWindow.id, true);
-        onLog(`Startup opened ${startupWindow.label}.`, "SYSTEM");
+        if (!startupWindow.enabled) continue
+        await globalThis.api.windows.open(startupWindow.id)
+        onWindowOpenStatus(startupWindow.id, true)
+        onLog(`Startup opened ${startupWindow.label}.`, 'SYSTEM')
       }
 
-      if (!settings.network.autoConnectOnLaunch) return;
+      if (!settings.network.autoConnectOnLaunch) return
       onLog(
         `Startup connecting to ${settings.network.apiUrl} (${settings.network.pollRateMs}ms).`,
-        "SYSTEM"
-      );
+        'SYSTEM'
+      )
       try {
-        await globalThis.api.connect(
-          settings.network.apiUrl,
-          settings.network.pollRateMs
-        );
+        await globalThis.api.connect(settings.network.apiUrl, settings.network.pollRateMs)
       } catch {
-        onLog("Startup auto-connect attempt failed.", "WARNING");
+        onLog('Startup auto-connect attempt failed.', 'WARNING')
       }
-    };
+    }
 
-    void run();
+    void run()
   }, [
     onLog,
     onWindowOpenStatus,
@@ -66,8 +63,8 @@ const useDashboardStartup = ({
     settings.network.autoConnectOnLaunch,
     settings.network.pollRateMs,
     settings.overlay.startupInfoWindow,
-    settings.overlay.startupOverlayDashboard,
-  ]);
-};
+    settings.overlay.startupOverlayDashboard
+  ])
+}
 
-export default useDashboardStartup;
+export default useDashboardStartup

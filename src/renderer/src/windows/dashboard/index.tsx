@@ -111,7 +111,7 @@ const Dashboard = (): React.ReactElement => {
   const handleSettingsClick = useCallback(() => {
     openSettings()
   }, [openSettings])
-  useDashboardViewportScale(settings.general.uiScale)
+  useDashboardViewportScale()
 
   const handleResetPanelLayouts = useCallback(async (): Promise<void> => {
     globalThis.dispatchEvent(new Event(DASHBOARD_LAYOUT_RESET_EVENT))

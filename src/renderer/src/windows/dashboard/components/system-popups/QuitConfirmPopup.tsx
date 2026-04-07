@@ -1,13 +1,13 @@
-import React from "react";
-import { AlertTriangle, Power, X } from "lucide-react";
+import React from 'react'
+import { AlertTriangle, Power, X } from 'lucide-react'
 
 interface QuitConfirmPopupProps {
-  dontAskAgain: boolean;
-  isBusy?: boolean;
-  errorMessage?: string | null;
-  onDontAskAgainChange: (value: boolean) => void;
-  onCancel: () => void | Promise<void>;
-  onConfirm: () => void | Promise<void>;
+  dontAskAgain: boolean
+  isBusy?: boolean
+  errorMessage?: string | null
+  onDontAskAgainChange: (value: boolean) => void
+  onCancel: () => void | Promise<void>
+  onConfirm: () => void | Promise<void>
 }
 
 const QuitConfirmPopup = ({
@@ -16,7 +16,7 @@ const QuitConfirmPopup = ({
   errorMessage = null,
   onDontAskAgainChange,
   onCancel,
-  onConfirm,
+  onConfirm
 }: QuitConfirmPopupProps): React.ReactElement => {
   return (
     <div className="w-full max-w-[490px] p-3 text-rd-text">
@@ -30,9 +30,7 @@ const QuitConfirmPopup = ({
               <p className="text-xs font-bold uppercase tracking-[0.24em] text-rd-accent">
                 Confirm Quit
               </p>
-              <h1 className="mt-1 text-2xl font-semibold text-rd-text">
-                Quit RaceDirector?
-              </h1>
+              <h1 className="mt-1 text-2xl font-semibold text-rd-text">Quit RaceDirector?</h1>
             </div>
           </div>
           <button
@@ -57,7 +55,7 @@ const QuitConfirmPopup = ({
               disabled={isBusy}
               className="h-4 w-4 appearance-none rounded border border-rd-border bg-rd-surface shadow-inner checked:border-rd-accent checked:bg-rd-accent focus:outline-none focus:ring-0"
             />
-            <span className="text-sm text-rd-text">Don't ask me again</span>
+            <span className="text-sm text-rd-text">Don&apos;t ask me again</span>
           </label>
           {errorMessage ? (
             <p className="mt-4 rounded-lg border border-rd-error/30 bg-rd-error/10 px-3 py-2 text-xs text-rd-error">
@@ -85,7 +83,7 @@ const QuitConfirmPopup = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default QuitConfirmPopup;
+export default QuitConfirmPopup

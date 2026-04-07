@@ -1,36 +1,36 @@
-import React from "react";
-import WindowNotice from "./WindowNotice";
+import React from 'react'
+import WindowNotice from './WindowNotice'
 
 interface RendererErrorBoundaryProps {
-  children: React.ReactNode;
-  title: string;
-  variant?: "window" | "overlay";
+  children: React.ReactNode
+  title: string
+  variant?: 'window' | 'overlay'
 }
 
 interface RendererErrorBoundaryState {
-  hasError: boolean;
+  hasError: boolean
 }
 
 class RendererErrorBoundary extends React.Component<
   RendererErrorBoundaryProps,
   RendererErrorBoundaryState
 > {
-  state: RendererErrorBoundaryState = { hasError: false };
+  state: RendererErrorBoundaryState = { hasError: false }
 
   static getDerivedStateFromError(): RendererErrorBoundaryState {
-    return { hasError: true };
+    return { hasError: true }
   }
 
   componentDidCatch(error: Error): void {
-    console.error(`Renderer crash in ${this.props.title}:`, error);
+    console.error(`Renderer crash in ${this.props.title}:`, error)
   }
 
   render(): React.ReactNode {
     if (!this.state.hasError) {
-      return this.props.children;
+      return this.props.children
     }
 
-    if (this.props.variant === "overlay") {
+    if (this.props.variant === 'overlay') {
       return (
         <div className="flex h-screen w-screen items-center justify-center bg-transparent p-4">
           <WindowNotice
@@ -42,7 +42,7 @@ class RendererErrorBoundary extends React.Component<
             onAction={() => globalThis.location.reload()}
           />
         </div>
-      );
+      )
     }
 
     return (
@@ -55,8 +55,8 @@ class RendererErrorBoundary extends React.Component<
           onAction={() => globalThis.location.reload()}
         />
       </div>
-    );
+    )
   }
 }
 
-export default RendererErrorBoundary;
+export default RendererErrorBoundary

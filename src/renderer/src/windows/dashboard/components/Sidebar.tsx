@@ -13,7 +13,7 @@ interface SidebarProps {
   onDownloadUpdate: () => void
 }
 
-// * -- icon map --
+//* icon map
 const WINDOW_DEFINITIONS: Omit<WindowItem, 'isOpen'>[] = [
   {
     id: 'INFO',

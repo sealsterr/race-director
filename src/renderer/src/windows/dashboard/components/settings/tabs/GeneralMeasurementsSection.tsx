@@ -8,11 +8,7 @@ interface GeneralMeasurementsSectionProps {
   onChange: (updater: (prev: DashboardSettings) => DashboardSettings) => void
 }
 
-type MeasurementSettingKey =
-  | 'speedUnit'
-  | 'temperatureUnit'
-  | 'distanceUnit'
-  | 'pressureUnit'
+type MeasurementSettingKey = 'speedUnit' | 'temperatureUnit' | 'distanceUnit' | 'pressureUnit'
 
 const MEASUREMENT_SETTING_DEFINITIONS: ReadonlyArray<{
   key: MeasurementSettingKey

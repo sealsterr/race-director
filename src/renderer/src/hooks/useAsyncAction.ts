@@ -1,69 +1,60 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState } from 'react'
 
-export const getErrorMessage = (
-  error: unknown,
-  fallbackMessage: string
-): string => {
+export const getErrorMessage = (error: unknown, fallbackMessage: string): string => {
   if (error instanceof Error && error.message.trim().length > 0) {
-    return error.message;
+    return error.message
   }
 
-  if (typeof error === "string" && error.trim().length > 0) {
-    return error;
+  if (typeof error === 'string' && error.trim().length > 0) {
+    return error
   }
 
-  return fallbackMessage;
-};
+  return fallbackMessage
+}
 
 interface UseAsyncActionResult {
-  isRunning: boolean;
-  errorMessage: string | null;
-  clearError: () => void;
-  run: (
-    action: () => Promise<void>,
-    fallbackMessage: string
-  ) => Promise<boolean>;
+  isRunning: boolean
+  errorMessage: string | null
+  clearError: () => void
+  run: (action: () => Promise<void>, fallbackMessage: string) => Promise<boolean>
 }
 
 const useAsyncAction = (): UseAsyncActionResult => {
-  const [isRunning, setIsRunning] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isRunning, setIsRunning] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const clearError = useCallback(() => {
-    setErrorMessage(null);
-  }, []);
+    setErrorMessage(null)
+  }, [])
 
   const run = useCallback(
-    async (
-      action: () => Promise<void>,
-      fallbackMessage: string
-    ): Promise<boolean> => {
+    async (action: () => Promise<void>, fallbackMessage: string): Promise<boolean> => {
       if (isRunning) {
-        return false;
+        return false
       }
 
-      setIsRunning(true);
-      setErrorMessage(null);
+      setIsRunning(true)
+      setErrorMessage(null)
 
       try {
-        await action();
-        return true;
+        await action()
+        return true
       } catch (error) {
-        setErrorMessage(getErrorMessage(error, fallbackMessage));
-        return false;
+        setErrorMessage(getErrorMessage(error, fallbackMessage))
+        return false
       } finally {
-        setIsRunning(false);
+        setIsRunning(false)
       }
     },
     [isRunning]
-  );
+  )
 
   return {
     isRunning,
     errorMessage,
     clearError,
-    run,
-  };
-};
+    run
+  }
+}
 
-export default useAsyncAction;
+export default useAsyncAction

@@ -1,10 +1,24 @@
 import { create } from 'zustand'
 import type { CarClass } from '../types/lmu'
+import {
+  DEFAULT_DASHBOARD_SETTINGS,
+  loadDashboardSettingsFromStorage,
+  resolvePaletteColors
+} from '../windows/dashboard/settings/defaults'
 
-// * -- types --
+//* types
 export type OverlayId = 'OVERLAY-TOWER' | 'OVERLAY-DRIVER' | 'OVERLAY-GAP' | 'OVERLAY-SESSION'
 
-// * -- specific settings --
+function getDefaultSessionProgressBarColor(): string {
+  try {
+    const settings = loadDashboardSettingsFromStorage(globalThis.localStorage)
+    return resolvePaletteColors(settings.general).accent
+  } catch {
+    return resolvePaletteColors(DEFAULT_DASHBOARD_SETTINGS.general).accent
+  }
+}
+
+//* specific settings
 export type TowerRaceMode = 'GAP_AHEAD' | 'GAP_LEADER' | 'PITS' | 'FUEL' | 'TYRES' | 'POSITIONS'
 
 export type TowerQualiMode = 'QUALI_GAP' | 'QUALI_TIMES'
@@ -62,17 +76,17 @@ export interface GapSettings {
 }
 
 export interface SessionSettings {
-  showTrackName: boolean
+  customLabel: string
   showSessionType: boolean
   showTimeRemaining: boolean
   showLapCount: boolean
-  showFlagState: boolean
-  colorScheme: 'default' | 'minimal' | 'bold'
+  progressBarColor: string
+  animateProgressPulse: boolean
 }
 
 export type OverlaySpecificSettings = TowerSettings | DriverSettings | GapSettings | SessionSettings
 
-// * -- base config --
+//* base config
 export interface OverlayConfig<T extends OverlaySpecificSettings = OverlaySpecificSettings> {
   id: OverlayId
   enabled: boolean
@@ -85,7 +99,7 @@ export interface OverlayConfig<T extends OverlaySpecificSettings = OverlaySpecif
   settings: T
 }
 
-// * -- default configs --
+//* default configs
 const DEFAULT_CONFIGS: OverlayConfig[] = [
   {
     id: 'OVERLAY-TOWER',
@@ -165,16 +179,16 @@ const DEFAULT_CONFIGS: OverlayConfig[] = [
     opacity: 90,
     scale: 1,
     x: 20,
-    y: 20,
+    y: 22,
     displayId: 0,
     dragMode: false,
     settings: {
-      showTrackName: true,
+      customLabel: 'World Endurance Championship',
       showSessionType: true,
       showTimeRemaining: true,
       showLapCount: true,
-      showFlagState: true,
-      colorScheme: 'default'
+      progressBarColor: getDefaultSessionProgressBarColor(),
+      animateProgressPulse: true
     } satisfies SessionSettings
   }
 ]
@@ -215,7 +229,7 @@ export function normalizeOverlayConfigs(overlays: OverlayConfig[]): OverlayConfi
   })
 }
 
-// * -- store shape --
+//* store shape
 interface OverlayStore {
   overlays: OverlayConfig[]
   savePath: string

@@ -10,104 +10,126 @@ import type {
   ConnectionStatus,
   SectorTime,
   Penalty,
-  TyreSet,
-} from "../../shared/types";
-import {
-  telemetryBridge,
-  type TelemetryDriverSnapshot,
-} from "./lmuTelemetryBridge";
-import { loadPlayerProfile } from "./lmuPlayerProfile";
+  TyreSet
+} from '../../shared/types'
+import { telemetryBridge, type TelemetryDriverSnapshot } from './lmuTelemetryBridge'
+import { loadPlayerProfile } from './lmuPlayerProfile'
 
-// * -- raw API shapes --
-// * -- these match what the LMU REST API actually returns --
+//* raw API shapes
+//* these match what the LMU REST API actually returns
 interface RawSessionInfo {
-  session: string;           // "PRACTICE1", "QUALIFY1", "RACE1", etc.
-  trackName: string;
-  currentEventTime: number;  // elapsed time in seconds
-  endEventTime: number;      // session end time in seconds
-  maxTime: number;           // max session time in seconds
-  timeRemainingInGamePhase: number;      // in s
-  maximumLaps: number;       // 4294967295 means no lap limit
-  gamePhase: number;         // numeric phase (not used for flag)
-  yellowFlagState: string;   // "NONE", "PENDING", "RESUME", "FULLCOURSE"
-  inRealtime: boolean;
-  numberOfVehicles: number;
-  sectorFlag: string[];      // per-sector flag states
-  
+  session: string // "PRACTICE1", "QUALIFY1", "RACE1", etc.
+  trackName: string
+  currentEventTime: number // elapsed time in seconds
+  endEventTime: number // session end time in seconds
+  maxTime: number // max session time in seconds
+  timeRemainingInGamePhase: number // in s
+  maximumLaps: number // 4294967295 means no lap limit
+  gamePhase: number // numeric phase (not used for flag)
+  yellowFlagState: string // "NONE", "PENDING", "RESUME", "FULLCOURSE"
+  inRealtime: boolean
+  numberOfVehicles: number
+  sectorFlag: string[] // per-sector flag states
 }
 
 interface RawVehicleStanding {
-  position: number;
-  carClass: string;          // "Hyper", "LMP2", "LMP3", "GT3", etc.
-  carNumber: string;         // often empty string!
-  slotID: number;            // reliable unique identifier
-  driverName: string;
-  fullTeamName: string;
-  vehicleName: string;       // "Aston Martin THOR Team 2025 #007:EC"
-  vehicleFilename: string;   // "007_25_THOEAFB145B"
-  lastLapTime: number;       // 0.0 if no lap set
-  bestLapTime: number;       // -1.0 if no lap set
-  timeBehindLeader: number;
-  timeBehindNext: number;
-  lapsCompleted: number;
-  lapsBehindLeader: number;
-  lapsBehindNext: number;
-  pitting: boolean;
-  inGarageStall: boolean;
-  pitstops: number;
-  finishStatus: string;      // "FSTAT_NONE", "FSTAT_FINISHED", "FSTAT_DNF", "FSTAT_DQ"
-  penalties: number;         // count of pending penalties
-  fuelFraction: number;      // 0.0 - 1.0
-  flag: string;              // per-car flag: "GREEN", "YELLOW", etc.
-  gamePhase: string;         // per-car game phase string
-  sector: string;            // "SECTOR1", "SECTOR2", "SECTOR3"
-  player: boolean;
-  focus: boolean;
-  hasFocus: boolean;
-  currentSectorTime1: number;
-  currentSectorTime2: number;
-  lastSectorTime1: number;
-  lastSectorTime2: number;
-  bestLapSectorTime1: number;
-  bestLapSectorTime2: number;
-  bestSectorTime1: number;
-  bestSectorTime2: number;
-  qualification: number;     // grid position
+  position: number
+  carClass: string // "Hyper", "LMP2", "LMP3", "GT3", etc.
+  carNumber: string // often empty string!
+  slotID: number // reliable unique identifier
+  driverName: string
+  fullTeamName: string
+  vehicleName: string // "Aston Martin THOR Team 2025 #007:EC"
+  vehicleFilename: string // "007_25_THOEAFB145B"
+  lastLapTime: number // 0.0 if no lap set
+  bestLapTime: number // -1.0 if no lap set
+  timeBehindLeader: number
+  timeBehindNext: number
+  lapsCompleted: number
+  lapsBehindLeader: number
+  lapsBehindNext: number
+  pitting: boolean
+  inGarageStall: boolean
+  pitstops: number
+  finishStatus: string // "FSTAT_NONE", "FSTAT_FINISHED", "FSTAT_DNF", "FSTAT_DQ"
+  penalties: number // count of pending penalties
+  fuelFraction: number // 0.0 - 1.0
+  flag: string // per-car flag: "GREEN", "YELLOW", etc.
+  gamePhase: string // per-car game phase string
+  sector: string // "SECTOR1", "SECTOR2", "SECTOR3"
+  player: boolean
+  focus: boolean
+  hasFocus: boolean
+  currentSectorTime1: number
+  currentSectorTime2: number
+  lastSectorTime1: number
+  lastSectorTime2: number
+  bestLapSectorTime1: number
+  bestLapSectorTime2: number
+  bestSectorTime1: number
+  bestSectorTime2: number
+  qualification: number // grid position
 }
 
-// * -- mapping helpers --
+//* mapping helpers
 const mapSessionType = (session: string): SessionType => {
-  const upper = session.toUpperCase();
-  
-  if (upper.startsWith("PRACTICE")) return "PRACTICE";
-  if (upper.startsWith("QUALIFY")) return "QUALIFYING";
-  if (upper.startsWith("RACE")) return "RACE";
+  const upper = session.toUpperCase()
 
-  return "UNKNOWN";
-};
+  if (upper.startsWith('PRACTICE')) return 'PRACTICE'
+  if (upper.startsWith('QUALIFY')) return 'QUALIFYING'
+  if (upper.startsWith('RACE')) return 'RACE'
 
-const mapFlagState = (yellowFlagState: string, sectorFlags: string[]): FlagState => {
-  // * -- check for full course yellow / safety car first --
-  const upper = yellowFlagState.toUpperCase();
+  return 'UNKNOWN'
+}
+
+const hasFlagToken = (value: string, token: string): boolean => value.toUpperCase().includes(token)
+
+const mapFlagState = (
+  yellowFlagState: string,
+  sectorFlags: string[],
+  vehicles: RawVehicleStanding[],
+  timeRemaining: number
+): FlagState => {
+  //* check for full course yellow / safety car first
+  const upper = yellowFlagState.toUpperCase()
   const map: Record<string, FlagState> = {
-    NONE: "GREEN",
-    PENDING: "YELLOW",
-    RESUME: "YELLOW",
-    FULLCOURSE: "FULL_COURSE_YELLOW",
-    SAFETYCAR: "SAFETY_CAR",
-  };
+    NONE: 'GREEN',
+    PENDING: 'YELLOW',
+    RESUME: 'YELLOW',
+    FULLCOURSE: 'FULL_COURSE_YELLOW',
+    SAFETYCAR: 'SAFETY_CAR'
+  }
+  const vehicleFlags = vehicles.flatMap((vehicle) => [vehicle.flag ?? '', vehicle.gamePhase ?? ''])
+  const allFlags = [upper, ...sectorFlags, ...vehicleFlags].map((flag) => flag.toUpperCase())
 
-  // * -- check sector flags for any yellows --
-  const hasYellow = sectorFlags.some((f) =>
-    f.toUpperCase().includes("YELLOW")
-  );
-  if (hasYellow && upper === "NONE") return "YELLOW";
+  const hasChequeredSignal =
+    (timeRemaining <= 0 &&
+      vehicles.some(
+        (vehicle) => (vehicle.finishStatus ?? '').toUpperCase() === 'FSTAT_FINISHED'
+      )) ||
+    allFlags.some(
+      (flag) =>
+        hasFlagToken(flag, 'CHEQU') ||
+        hasFlagToken(flag, 'CHECK') ||
+        hasFlagToken(flag, 'BLACKWHITE')
+    )
+  if (hasChequeredSignal) return 'CHEQUERED'
 
-  return map[upper] ?? "NONE";
-};
+  const hasRed = allFlags.some((flag) => hasFlagToken(flag, 'RED'))
+  if (hasRed) return 'RED'
+
+  //* check sector flags for any yellows
+  const hasYellow = allFlags.some((flag) => hasFlagToken(flag, 'YELLOW'))
+  if (hasYellow && upper === 'NONE') return 'YELLOW'
+
+  return map[upper] ?? 'NONE'
+}
 
 const normalizeClassToken = (value: string): string =>
-  value.toUpperCase().trim().replace(/[^A-Z0-9]/g, "");
+  value
+    .toUpperCase()
+    .trim()
+    .replace(/[^A-Z0-9]/g, '')
 
 const mapCarClass = (
   vehicleClass: string,
@@ -116,287 +138,284 @@ const mapCarClass = (
 ): CarClass => {
   const candidates = [vehicleClass, vehicleName, vehicleFilename]
     .map(normalizeClassToken)
-    .filter(Boolean);
+    .filter(Boolean)
 
   const exactMap: Record<string, CarClass> = {
-    HYPER: "HYPERCAR",
-    HYPERCAR: "HYPERCAR",
-    LMH: "HYPERCAR",
-    LMHYPERCAR: "HYPERCAR",
-    LMDH: "HYPERCAR",
-    LMP2: "LMP2",
-    LMP2PRO: "LMP2",
-    LMP2PROAM: "LMP2",
-    LMP2AM: "LMP2",
-    LMP3: "LMP3",
-    GT3: "LMGT3",
-    LMGT3: "LMGT3",
-    GTE: "GTE",
-  };
+    HYPER: 'HYPERCAR',
+    HYPERCAR: 'HYPERCAR',
+    LMH: 'HYPERCAR',
+    LMHYPERCAR: 'HYPERCAR',
+    LMDH: 'HYPERCAR',
+    LMP2: 'LMP2',
+    LMP2PRO: 'LMP2',
+    LMP2PROAM: 'LMP2',
+    LMP2AM: 'LMP2',
+    LMP3: 'LMP3',
+    GT3: 'LMGT3',
+    LMGT3: 'LMGT3',
+    GTE: 'GTE'
+  }
 
   for (const candidate of candidates) {
-    const exact = exactMap[candidate];
-    if (exact) return exact;
+    const exact = exactMap[candidate]
+    if (exact) return exact
   }
 
   for (const candidate of candidates) {
     if (
-      candidate.includes("HYPER") ||
-      candidate.includes("LMH") ||
-      candidate.includes("LMDH") ||
-      candidate.includes("499P") ||
-      candidate.includes("963") ||
-      candidate.includes("9X8") ||
-      candidate.includes("GR010") ||
-      candidate.includes("VALKYRIE") ||
-      candidate.includes("VSERIESR") ||
-      candidate.includes("MHYBRIDV8") ||
-      candidate.includes("A424")
+      candidate.includes('HYPER') ||
+      candidate.includes('LMH') ||
+      candidate.includes('LMDH') ||
+      candidate.includes('499P') ||
+      candidate.includes('963') ||
+      candidate.includes('9X8') ||
+      candidate.includes('GR010') ||
+      candidate.includes('VALKYRIE') ||
+      candidate.includes('VSERIESR') ||
+      candidate.includes('MHYBRIDV8') ||
+      candidate.includes('A424')
     ) {
-      return "HYPERCAR";
+      return 'HYPERCAR'
     }
 
     if (
-      candidate.includes("LMP2") ||
-      candidate.includes("ORECA07") ||
-      candidate.includes("ORECA")
+      candidate.includes('LMP2') ||
+      candidate.includes('ORECA07') ||
+      candidate.includes('ORECA')
     ) {
-      return "LMP2";
+      return 'LMP2'
     }
 
-    if (candidate.includes("LMP3")) {
-      return "LMP3";
+    if (candidate.includes('LMP3')) {
+      return 'LMP3'
     }
 
-    if (candidate.includes("LMGT3") || candidate.includes("GT3")) {
-      return "LMGT3";
+    if (candidate.includes('LMGT3') || candidate.includes('GT3')) {
+      return 'LMGT3'
     }
 
-    if (candidate.includes("GTE")) {
-      return "GTE";
+    if (candidate.includes('GTE')) {
+      return 'GTE'
     }
   }
 
-  return "UNKNOWN";
-};
+  return 'UNKNOWN'
+}
 
 const mapTyreCompound = (value?: string | null): TyreCompound => {
-  const upper = (value ?? "").toUpperCase();
-  if (upper.includes("SOFT") || upper === "S") return "SOFT";
-  if (upper.includes("MEDIUM") || upper.includes("MED") || upper === "M") return "MEDIUM";
-  if (upper.includes("HARD") || upper === "H") return "HARD";
-  if (upper.includes("WET") || upper.includes("INTER") || upper === "W") return "WET";
-  return "UNKNOWN";
-};
+  const upper = (value ?? '').toUpperCase()
+  if (upper.includes('SOFT') || upper === 'S') return 'SOFT'
+  if (upper.includes('MEDIUM') || upper.includes('MED') || upper === 'M') return 'MEDIUM'
+  if (upper.includes('HARD') || upper === 'H') return 'HARD'
+  if (upper.includes('WET') || upper.includes('INTER') || upper === 'W') return 'WET'
+  return 'UNKNOWN'
+}
 
 const mapDriverStatus = (v: RawVehicleStanding): DriverStatus => {
-  const finish = v.finishStatus.toUpperCase();
-  if (finish === "FSTAT_DQ") return "DISQUALIFIED";
-  if (finish === "FSTAT_DNF") return "RETIRED";
-  if (finish === "FSTAT_FINISHED") return "FINISHED";
-  if (v.pitting || v.inGarageStall) return "PITTING";
-  return "RACING";
-};
+  const finish = v.finishStatus.toUpperCase()
+  if (finish === 'FSTAT_DQ') return 'DISQUALIFIED'
+  if (finish === 'FSTAT_DNF') return 'RETIRED'
+  if (finish === 'FSTAT_FINISHED') return 'FINISHED'
+  if (v.pitting || v.inGarageStall) return 'PITTING'
+  return 'RACING'
+}
 
-// * -- extract car number from vehicleName or vehicleFilename as fallback --
-// * -- vehicleName format: "Make Model #007:EC" --
+//* extract car number from vehicleName or vehicleFilename as fallback
+//* vehicleName format: "Make Model #007:EC"
 const extractCarNumber = (v: RawVehicleStanding): string => {
-  if (v.carNumber && v.carNumber.trim() !== "") return v.carNumber;
+  if (v.carNumber && v.carNumber.trim() !== '') return v.carNumber
 
-  // * -- try to extract from vehicleName: "... #007:EC" → "007" --
-  const nameMatch = /#(\w+)/.exec(v.vehicleName);
-  if (nameMatch) return nameMatch[1];
+  //* try to extract from vehicleName: "... #007:EC" → "007"
+  const nameMatch = /#(\w+)/.exec(v.vehicleName)
+  if (nameMatch) return nameMatch[1]
 
-  // * -- fallback to slotID --
-  return String(v.slotID);
-};
+  //* fallback to slotID
+  return String(v.slotID)
+}
 
-// * -- clean up vehicle name for display --
-// * -- "Aston Martin THOR Team 2025 #007:EC" → "Aston Martin THOR" --
+//* clean up vehicle name for display
+//* "Aston Martin THOR Team 2025 #007:EC" → "Aston Martin THOR"
 const cleanCarName = (vehicleName: string): string => {
-  // * -- strip the "#xxx:XX" suffix --
-  return vehicleName.replace(/#\w+.*$/, "").trim();
-};
+  //* strip the "#xxx:XX" suffix
+  return vehicleName.replace(/#\w+.*$/, '').trim()
+}
 
-const normalizeLookup = (value: string): string =>
-  value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+const normalizeLookup = (value: string): string => value.toUpperCase().replace(/[^A-Z0-9]/g, '')
 
-const playerProfile = loadPlayerProfile();
+const playerProfile = loadPlayerProfile()
 
-const buildTyreSet = (
-  front: TyreCompound,
-  rear: TyreCompound
-): TyreSet | null => {
-  if (front === "UNKNOWN" && rear === "UNKNOWN") {
-    return null;
+const buildTyreSet = (front: TyreCompound, rear: TyreCompound): TyreSet | null => {
+  if (front === 'UNKNOWN' && rear === 'UNKNOWN') {
+    return null
   }
 
   return {
     frontLeft: front,
     frontRight: front,
     rearLeft: rear,
-    rearRight: rear,
-  };
-};
+    rearRight: rear
+  }
+}
 
 const resolveDriverNationality = (raw: RawVehicleStanding): string | null => {
   if (!playerProfile) {
-    return null;
+    return null
   }
 
-  const normalizedDriver = normalizeLookup(raw.driverName);
-  const normalizedCarNumber = normalizeLookup(extractCarNumber(raw));
-  const matchesPlayerName = normalizedDriver !== "" && (
-    normalizedDriver === normalizeLookup(playerProfile.playerName ?? "") ||
-    normalizedDriver === normalizeLookup(playerProfile.playerNick ?? "")
-  );
+  const normalizedDriver = normalizeLookup(raw.driverName)
+  const normalizedCarNumber = normalizeLookup(extractCarNumber(raw))
+  const matchesPlayerName =
+    normalizedDriver !== '' &&
+    (normalizedDriver === normalizeLookup(playerProfile.playerName ?? '') ||
+      normalizedDriver === normalizeLookup(playerProfile.playerNick ?? ''))
   const matchesVehicleNumber =
-    normalizedCarNumber !== "" &&
-    normalizedCarNumber === normalizeLookup(playerProfile.vehicleNumber ?? "");
+    normalizedCarNumber !== '' &&
+    normalizedCarNumber === normalizeLookup(playerProfile.vehicleNumber ?? '')
 
   return matchesPlayerName || (raw.player && matchesVehicleNumber)
     ? playerProfile.nationalityCode
-    : null;
-};
+    : null
+}
 
-function createTelemetryLookup(
-  telemetryCars: TelemetryDriverSnapshot[]
-): {
-  byDriverAndCar: Map<string, TelemetryDriverSnapshot>;
-  byVehicle: Map<string, TelemetryDriverSnapshot>;
-  byCarNumber: Map<string, TelemetryDriverSnapshot[]>;
+function createTelemetryLookup(telemetryCars: TelemetryDriverSnapshot[]): {
+  byDriverAndCar: Map<string, TelemetryDriverSnapshot>
+  byVehicle: Map<string, TelemetryDriverSnapshot>
+  byCarNumber: Map<string, TelemetryDriverSnapshot[]>
 } {
-  const byDriverAndCar = new Map<string, TelemetryDriverSnapshot>();
-  const byVehicle = new Map<string, TelemetryDriverSnapshot>();
-  const byCarNumber = new Map<string, TelemetryDriverSnapshot[]>();
+  const byDriverAndCar = new Map<string, TelemetryDriverSnapshot>()
+  const byVehicle = new Map<string, TelemetryDriverSnapshot>()
+  const byCarNumber = new Map<string, TelemetryDriverSnapshot[]>()
 
   for (const car of telemetryCars ?? []) {
-    const driverAndCarKey = `${normalizeLookup(car.driverName)}:${normalizeLookup(car.carNumber)}`;
+    const driverAndCarKey = `${normalizeLookup(car.driverName)}:${normalizeLookup(car.carNumber)}`
     if (normalizeLookup(car.driverName) && normalizeLookup(car.carNumber)) {
-      byDriverAndCar.set(driverAndCarKey, car);
+      byDriverAndCar.set(driverAndCarKey, car)
     }
 
-    const vehicleKey = normalizeLookup(cleanCarName(car.vehicleName));
+    const vehicleKey = normalizeLookup(cleanCarName(car.vehicleName))
     if (vehicleKey) {
-      byVehicle.set(vehicleKey, car);
+      byVehicle.set(vehicleKey, car)
     }
 
-    const carNumberKey = normalizeLookup(car.carNumber);
+    const carNumberKey = normalizeLookup(car.carNumber)
     if (carNumberKey) {
-      const matches = byCarNumber.get(carNumberKey) ?? [];
-      matches.push(car);
-      byCarNumber.set(carNumberKey, matches);
+      const matches = byCarNumber.get(carNumberKey) ?? []
+      matches.push(car)
+      byCarNumber.set(carNumberKey, matches)
     }
   }
 
-  return { byDriverAndCar, byVehicle, byCarNumber };
+  return { byDriverAndCar, byVehicle, byCarNumber }
 }
 
 function findTelemetryMatch(
   raw: RawVehicleStanding,
   lookup: ReturnType<typeof createTelemetryLookup>
 ): TelemetryDriverSnapshot | null {
-  const carNumber = normalizeLookup(extractCarNumber(raw));
-  const driverAndCarKey = `${normalizeLookup(raw.driverName)}:${carNumber}`;
-  const directMatch = lookup.byDriverAndCar.get(driverAndCarKey);
+  const carNumber = normalizeLookup(extractCarNumber(raw))
+  const driverAndCarKey = `${normalizeLookup(raw.driverName)}:${carNumber}`
+  const directMatch = lookup.byDriverAndCar.get(driverAndCarKey)
   if (directMatch) {
-    return directMatch;
+    return directMatch
   }
 
-  const byVehicle = lookup.byVehicle.get(normalizeLookup(cleanCarName(raw.vehicleName)));
+  const byVehicle = lookup.byVehicle.get(normalizeLookup(cleanCarName(raw.vehicleName)))
   if (byVehicle) {
-    return byVehicle;
+    return byVehicle
   }
 
-  const byCarNumber = lookup.byCarNumber.get(carNumber);
+  const byCarNumber = lookup.byCarNumber.get(carNumber)
   if (byCarNumber?.length === 1) {
-    return byCarNumber[0];
+    return byCarNumber[0]
   }
 
-  return null;
+  return null
 }
 
 const mapSectorTime = (s1: number, s2: number): SectorTime => ({
   sector1: s1 > 0 ? s1 : null,
   sector2: s2 > 0 ? s2 : null,
-  sector3: null, // * -- not available via REST --
-});
+  sector3: null //* not available via REST
+})
 
-// * -- build penalty array from count --
-// * -- REST only gives us a count, detail comes later via shared memory --
+//* build penalty array from count
+//* REST only gives us a count, detail comes later via shared memory
 const mapPenalties = (count: number): Penalty[] =>
-  count <= 0
-    ? []
-    : [{ type: "TIME_PENALTY" as const, time: 0, reason: `${count} pending` }];
+  count <= 0 ? [] : [{ type: 'TIME_PENALTY' as const, time: 0, reason: `${count} pending` }]
 
-// * -- transform functions --
-const transformSession = (
-  raw: RawSessionInfo,
-  vehicles: RawVehicleStanding[],
-): SessionInfo => {
-  const vehicleCount = raw.numberOfVehicles > 0 ? raw.numberOfVehicles : vehicles.length;
-  const current = Number.isFinite(raw.currentEventTime) 
-    ? raw.currentEventTime 
-    : 0;
-  const remainingDirect = Number.isFinite(raw.timeRemainingInGamePhase) && raw.timeRemainingInGamePhase >= 0 
-    ? raw.timeRemainingInGamePhase
-    : null;
-  const remainingFromMax = Number.isFinite(raw.maxTime) && raw.maxTime > 0
-    ? Math.max(0, raw.maxTime - current)
-    : null;               
-  const timeRemaining = remainingDirect ?? remainingFromMax ?? 0;
+//* transform functions
+const transformSession = (raw: RawSessionInfo, vehicles: RawVehicleStanding[]): SessionInfo => {
+  const vehicleCount = raw.numberOfVehicles > 0 ? raw.numberOfVehicles : vehicles.length
+  const current = Number.isFinite(raw.currentEventTime) ? raw.currentEventTime : 0
+  const remainingDirect =
+    Number.isFinite(raw.timeRemainingInGamePhase) && raw.timeRemainingInGamePhase >= 0
+      ? raw.timeRemainingInGamePhase
+      : null
+  const remainingFromMax =
+    Number.isFinite(raw.maxTime) && raw.maxTime > 0 ? Math.max(0, raw.maxTime - current) : null
+  const remainingFromEndEvent =
+    Number.isFinite(raw.endEventTime) && raw.endEventTime > 0
+      ? Math.max(0, raw.endEventTime - current)
+      : null
+  const timeRemaining = remainingDirect ?? remainingFromMax ?? remainingFromEndEvent ?? 0
+  const totalSessionTime =
+    Number.isFinite(raw.maxTime) && raw.maxTime > 0
+      ? raw.maxTime
+      : Number.isFinite(raw.endEventTime) && raw.endEventTime > 0
+        ? raw.endEventTime
+        : current + timeRemaining
 
-  // * -- laps --
-  const noLapLimit = raw.maximumLaps >= 4294967295 || raw.maximumLaps === 0;
+  //* laps
+  const noLapLimit = raw.maximumLaps >= 4294967295 || raw.maximumLaps === 0
 
   // use leader lapCompleted + 1
-  const leader = vehicles.length > 0 
-    ? vehicles.reduce<RawVehicleStanding>((best, v) => (v.position < best.position ? v : best), vehicles[0])
-    : null;
+  const leader =
+    vehicles.length > 0
+      ? vehicles.reduce<RawVehicleStanding>(
+          (best, v) => (v.position < best.position ? v : best),
+          vehicles[0]
+        )
+      : null
 
-  const currentLap = leader && Number.isFinite(leader.lapsCompleted)
-    ? Math.max(0, leader.lapsCompleted) + 1
-    : 0;
+  const currentLap =
+    leader && Number.isFinite(leader.lapsCompleted) ? Math.max(0, leader.lapsCompleted) + 1 : 0
 
-  // * -- on track --
+  //* on track
   const numCarsOnTrack = vehicles.filter((v) => {
-    const finish = (v.finishStatus ?? "").toUpperCase();
-    const inactiveFinish = 
-      finish === "FSTAT_DNF" ||
-      finish === "FSTAT_DQ" ||
-      finish === "FSTAT_FINISHED";
-    
-    if (inactiveFinish) return false;
-    if (v.inGarageStall) return false;
+    const finish = (v.finishStatus ?? '').toUpperCase()
+    const inactiveFinish =
+      finish === 'FSTAT_DNF' || finish === 'FSTAT_DQ' || finish === 'FSTAT_FINISHED'
 
-    return true;
-  }).length;
+    if (inactiveFinish) return false
+    if (v.inGarageStall) return false
+
+    return true
+  }).length
 
   return {
     sessionType: mapSessionType(raw.session),
-    trackName: raw.trackName || "Unknown Track",
+    trackName: raw.trackName || 'Unknown Track',
     currentLap,
     totalLaps: noLapLimit ? 0 : raw.maximumLaps,
     timeRemaining,
+    totalSessionTime,
     sessionTime: current,
-    flagState: mapFlagState(raw.yellowFlagState, raw.sectorFlag),
+    flagState: mapFlagState(raw.yellowFlagState, raw.sectorFlag, vehicles, timeRemaining),
     numCars: vehicleCount,
     numCarsOnTrack,
-    isActive: vehicleCount > 0,
-  };
-};
+    isActive: vehicleCount > 0
+  }
+}
 
 const transformVehicle = (
   raw: RawVehicleStanding,
   telemetry: TelemetryDriverSnapshot | null
 ): DriverStanding => {
-  const frontTyreCompound = mapTyreCompound(telemetry?.frontTyreCompound);
-  const rearTyreCompound = mapTyreCompound(telemetry?.rearTyreCompound);
-  const tyreSet = buildTyreSet(frontTyreCompound, rearTyreCompound);
+  const frontTyreCompound = mapTyreCompound(telemetry?.frontTyreCompound)
+  const rearTyreCompound = mapTyreCompound(telemetry?.rearTyreCompound)
+  const tyreSet = buildTyreSet(frontTyreCompound, rearTyreCompound)
   const unifiedTyreCompound =
-    tyreSet && frontTyreCompound === rearTyreCompound
-      ? frontTyreCompound
-      : "UNKNOWN";
+    tyreSet && frontTyreCompound === rearTyreCompound ? frontTyreCompound : 'UNKNOWN'
 
   return {
     position: raw.position,
@@ -423,76 +442,76 @@ const transformVehicle = (
     isPlayer: raw.player,
     isFocused: raw.focus || raw.hasFocus,
     slotId: raw.slotID,
-    telemetryId: telemetry?.id ?? null,
-  };
-};
+    telemetryId: telemetry?.id ?? null
+  }
+}
 
-// * -- LmuApiClient --
-type StateUpdateCallback = (state: AppState) => void;
-type ConnectionCallback = (status: ConnectionStatus) => void;
-const DEFAULT_LMU_BASE_URL = "http://localhost:6397";
-const DEFAULT_POLL_RATE_MS = 200;
-const MIN_POLL_RATE_MS = 50;
-const MAX_POLL_RATE_MS = 2_000;
-const LMU_PING_TIMEOUT_MS = 3_000;
-const LMU_REQUEST_TIMEOUT_MS = 3_000;
-const LMU_DISCONNECT_NOTICE_DELAY_MS = 3_000;
+//* LmuApiClient
+type StateUpdateCallback = (state: AppState) => void
+type ConnectionCallback = (status: ConnectionStatus) => void
+const DEFAULT_LMU_BASE_URL = 'http://localhost:6397'
+const DEFAULT_POLL_RATE_MS = 200
+const MIN_POLL_RATE_MS = 50
+const MAX_POLL_RATE_MS = 2_000
+const LMU_PING_TIMEOUT_MS = 3_000
+const LMU_REQUEST_TIMEOUT_MS = 3_000
+const LMU_DISCONNECT_NOTICE_DELAY_MS = 3_000
 
 export class LmuApiClient {
-  private baseUrl: string = DEFAULT_LMU_BASE_URL;
-  private pollRate: number = DEFAULT_POLL_RATE_MS;
-  private telemetryRate: number = 33;
-  private pollTimer: ReturnType<typeof setInterval> | null = null;
-  private delayedDisconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private pollInFlight = false;
-  private consecutivePollFailures = 0;
+  private baseUrl: string = DEFAULT_LMU_BASE_URL
+  private pollRate: number = DEFAULT_POLL_RATE_MS
+  private telemetryRate: number = 33
+  private pollTimer: ReturnType<typeof setInterval> | null = null
+  private delayedDisconnectTimer: ReturnType<typeof setTimeout> | null = null
+  private pollInFlight = false
+  private consecutivePollFailures = 0
   private currentState: AppState = {
-    connection: "DISCONNECTED",
+    connection: 'DISCONNECTED',
     session: null,
     standings: [],
-    lastUpdated: null,
-  };
+    lastUpdated: null
+  }
 
-  private onStateUpdate: StateUpdateCallback | null = null;
-  private onConnectionChange: ConnectionCallback | null = null;
+  private onStateUpdate: StateUpdateCallback | null = null
+  private onConnectionChange: ConnectionCallback | null = null
 
-  // * -- public API --
+  //* public API
   public configure(url: string, pollRate: number): void {
-    this.baseUrl = this.toSafeBaseUrl(url);
-    const safePollRate = Number.isFinite(pollRate) ? Math.round(pollRate) : DEFAULT_POLL_RATE_MS;
-    this.pollRate = Math.max(MIN_POLL_RATE_MS, Math.min(MAX_POLL_RATE_MS, safePollRate));
+    this.baseUrl = this.toSafeBaseUrl(url)
+    const safePollRate = Number.isFinite(pollRate) ? Math.round(pollRate) : DEFAULT_POLL_RATE_MS
+    this.pollRate = Math.max(MIN_POLL_RATE_MS, Math.min(MAX_POLL_RATE_MS, safePollRate))
   }
 
   public setStateUpdateCallback(cb: StateUpdateCallback): void {
-    this.onStateUpdate = cb;
+    this.onStateUpdate = cb
   }
 
   public setConnectionCallback(cb: ConnectionCallback): void {
-    this.onConnectionChange = cb;
+    this.onConnectionChange = cb
   }
 
   public getState(): AppState {
-    return this.currentState;
+    return this.currentState
   }
 
   public async connect(): Promise<void> {
-    this.clearDelayedDisconnectTimer();
-    this.emitConnection("CONNECTING");
-    this.consecutivePollFailures = 0;
-    const alive = await this.ping();
+    this.clearDelayedDisconnectTimer()
+    this.emitConnection('CONNECTING')
+    this.consecutivePollFailures = 0
+    const alive = await this.ping()
     if (!alive) {
-      this.emitConnection("ERROR");
-      this.scheduleDelayedDisconnect();
-      return;
+      this.emitConnection('ERROR')
+      this.scheduleDelayedDisconnect()
+      return
     }
-    this.emitConnection("CONNECTED");
-    telemetryBridge.start(this.telemetryRate);
-    void this.poll();
-    this.startPolling();
+    this.emitConnection('CONNECTED')
+    telemetryBridge.start(this.telemetryRate)
+    void this.poll()
+    this.startPolling()
   }
 
   public async focusVehicle(slotId: number): Promise<void> {
-    await this.performControlRequest(`/rest/watch/focus/${slotId}`);
+    await this.performControlRequest(`/rest/watch/focus/${slotId}`)
   }
 
   public async setCameraAngle(
@@ -502,183 +521,181 @@ export class LmuApiClient {
   ): Promise<void> {
     await this.performControlRequest(
       `/rest/watch/focus/${cameraType}/${trackSideGroup}/${shouldAdvance}`
-    );
+    )
   }
 
   public disconnect(): void {
-    this.clearDelayedDisconnectTimer();
-    this.stopPolling();
-    this.consecutivePollFailures = 0;
-    telemetryBridge.stop();
+    this.clearDelayedDisconnectTimer()
+    this.stopPolling()
+    this.consecutivePollFailures = 0
+    telemetryBridge.stop()
     this.currentState = {
       ...this.currentState,
       session: null,
       standings: [],
-      lastUpdated: Date.now(),
-    };
+      lastUpdated: Date.now()
+    }
 
-    this.emitConnection("DISCONNECTED");
-    this.onStateUpdate?.(this.currentState);
+    this.emitConnection('DISCONNECTED')
+    this.onStateUpdate?.(this.currentState)
   }
 
-  // * -- private methods --
+  //* private methods
   private async ping(): Promise<boolean> {
     try {
       const res = await fetch(`${this.baseUrl}/rest/watch/sessionInfo`, {
-        signal: AbortSignal.timeout(LMU_PING_TIMEOUT_MS),
-      });
-      return res.ok;
+        signal: AbortSignal.timeout(LMU_PING_TIMEOUT_MS)
+      })
+      return res.ok
     } catch {
-      return false;
+      return false
     }
   }
 
   private toSafeBaseUrl(rawUrl: string): string {
-    if (typeof rawUrl !== "string") {
-      return DEFAULT_LMU_BASE_URL;
+    if (typeof rawUrl !== 'string') {
+      return DEFAULT_LMU_BASE_URL
     }
 
-    const trimmed = rawUrl.trim();
+    const trimmed = rawUrl.trim()
     if (!trimmed) {
-      return DEFAULT_LMU_BASE_URL;
+      return DEFAULT_LMU_BASE_URL
     }
 
     try {
-      const parsed = new URL(trimmed);
-      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-        return DEFAULT_LMU_BASE_URL;
+      const parsed = new URL(trimmed)
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        return DEFAULT_LMU_BASE_URL
       }
 
-      const normalizedPath = parsed.pathname.replace(/\/+$/, "");
-      return `${parsed.origin}${normalizedPath === "/" ? "" : normalizedPath}`;
+      const normalizedPath = parsed.pathname.replace(/\/+$/, '')
+      return `${parsed.origin}${normalizedPath === '/' ? '' : normalizedPath}`
     } catch {
-      return DEFAULT_LMU_BASE_URL;
+      return DEFAULT_LMU_BASE_URL
     }
   }
 
   private async performControlRequest(path: string): Promise<void> {
     const response = await fetch(`${this.baseUrl}${path}`, {
-      method: "PUT",
-      signal: AbortSignal.timeout(LMU_REQUEST_TIMEOUT_MS),
-    });
+      method: 'PUT',
+      signal: AbortSignal.timeout(LMU_REQUEST_TIMEOUT_MS)
+    })
 
     if (!response.ok) {
-      throw new Error(`LMU control request failed (${response.status})`);
+      throw new Error(`LMU control request failed (${response.status})`)
     }
   }
 
   private startPolling(): void {
-    this.stopPolling();
+    this.stopPolling()
     this.pollTimer = setInterval(() => {
-      void this.poll();
-    }, this.pollRate);
-    this.pollTimer.unref?.();
+      void this.poll()
+    }, this.pollRate)
+    this.pollTimer.unref?.()
   }
 
   private stopPolling(): void {
     if (this.pollTimer !== null) {
-      clearInterval(this.pollTimer);
-      this.pollTimer = null;
+      clearInterval(this.pollTimer)
+      this.pollTimer = null
     }
-    this.pollInFlight = false;
+    this.pollInFlight = false
   }
 
   private async poll(): Promise<void> {
     if (this.pollInFlight) {
-      return;
+      return
     }
 
-    this.pollInFlight = true;
+    this.pollInFlight = true
 
     try {
-      const timeoutMs = Math.max(1_000, Math.min(5_000, this.pollRate * 3));
-      const signal = AbortSignal.timeout(timeoutMs);
+      const timeoutMs = Math.max(1_000, Math.min(5_000, this.pollRate * 3))
+      const signal = AbortSignal.timeout(timeoutMs)
       const [sessionRes, standingsRes] = await Promise.all([
         fetch(`${this.baseUrl}/rest/watch/sessionInfo`, { signal }),
-        fetch(`${this.baseUrl}/rest/watch/standings`, { signal }),
-      ]);
+        fetch(`${this.baseUrl}/rest/watch/standings`, { signal })
+      ])
 
       if (!sessionRes.ok || !standingsRes.ok) {
-        this.handlePollFailure();
-        return;
+        this.handlePollFailure()
+        return
       }
 
-      const rawSession = (await sessionRes.json()) as RawSessionInfo;
-      const rawVehicles = (await standingsRes.json()) as RawVehicleStanding[];
-      const telemetryLookup = createTelemetryLookup(
-        telemetryBridge.getLatestSnapshot().cars
-      );
+      const rawSession = (await sessionRes.json()) as RawSessionInfo
+      const rawVehicles = (await standingsRes.json()) as RawVehicleStanding[]
+      const telemetryLookup = createTelemetryLookup(telemetryBridge.getLatestSnapshot().cars)
 
       const newState: AppState = {
-        connection: "CONNECTED",
+        connection: 'CONNECTED',
         session: transformSession(rawSession, rawVehicles),
         standings: rawVehicles.map((vehicle) =>
           transformVehicle(vehicle, findTelemetryMatch(vehicle, telemetryLookup))
         ),
-        lastUpdated: Date.now(),
-      };
+        lastUpdated: Date.now()
+      }
 
-      this.consecutivePollFailures = 0;
-      this.currentState = newState;
-      this.emitStateUpdate(newState);
+      this.consecutivePollFailures = 0
+      this.currentState = newState
+      this.emitStateUpdate(newState)
     } catch {
-      this.handlePollFailure();
+      this.handlePollFailure()
     } finally {
-      this.pollInFlight = false;
+      this.pollInFlight = false
     }
   }
 
   private handlePollFailure(): void {
-    this.consecutivePollFailures += 1;
+    this.consecutivePollFailures += 1
     if (this.consecutivePollFailures < 5) {
-      return;
+      return
     }
 
-    this.stopPolling();
-    telemetryBridge.stop();
-    this.emitConnection("ERROR");
-    this.scheduleDelayedDisconnect();
+    this.stopPolling()
+    telemetryBridge.stop()
+    this.emitConnection('ERROR')
+    this.scheduleDelayedDisconnect()
   }
 
   private scheduleDelayedDisconnect(): void {
-    this.clearDelayedDisconnectTimer();
+    this.clearDelayedDisconnectTimer()
     this.delayedDisconnectTimer = setTimeout(() => {
-      this.delayedDisconnectTimer = null;
-      this.emitConnection("DISCONNECTED");
-    }, LMU_DISCONNECT_NOTICE_DELAY_MS);
-    this.delayedDisconnectTimer.unref?.();
+      this.delayedDisconnectTimer = null
+      this.emitConnection('DISCONNECTED')
+    }, LMU_DISCONNECT_NOTICE_DELAY_MS)
+    this.delayedDisconnectTimer.unref?.()
   }
 
   private clearDelayedDisconnectTimer(): void {
     if (!this.delayedDisconnectTimer) {
-      return;
+      return
     }
 
-    clearTimeout(this.delayedDisconnectTimer);
-    this.delayedDisconnectTimer = null;
+    clearTimeout(this.delayedDisconnectTimer)
+    this.delayedDisconnectTimer = null
   }
 
   private emitConnection(status: ConnectionStatus): void {
-    if (status === "CONNECTED" || status === "DISCONNECTED") {
-      this.clearDelayedDisconnectTimer();
+    if (status === 'CONNECTED' || status === 'DISCONNECTED') {
+      this.clearDelayedDisconnectTimer()
     }
 
-    this.currentState = { ...this.currentState, connection: status };
+    this.currentState = { ...this.currentState, connection: status }
     try {
-      this.onConnectionChange?.(status);
+      this.onConnectionChange?.(status)
     } catch (error) {
-      console.warn("Failed to deliver connection update:", error);
+      console.warn('Failed to deliver connection update:', error)
     }
   }
 
   private emitStateUpdate(state: AppState): void {
     try {
-      this.onStateUpdate?.(state);
+      this.onStateUpdate?.(state)
     } catch (error) {
-      console.warn("Failed to deliver LMU state update:", error);
+      console.warn('Failed to deliver LMU state update:', error)
     }
   }
 }
 
-// * -- one client for whole app lifetime --
-export const lmuClient = new LmuApiClient();
+//* one client for whole app lifetime
+export const lmuClient = new LmuApiClient()

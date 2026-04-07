@@ -1,37 +1,32 @@
-import React from 'react';
+import React from 'react'
 
-// * -- activity log --
-export type LogType = 
-    | "INFO"
-    | "SUCCESS"
-    | "WARNING"
-    | "ERROR"
-    | "SYSTEM";
+//* activity log
+export type LogType = 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR' | 'SYSTEM'
 
 export interface LogEntry {
-    id: string;
-    timestamp: Date;
-    type: LogType;
-    message: string;
+  id: string
+  timestamp: Date
+  type: LogType
+  message: string
 }
 
-// * -- window registry --
+//* window registry
 export type WindowId =
-    | "INFO"
-    | "OVERLAY-CONTROL"
-    | "TELEPROMPTER"
-    | "OVERLAY-TOWER"
-    | "OVERLAY-DRIVER"
-    | "OVERLAY-GAP"
-    | "OVERLAY-SESSION"
-    | "OVERLAY-PITS"
-    | "OVERLAY-SECTOR";
+  | 'INFO'
+  | 'OVERLAY-CONTROL'
+  | 'TELEPROMPTER'
+  | 'OVERLAY-TOWER'
+  | 'OVERLAY-DRIVER'
+  | 'OVERLAY-GAP'
+  | 'OVERLAY-SESSION'
+  | 'OVERLAY-PITS'
+  | 'OVERLAY-SECTOR'
 
 export interface WindowItem {
-    id: WindowId;
-    label: string;
-    description: string;
-    icon: React.ComponentType<{ size?: number; className?: string }>;
-    isOpen: boolean;
-    isAvailable: boolean;
+  id: WindowId
+  label: string
+  description: string
+  icon: React.ComponentType<{ size?: number; className?: string }>
+  isOpen: boolean
+  isAvailable: boolean
 }

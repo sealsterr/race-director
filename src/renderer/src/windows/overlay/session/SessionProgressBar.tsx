@@ -4,6 +4,7 @@ import { withAlpha } from './sessionOverlayUtils'
 
 interface SessionProgressBarProps {
   readonly progress: number
+  readonly animatePulse: boolean
   readonly accent: {
     accent: string
     glow: string
@@ -13,62 +14,76 @@ interface SessionProgressBarProps {
 
 export function SessionProgressBar({
   progress,
+  animatePulse,
   accent
 }: SessionProgressBarProps): ReactElement {
-  const width = progress <= 0 ? '0%' : `${Math.max(4, progress * 100)}%`
+  const clampedProgress = Math.max(0, Math.min(1, progress))
+  const pulseTravelSeconds = 1
+  const pulsePauseSeconds = 1
+  const pulseCycleSeconds = pulseTravelSeconds + pulsePauseSeconds
 
   return (
     <div
+      aria-hidden="true"
       style={{
         position: 'relative',
-        height: 36,
-        borderRadius: 999,
-        overflow: 'hidden',
-        border: `2px solid ${withAlpha(accent.border, 'b8')}`,
-        background: 'rgba(7,10,12,0.92)',
-        boxShadow: `0 0 0 1px ${withAlpha(accent.accent, '18')} inset, 0 0 30px ${withAlpha(
-          accent.accent,
-          '1c'
-        )}`
+        height: 6,
+        background: 'rgba(255, 255, 255, 0.06)',
+        overflow: 'hidden'
       }}
-      aria-hidden="true"
     >
+      <div
+        style={{
+          position: 'relative',
+          height: '100%',
+          width: `${clampedProgress * 100}%`,
+          background: `linear-gradient(90deg, ${accent.accent} 0%, ${accent.glow} 100%)`,
+          boxShadow: `0 0 14px ${withAlpha(accent.accent, '80')}`,
+          willChange: 'width'
+        }}
+      >
+        {animatePulse ? (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              overflow: 'hidden',
+              maskImage: 'linear-gradient(90deg, #000 0%, #000 88%, transparent 100%)',
+              WebkitMaskImage: 'linear-gradient(90deg, #000 0%, #000 88%, transparent 100%)'
+            }}
+          >
+            <motion.span
+              animate={{
+                left: ['-26%', '0%', '74%', '90%', '100%', '100%'],
+                opacity: [0, 0.55, 1, 0.75, 0, 0]
+              }}
+              transition={{
+                duration: pulseCycleSeconds,
+                ease: 'linear',
+                repeat: Number.POSITIVE_INFINITY,
+                times: [0, 0.12, 0.4, 0.46, pulseTravelSeconds / pulseCycleSeconds, 1]
+              }}
+              style={{
+                position: 'absolute',
+                top: 0,
+                bottom: 0,
+                left: '0%',
+                width: '26%',
+                background:
+                  'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.48) 50%, rgba(255,255,255,0) 100%)',
+                mixBlendMode: 'screen'
+              }}
+            />
+          </div>
+        ) : null}
+      </div>
       <div
         style={{
           position: 'absolute',
           inset: 0,
-          borderRadius: 999,
-          background: `linear-gradient(90deg, ${withAlpha(accent.accent, '10')} 0%, transparent 36%)`
+          borderTop: `1px solid ${withAlpha(accent.border, '35')}`
         }}
       />
-      <motion.div
-        animate={{ width }}
-        transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-        style={{
-          position: 'relative',
-          height: '100%',
-          margin: 3,
-          borderRadius: 999,
-          background: `linear-gradient(90deg, ${accent.accent} 0%, #19ff7a 60%, ${accent.glow} 100%)`,
-          boxShadow: `0 0 18px ${withAlpha(accent.accent, '90')}, 0 0 42px ${withAlpha(
-            accent.accent,
-            '45'
-          )}`
-        }}
-      >
-        <motion.span
-          animate={{ x: ['-35%', '115%'] }}
-          transition={{ duration: 1.8, ease: 'linear', repeat: Number.POSITIVE_INFINITY }}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '40%',
-            background:
-              'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.52) 50%, transparent 100%)',
-            mixBlendMode: 'screen'
-          }}
-        />
-      </motion.div>
     </div>
   )
 }

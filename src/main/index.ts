@@ -52,7 +52,7 @@ let isAppQuitting = false
 let isQuitDialogOpen = false
 const modalBackdropWindowIds = new Set<number>()
 
-// * -- track child windows so we don't open duplicates --
+//* track child windows so we don't open duplicates
 const childWindows: Map<string, BrowserWindow> = new Map()
 const suppressOverlayMoveEvents = new Set<string>()
 
@@ -86,12 +86,8 @@ function clampBoundsToDisplay(
     displaySize: number
   ): number => {
     const fitsWithinDisplay = size <= displaySize
-    const min = fitsWithinDisplay
-      ? displayPosition
-      : displayPosition + displaySize - size
-    const max = fitsWithinDisplay
-      ? displayPosition + displaySize - size
-      : displayPosition
+    const min = fitsWithinDisplay ? displayPosition : displayPosition + displaySize - size
+    const max = fitsWithinDisplay ? displayPosition + displaySize - size : displayPosition
 
     return Math.min(Math.max(position, min), max)
   }
@@ -104,14 +100,13 @@ function clampBoundsToDisplay(
 }
 
 function getDisplayForBounds(bounds: Electron.Rectangle): Electron.Display {
-  const electronScreen = screen as any
   const centerPoint = {
     x: Math.round(bounds.x + bounds.width / 2),
     y: Math.round(bounds.y + bounds.height / 2)
   }
 
-  const displays = electronScreen.getAllDisplays() as Electron.Display[]
-  const primaryDisplay = electronScreen.getPrimaryDisplay() as Electron.Display
+  const displays = screen.getAllDisplays()
+  const primaryDisplay = screen.getPrimaryDisplay()
 
   let closestDisplay = primaryDisplay
   let closestDistance = Number.POSITIVE_INFINITY
@@ -260,11 +255,7 @@ function focusMainWindow(mainWindow: BrowserWindow): void {
   mainWindow.focus()
 }
 
-function resetWindowToDefaultSize(
-  win: BrowserWindow,
-  width: number,
-  height: number
-): void {
+function resetWindowToDefaultSize(win: BrowserWindow, width: number, height: number): void {
   if (win.isDestroyed()) return
   if (win.isFullScreen()) {
     win.setFullScreen(false)
@@ -444,7 +435,7 @@ const createChildWindow = (
   options: Partial<Electron.BrowserWindowConstructorOptions>,
   mainWindow: BrowserWindow
 ): BrowserWindow => {
-  // * -- if already open just focus it --
+  //* if already open just focus it
   const existing = childWindows.get(id)
   if (existing && !existing.isDestroyed()) {
     existing.focus()
@@ -478,7 +469,7 @@ const createChildWindow = (
   })
   attachWebContentsSecurityHandlers(win)
 
-  // * -- load same renderer with hash route --
+  //* load same renderer with hash route
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     const base = process.env['ELECTRON_RENDERER_URL'].replace(/\/$/, '')
     win.loadURL(`${base}/#${route}`)
@@ -488,7 +479,7 @@ const createChildWindow = (
     })
   }
 
-  // * -- clean up map entry and notify dashboard when closed --
+  //* clean up map entry and notify dashboard when closed
   win.on('closed', () => {
     childWindows.delete(id)
     modalBackdropWindowIds.delete(win.id)
@@ -575,27 +566,24 @@ const createOverlayWindow = (
       win.setBounds(clampedBounds)
     }
   })
-  ;(win as any).on(
-    'will-move',
-    (event: { preventDefault: () => void }, newBounds: Electron.Rectangle) => {
-      const targetDisplay = getDisplayForBounds(newBounds)
-      const clampedBounds = clampBoundsToDisplay(newBounds, targetDisplay.bounds)
-      const didClamp = clampedBounds.x !== newBounds.x || clampedBounds.y !== newBounds.y
+  win.on('will-move', (event, newBounds) => {
+    const targetDisplay = getDisplayForBounds(newBounds)
+    const clampedBounds = clampBoundsToDisplay(newBounds, targetDisplay.bounds)
+    const didClamp = clampedBounds.x !== newBounds.x || clampedBounds.y !== newBounds.y
 
     if (!didClamp) return
 
     event.preventDefault()
     suppressOverlayMoveEvents.add(id)
     win.setBounds(clampedBounds)
-  }
-  )
+  })
 
   childWindows.set(id, win)
   return win
 }
 
 const registerWindowIpc = (mainWindow: BrowserWindow): void => {
-  // * -- open a named window --
+  //* open a named window
   registerIpcHandle('window:open', (_event, id: string): boolean => {
     if (id === 'INFO') {
       createChildWindow(
@@ -623,7 +611,7 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
       return true
     }
 
-    // * -- overlay windows --
+    //* overlay windows
     const OVERLAY_SIZES: Record<string, { route: string; w: number; h: number }> = {
       'OVERLAY-TOWER': { route: 'overlay/tower', w: 400, h: 700 },
       'OVERLAY-DRIVER': { route: 'overlay/driver', w: 896, h: 286 },
@@ -680,7 +668,7 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
     return null
   })
 
-  // * -- close a named window --
+  //* close a named window
   registerIpcHandle('window:close', (_event, id: string): void => {
     const win = childWindows.get(id)
     if (win && !win.isDestroyed()) win.close()
@@ -742,7 +730,7 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
     applyWindowTheme(targetWindow, titlebarHeight)
   })
 
-  // * -- query which windows are open --
+  //* query which windows are open
   registerIpcHandle('window:getOpen', (): string[] => {
     return Array.from(childWindows.entries())
       .filter(([, w]) => !w.isDestroyed())

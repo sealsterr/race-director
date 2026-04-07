@@ -56,21 +56,21 @@ const getWindowControlsOverlay = (): WindowControlsOverlayLike | undefined => {
   return navigatorWithOverlay.windowControlsOverlay
 }
 
-// * -- compute how much of titlebar area is NOT safe for content --
+//* compute how much of titlebar area is NOT safe for content
 const computeOverlayInsets = (fallback: OverlayInsets = DEFAULT_OVERLAY_INSETS): OverlayInsets => {
-  // * -- navigator.windowControlsOverlay exists only when titleBarOverlay is enabled --
+  //* navigator.windowControlsOverlay exists only when titleBarOverlay is enabled
   const wco = getWindowControlsOverlay()
   if (!wco?.visible) return fallback
 
   const rect = wco.getTitlebarAreaRect()
 
-  // * -- rect is safe titlebar area for web contents --
-  // * -- anything outside it (left/right) is where native buttons live --
+  //* rect is safe titlebar area for web contents
+  //* anything outside it (left/right) is where native buttons live
   const left = Math.max(0, Math.round(rect.x))
   const right = Math.max(0, Math.round(window.innerWidth - (rect.x + rect.width)))
   const height = Math.max(0, Math.round(rect.height))
 
-  // * -- if something looks off, use safe fallback padding so UI won't overlap --
+  //* if something looks off, use safe fallback padding so UI won't overlap
   const looksInvalid = height === 0 || (left === 0 && right === 0)
   if (looksInvalid) return fallback
 
@@ -165,7 +165,7 @@ const TopBar = ({ connection }: TopBarProps): React.ReactElement => {
           </span>
         </div>
         <div className="h-4 w-px bg-rd-border" />
-        <span className="font-mono text-xs text-rd-subtle">v0.1.0-pre</span>
+        <span className="font-mono text-xs text-rd-subtle">v0.2.0-pre</span>
       </div>
 
       {/* -- right: clock + connection -- */}
