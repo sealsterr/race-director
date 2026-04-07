@@ -62,17 +62,17 @@ Before launching RaceDirector, make sure the REST API is active in LMU:
 - Resizable workspace with connection, session, and activity panels
 - Connect and disconnect from the LMU REST API
 - Built-in activity log for connection, window, and system events
-- Settings tab with general, network, overlay, and advanced tabs
+- Settings modal with general, network, overlay, and advanced tabs
 - Accent presets, measurement units, motion preferences, and startup behavior options
-- In-app update checking
+- Automatic reconnect support and in-app update checking
 
 ### 📋 Info Window
 
 - Live standings table with configurable columns
 - Car status badges and penalty visibility
 - Car class filtering
-- Driver highlighting
-- One-click camera focus
+- Driver highlighting and clearer empty states
+- One-click camera focus on the selected car
 
 ### 🎛️ Overlay Dashboard
 
@@ -86,19 +86,21 @@ Before launching RaceDirector, make sure the REST API is active in LMU:
 
 #### Live Standings Overlay
 
-- Filtered tower layouts
-- Multiple display modes
+- Class-aware tower layouts
+- Race and qualifying display modes
 - Fight detection and battle highlighting
-- Car class & tyre colors, pit markers, and finish indicators
+- Car class colors, tyre colors, pit markers, and finish indicators
 
 #### Driver Card Overlay
 
 - Driver identity and class presentation
-- Telemetry widgets including speed, laptime and fuel data
+- Last lap and best lap data
+- Sector highlight logic
+- Telemetry widgets including speed and fuel data
 
 #### Gap Overlay
 
-- Focused battle view
+- Focused battle view for cars running close together
 - Adjustable trigger threshold
 - Optional car class display
 
@@ -117,7 +119,7 @@ Before launching RaceDirector, make sure the REST API is active in LMU:
 | Info Window | ✅ Done |
 | Overlay Dashboard | ✅ Done |
 | Stream Overlays | ✅ Done |
-| Flag & Penalty System | 🔜 Coming soon |
+| Flag & Penalty System | 🛠️ In progress |
 | Teleprompter | 🔜 Coming soon |
 
 ## License
