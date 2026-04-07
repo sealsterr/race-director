@@ -1,7 +1,7 @@
 import React from 'react'
 import CustomSelect from '../../../../../components/ui/CustomSelect'
+import { useI18n } from '../../../../../i18n/I18nProvider'
 import type { DashboardSettings } from '../../../settings/types'
-import { getPendingSettingCopy } from '../pendingSettings'
 import { SectionBlock, SettingsRow } from '../SettingsPrimitives'
 import GeneralMeasurementsSection from './GeneralMeasurementsSection'
 import GeneralThemeSection from './GeneralThemeSection'
@@ -15,30 +15,35 @@ const GeneralSettingsTab = ({
   settings,
   onChange
 }: GeneralSettingsTabProps): React.ReactElement => {
-  const languageSetting = getPendingSettingCopy('general.language')
+  const { t } = useI18n()
 
   return (
     <div className="flex flex-col gap-3">
-      <SectionBlock title="Interface">
+      <SectionBlock title={t('settings.general.section.interface')}>
         <SettingsRow
-          label="Language"
-          description={languageSetting.description}
-          badgeLabel={languageSetting.badgeLabel}
-          disabled
+          label={t('settings.general.language.label')}
+          description={t('settings.general.language.description')}
         >
           {({ controlId, descriptionId, labelId }) => (
             <CustomSelect
               id={controlId}
               value={settings.general.language}
               options={[
-                { label: 'English', value: 'en' },
-                { label: 'French', value: 'fr' },
-                { label: 'German', value: 'de' }
+                { label: t('settings.language.en'), value: 'en' },
+                { label: t('settings.language.fr'), value: 'fr' },
+                { label: t('settings.language.de'), value: 'de' }
               ]}
               ariaDescribedBy={descriptionId}
               ariaLabelledBy={labelId}
-              disabled
-              onChange={() => undefined}
+              onChange={(value) =>
+                onChange((prev) => ({
+                  ...prev,
+                  general: {
+                    ...prev.general,
+                    language: value as DashboardSettings['general']['language']
+                  }
+                }))
+              }
               buttonClassName="w-44"
             />
           )}

@@ -1,5 +1,4 @@
 export type PendingSettingId =
-  | 'general.language'
   | 'overlay.animateOverlayHighlights'
   | 'overlay.flashFightRows'
   | 'advanced.compactTelemetryRows'
@@ -13,10 +12,6 @@ interface PendingSettingCopy {
 const COMING_SOON_BADGE = 'Coming soon'
 
 const PENDING_SETTINGS: Record<PendingSettingId, PendingSettingCopy> = {
-  'general.language': {
-    badgeLabel: COMING_SOON_BADGE,
-    description: 'Choose the language used for dashboard labels, menus, and system prompts.'
-  },
   'overlay.animateOverlayHighlights': {
     badgeLabel: COMING_SOON_BADGE,
     description: 'Animate overlay highlight pulses and focus transitions.'

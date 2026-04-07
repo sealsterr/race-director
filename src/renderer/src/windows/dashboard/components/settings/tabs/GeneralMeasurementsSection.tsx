@@ -1,5 +1,6 @@
 import React from 'react'
 import CustomSelect from '../../../../../components/ui/CustomSelect'
+import { useI18n } from '../../../../../i18n/I18nProvider'
 import type { DashboardSettings } from '../../../settings/types'
 import { SectionBlock, SettingsRow } from '../SettingsPrimitives'
 
@@ -59,9 +60,23 @@ const GeneralMeasurementsSection = ({
   settings,
   onChange
 }: GeneralMeasurementsSectionProps): React.ReactElement => {
+  const { t } = useI18n()
+  const definitions = MEASUREMENT_SETTING_DEFINITIONS.map((definition) => {
+    const key = definition.key.replace('Unit', '')
+    return {
+      ...definition,
+      label: t(`settings.measurements.${key}.label`),
+      description: t(`settings.measurements.${key}.description`),
+      options: definition.options.map((option) => ({
+        ...option,
+        label: t(`settings.measurements.${key}.${option.value}`)
+      }))
+    }
+  })
+
   return (
-    <SectionBlock title="Measurements">
-      {MEASUREMENT_SETTING_DEFINITIONS.map((definition) => (
+    <SectionBlock title={t('settings.general.section.measurements')}>
+      {definitions.map((definition) => (
         <SettingsRow
           key={definition.key}
           label={definition.label}

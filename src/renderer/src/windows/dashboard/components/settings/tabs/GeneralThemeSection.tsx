@@ -8,6 +8,7 @@ import React, {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { Pipette } from 'lucide-react'
+import { useI18n } from '../../../../../i18n/I18nProvider'
 import {
   ColorPickerPanel,
   COLOR_PICKER_PORTAL_SELECTOR
@@ -79,6 +80,7 @@ const GeneralThemeSection = ({
   settings,
   onChange
 }: GeneralThemeSectionProps): React.ReactElement => {
+  const { t } = useI18n()
   const [isPickerOpen, setIsPickerOpen] = useState(false)
   const [activeKey, setActiveKey] = useState<PaletteColorKey>('accent')
   const [pickerStyle, setPickerStyle] = useState<CSSProperties>({})
@@ -150,8 +152,11 @@ const GeneralThemeSection = ({
   }, [closePicker, isPickerOpen])
 
   return (
-    <SectionBlock title="Theme">
-      <SettingsRow label="Dark Mode" description="Toggle dark mode.">
+    <SectionBlock title={t('settings.general.section.theme')}>
+      <SettingsRow
+        label={t('settings.theme.darkMode.label')}
+        description={t('settings.theme.darkMode.description')}
+      >
         {({ descriptionId, labelId }) => (
           <SettingsToggle
             checked={settings.general.darkMode}
@@ -168,8 +173,8 @@ const GeneralThemeSection = ({
       </SettingsRow>
 
       <SettingsRow
-        label="Palette"
-        description="Select a built-in palette or tune your own color set."
+        label={t('settings.theme.palette.label')}
+        description={t('settings.theme.palette.description')}
       >
         {({ descriptionId, labelId }) => (
           <div
@@ -204,8 +209,8 @@ const GeneralThemeSection = ({
               type="button"
               role="radio"
               aria-checked={isCustomSelected}
-              aria-label="Custom palette"
-              title="Custom palette"
+              aria-label={t('settings.theme.customPalette')}
+              title={t('settings.theme.customPalette')}
               onClick={() => {
                 onChange((prev) => updateAccentPreset(prev, CUSTOM_ACCENT_PRESET_ID))
                 setIsPickerOpen((current) => !current)
@@ -216,7 +221,7 @@ const GeneralThemeSection = ({
                   : 'border-rd-border text-rd-muted'
               }`}
             >
-              <span className="sr-only">Custom palette</span>
+              <span className="sr-only">{t('settings.theme.customPalette')}</span>
               <Pipette size={14} />
             </button>
           </div>
@@ -247,7 +252,7 @@ const GeneralThemeSection = ({
                               : 'border-rd-border bg-rd-elevated text-rd-muted hover:border-rd-muted hover:text-rd-text'
                           }`}
                         >
-                          {field.label}
+                          {t(`settings.theme.color.${field.key}`)}
                         </button>
                       )
                     })}
