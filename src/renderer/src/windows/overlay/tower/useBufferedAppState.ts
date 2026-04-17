@@ -19,7 +19,9 @@ export function useBufferedAppState(refreshMs: number): AppState {
         latestStateRef.current = state
         setAppState(state)
       })
-      .catch(() => undefined)
+      .catch((error) => {
+        console.warn('Failed to load initial app state:', error)
+      })
 
     const unsubState = globalThis.api.onStateUpdate((state) => {
       latestStateRef.current = state

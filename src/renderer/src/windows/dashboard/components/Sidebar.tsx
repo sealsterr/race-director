@@ -13,7 +13,6 @@ interface SidebarProps {
   onDownloadUpdate: () => void
 }
 
-//* icon map
 const WINDOW_DEFINITIONS: Omit<WindowItem, 'isOpen'>[] = [
   {
     id: 'INFO',
@@ -107,7 +106,6 @@ const WindowButton = ({ item, onLaunch }: WindowButtonProps): React.ReactElement
         </span>
       ) : null}
 
-      {/* -- icon -- */}
       <div
         className={`
           flex h-8 w-8 shrink-0 items-center justify-center rounded
@@ -117,7 +115,6 @@ const WindowButton = ({ item, onLaunch }: WindowButtonProps): React.ReactElement
         <Icon size={15} />
       </div>
 
-      {/* -- labels -- */}
       <div className="min-w-0 flex-1">
         <p
           className={`flex items-center gap-2 text-xs font-semibold tracking-wide ${getLabelClass(item)}`}
@@ -129,7 +126,6 @@ const WindowButton = ({ item, onLaunch }: WindowButtonProps): React.ReactElement
         </p>
       </div>
 
-      {/* -- right indicator -- */}
       <div className="shrink-0">
         <RightIndicator item={item} />
       </div>
@@ -151,12 +147,10 @@ const Sidebar = ({
         bg-rd-surface
       "
     >
-      {/* -- section header -- */}
       <div className="px-4 pb-2 pt-5">
         <p className="text-xs font-semibold uppercase tracking-[0.15em] text-rd-subtle">Options</p>
       </div>
 
-      {/* -- window buttons -- */}
       <div className="flex min-h-0 flex-1 flex-col px-3 pb-3">
         <div className="flex flex-col gap-1.5">
           {windows.map((item) => (

@@ -10,7 +10,8 @@ function getDefaultSessionProgressBarColor(): string {
   try {
     const settings = loadDashboardSettingsFromStorage(globalThis.localStorage)
     return resolvePaletteColors(settings.general).accent
-  } catch {
+  } catch (error) {
+    console.warn('Failed to resolve session overlay accent color; using default:', error)
     return resolvePaletteColors(DEFAULT_DASHBOARD_SETTINGS.general).accent
   }
 }

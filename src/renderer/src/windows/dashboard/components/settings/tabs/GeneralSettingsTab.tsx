@@ -1,4 +1,5 @@
 import React from 'react'
+import { isAppLanguage } from '../../../../../../../shared/language'
 import CustomSelect from '../../../../../components/ui/CustomSelect'
 import { useI18n } from '../../../../../i18n/I18nProvider'
 import type { DashboardSettings } from '../../../settings/types'
@@ -16,6 +17,17 @@ const GeneralSettingsTab = ({
   onChange
 }: GeneralSettingsTabProps): React.ReactElement => {
   const { t } = useI18n()
+  const handleLanguageChange = (language: string): void => {
+    if (!isAppLanguage(language)) return
+
+    onChange((prev) => ({
+      ...prev,
+      general: {
+        ...prev.general,
+        language
+      }
+    }))
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -35,15 +47,7 @@ const GeneralSettingsTab = ({
               ]}
               ariaDescribedBy={descriptionId}
               ariaLabelledBy={labelId}
-              onChange={(value) =>
-                onChange((prev) => ({
-                  ...prev,
-                  general: {
-                    ...prev.general,
-                    language: value as DashboardSettings['general']['language']
-                  }
-                }))
-              }
+              onChange={handleLanguageChange}
               buttonClassName="w-44"
             />
           )}

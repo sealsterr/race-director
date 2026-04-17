@@ -24,7 +24,8 @@ const useSystemPopups = (): UseSystemPopupsResult => {
     try {
       const showConfirm = await globalThis.api.system.getQuitConfirmPreference()
       setDontAskAgain(!showConfirm)
-    } catch {
+    } catch (error) {
+      console.warn('Failed to load quit confirmation preference:', error)
       setDontAskAgain(false)
     }
   }, [])

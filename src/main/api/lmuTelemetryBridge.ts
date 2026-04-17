@@ -118,8 +118,8 @@ export class LmuTelemetryBridge {
           error: parsed.error ?? parsed.Error ?? null
         }
         this.onSnapshot?.(this.getLatestSnapshot())
-      } catch {
-        continue
+      } catch (error) {
+        console.warn('Ignoring malformed telemetry bridge line:', error)
       }
     }
   }

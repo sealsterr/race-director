@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useRef, useState } from 'react'
 import type { DriverStanding, TelemetrySnapshot } from '../../../types/lmu'
+import { clampTelemetryMetric, smoothTelemetryValue } from '../telemetryMath'
 import { createTelemetryLookup, findTelemetryForDriver } from '../driver/driverTelemetryUtils'
 import { formatTelemetryGear } from './gapBattleUtils'
 
@@ -44,7 +45,9 @@ export function useGapBattleTelemetry(
         applySnapshot(snapshot)
         setDisplayData(targetRef.current)
       })
-      .catch(() => undefined)
+      .catch((error) => {
+        console.warn('Failed to load initial gap telemetry snapshot:', error)
+      })
 
     const unsubscribe = globalThis.api.onTelemetryUpdate((snapshot) => {
       applySnapshot(snapshot)
@@ -54,7 +57,7 @@ export function useGapBattleTelemetry(
       cancelled = true
       unsubscribe()
     }
-  }, [pair?.ahead.slotId, pair?.behind.slotId])
+  }, [pair, pair?.ahead.slotId, pair?.behind.slotId])
 
   useEffect(() => {
     if (!pair) return
@@ -72,7 +75,7 @@ export function useGapBattleTelemetry(
 
     frameId = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frameId)
-  }, [pair?.ahead.slotId, pair?.behind.slotId])
+  }, [pair, pair?.ahead.slotId, pair?.behind.slotId])
 
   return displayData
 }
@@ -96,17 +99,9 @@ function resolveDriverTelemetry(
   const telemetry = findTelemetryForDriver(driver, lookup)
 
   return {
-    speedKph: clampMetric(telemetry?.speedKph),
+    speedKph: clampTelemetryMetric(telemetry?.speedKph),
     gear: formatTelemetryGear(telemetry?.gear)
   }
-}
-
-function clampMetric(value: number | null | undefined): number {
-  if (value === null || value === undefined || !Number.isFinite(value)) {
-    return 0
-  }
-
-  return Math.max(0, value)
 }
 
 function smoothTelemetry(
@@ -116,26 +111,22 @@ function smoothTelemetry(
 ): GapBattleTelemetryData {
   return {
     ahead: {
-      speedKph: smoothValue(current.ahead.speedKph, target.ahead.speedKph, deltaSeconds, 14),
+      speedKph: smoothTelemetryValue(
+        current.ahead.speedKph,
+        target.ahead.speedKph,
+        deltaSeconds,
+        14
+      ),
       gear: target.ahead.gear
     },
     behind: {
-      speedKph: smoothValue(current.behind.speedKph, target.behind.speedKph, deltaSeconds, 14),
+      speedKph: smoothTelemetryValue(
+        current.behind.speedKph,
+        target.behind.speedKph,
+        deltaSeconds,
+        14
+      ),
       gear: target.behind.gear
     }
   }
-}
-
-function smoothValue(
-  current: number,
-  target: number,
-  deltaSeconds: number,
-  responsiveness: number
-): number {
-  if (Math.abs(current - target) < 0.02) {
-    return target
-  }
-
-  const easing = 1 - Math.exp(-deltaSeconds * responsiveness)
-  return current + (target - current) * easing
 }

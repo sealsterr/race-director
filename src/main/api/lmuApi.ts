@@ -15,8 +15,6 @@ import type {
 import { telemetryBridge, type TelemetryDriverSnapshot } from './lmuTelemetryBridge'
 import { loadPlayerProfile } from './lmuPlayerProfile'
 
-//* raw API shapes
-//* these match what the LMU REST API actually returns
 interface RawSessionInfo {
   session: string // "PRACTICE1", "QUALIFY1", "RACE1", etc.
   trackName: string
@@ -71,7 +69,6 @@ interface RawVehicleStanding {
   qualification: number // grid position
 }
 
-//* mapping helpers
 const mapSessionType = (session: string): SessionType => {
   const upper = session.toUpperCase()
 
@@ -90,7 +87,6 @@ const mapFlagState = (
   vehicles: RawVehicleStanding[],
   timeRemaining: number
 ): FlagState => {
-  //* check for full course yellow / safety car first
   const upper = yellowFlagState.toUpperCase()
   const map: Record<string, FlagState> = {
     NONE: 'GREEN',
@@ -118,7 +114,6 @@ const mapFlagState = (
   const hasRed = allFlags.some((flag) => hasFlagToken(flag, 'RED'))
   if (hasRed) return 'RED'
 
-  //* check sector flags for any yellows
   const hasYellow = allFlags.some((flag) => hasFlagToken(flag, 'YELLOW'))
   if (hasYellow && upper === 'NONE') return 'YELLOW'
 
@@ -220,23 +215,17 @@ const mapDriverStatus = (v: RawVehicleStanding): DriverStatus => {
   return 'RACING'
 }
 
-//* extract car number from vehicleName or vehicleFilename as fallback
-//* vehicleName format: "Make Model #007:EC"
+// LMU can leave carNumber empty, so parse vehicleName before falling back to slotID.
 const extractCarNumber = (v: RawVehicleStanding): string => {
   if (v.carNumber && v.carNumber.trim() !== '') return v.carNumber
 
-  //* try to extract from vehicleName: "... #007:EC" → "007"
   const nameMatch = /#(\w+)/.exec(v.vehicleName)
   if (nameMatch) return nameMatch[1]
 
-  //* fallback to slotID
   return String(v.slotID)
 }
 
-//* clean up vehicle name for display
-//* "Aston Martin THOR Team 2025 #007:EC" → "Aston Martin THOR"
 const cleanCarName = (vehicleName: string): string => {
-  //* strip the "#xxx:XX" suffix
   return vehicleName.replace(/#\w+.*$/, '').trim()
 }
 
@@ -332,18 +321,17 @@ function findTelemetryMatch(
   return null
 }
 
+// LMU REST reports the first two sector times; the telemetry bridge fills sector 3.
 const mapSectorTime = (s1: number, s2: number): SectorTime => ({
   sector1: s1 > 0 ? s1 : null,
   sector2: s2 > 0 ? s2 : null,
-  sector3: null //* not available via REST
+  sector3: null
 })
 
-//* build penalty array from count
-//* REST only gives us a count, detail comes later via shared memory
+// REST exposes only the pending penalty count; detailed penalties come from shared memory.
 const mapPenalties = (count: number): Penalty[] =>
   count <= 0 ? [] : [{ type: 'TIME_PENALTY' as const, time: 0, reason: `${count} pending` }]
 
-//* transform functions
 const transformSession = (raw: RawSessionInfo, vehicles: RawVehicleStanding[]): SessionInfo => {
   const vehicleCount = raw.numberOfVehicles > 0 ? raw.numberOfVehicles : vehicles.length
   const current = Number.isFinite(raw.currentEventTime) ? raw.currentEventTime : 0
@@ -365,10 +353,8 @@ const transformSession = (raw: RawSessionInfo, vehicles: RawVehicleStanding[]): 
         ? raw.endEventTime
         : current + timeRemaining
 
-  //* laps
   const noLapLimit = raw.maximumLaps >= 4294967295 || raw.maximumLaps === 0
 
-  // use leader lapCompleted + 1
   const leader =
     vehicles.length > 0
       ? vehicles.reduce<RawVehicleStanding>(
@@ -380,7 +366,6 @@ const transformSession = (raw: RawSessionInfo, vehicles: RawVehicleStanding[]): 
   const currentLap =
     leader && Number.isFinite(leader.lapsCompleted) ? Math.max(0, leader.lapsCompleted) + 1 : 0
 
-  //* on track
   const numCarsOnTrack = vehicles.filter((v) => {
     const finish = (v.finishStatus ?? '').toUpperCase()
     const inactiveFinish =
@@ -446,7 +431,6 @@ const transformVehicle = (
   }
 }
 
-//* LmuApiClient
 type StateUpdateCallback = (state: AppState) => void
 type ConnectionCallback = (status: ConnectionStatus) => void
 const DEFAULT_LMU_BASE_URL = 'http://localhost:6397'
@@ -475,7 +459,6 @@ export class LmuApiClient {
   private onStateUpdate: StateUpdateCallback | null = null
   private onConnectionChange: ConnectionCallback | null = null
 
-  //* public API
   public configure(url: string, pollRate: number): void {
     this.baseUrl = this.toSafeBaseUrl(url)
     const safePollRate = Number.isFinite(pollRate) ? Math.round(pollRate) : DEFAULT_POLL_RATE_MS
@@ -540,7 +523,6 @@ export class LmuApiClient {
     this.onStateUpdate?.(this.currentState)
   }
 
-  //* private methods
   private async ping(): Promise<boolean> {
     try {
       const res = await fetch(`${this.baseUrl}/rest/watch/sessionInfo`, {
@@ -553,10 +535,6 @@ export class LmuApiClient {
   }
 
   private toSafeBaseUrl(rawUrl: string): string {
-    if (typeof rawUrl !== 'string') {
-      return DEFAULT_LMU_BASE_URL
-    }
-
     const trimmed = rawUrl.trim()
     if (!trimmed) {
       return DEFAULT_LMU_BASE_URL
@@ -638,17 +616,21 @@ export class LmuApiClient {
       this.consecutivePollFailures = 0
       this.currentState = newState
       this.emitStateUpdate(newState)
-    } catch {
-      this.handlePollFailure()
+    } catch (error) {
+      this.handlePollFailure(error)
     } finally {
       this.pollInFlight = false
     }
   }
 
-  private handlePollFailure(): void {
+  private handlePollFailure(error?: unknown): void {
     this.consecutivePollFailures += 1
     if (this.consecutivePollFailures < 5) {
       return
+    }
+
+    if (error) {
+      console.warn('LMU polling failed repeatedly:', error)
     }
 
     this.stopPolling()
@@ -697,5 +679,4 @@ export class LmuApiClient {
   }
 }
 
-//* one client for whole app lifetime
 export const lmuClient = new LmuApiClient()

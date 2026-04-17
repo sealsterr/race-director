@@ -1,30 +1,29 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, RefObject } from 'react'
 
-export const DASHBOARD_PANE_LAYOUT_STORAGE_KEY = 'race-director.dashboard.layout.v1'
-export const DASHBOARD_LAYOUT_RESET_EVENT = 'rd:dashboardLayoutReset'
+const STORAGE_KEY = 'race-director.overlay-control.flag-system.layout.v1'
 const DEFAULT_LAYOUT = {
-  sidebarRatio: 256 / 1100,
-  topRowRatio: 212 / 580,
-  topPanelsRatio: 0.5
+  sidebarRatio: 0.34,
+  topRowRatio: 0.5,
+  topPanelsRatio: 0.58
 }
-const SIDEBAR_MIN_PX = 220
-const SIDEBAR_MAX_PX = 420
-const MAIN_MIN_PX = 640
-const PANEL_MIN_PX = 280
-const TOP_ROW_MIN_PX = 220
-const ACTIVITY_MIN_PX = 190
+const SIDEBAR_MIN_PX = 320
+const SIDEBAR_MAX_PX = 460
+const MAIN_MIN_PX = 620
+const PANEL_MIN_PX = 300
+const TOP_ROW_MIN_PX = 240
+const BOTTOM_MIN_PX = 220
 const KEYBOARD_STEP_PX = 24
 
 type ResizeTarget = 'sidebar' | 'topPanels' | 'topRow'
 
-interface DashboardPaneLayout {
+interface PaneLayout {
   sidebarRatio: number
   topRowRatio: number
   topPanelsRatio: number
 }
 
-interface UseDashboardPaneLayoutResult {
+interface PaneLayoutResult {
   activeResizeTarget: ResizeTarget | null
   workspaceRef: RefObject<HTMLDivElement | null>
   mainColumnRef: RefObject<HTMLDivElement | null>
@@ -45,11 +44,11 @@ const clamp = (value: number, min: number, max: number): number => {
   return Math.min(Math.max(value, min), max)
 }
 
-const parseStoredLayout = (): DashboardPaneLayout => {
+const parseStoredLayout = (): PaneLayout => {
   try {
-    const raw = globalThis.localStorage.getItem(DASHBOARD_PANE_LAYOUT_STORAGE_KEY)
+    const raw = globalThis.localStorage.getItem(STORAGE_KEY)
     if (!raw) return DEFAULT_LAYOUT
-    const parsed = JSON.parse(raw) as Partial<DashboardPaneLayout>
+    const parsed = JSON.parse(raw) as Partial<PaneLayout>
     return {
       sidebarRatio:
         typeof parsed.sidebarRatio === 'number' ? parsed.sidebarRatio : DEFAULT_LAYOUT.sidebarRatio,
@@ -61,7 +60,7 @@ const parseStoredLayout = (): DashboardPaneLayout => {
           : DEFAULT_LAYOUT.topPanelsRatio
     }
   } catch (error) {
-    console.warn('Failed to load dashboard pane layout; using defaults:', error)
+    console.warn('Failed to load flag system pane layout; using defaults:', error)
     return DEFAULT_LAYOUT
   }
 }
@@ -77,7 +76,7 @@ const clampTopPanelsRatio = (ratio: number, totalWidth: number): number => {
 }
 
 const clampTopRowRatio = (ratio: number, totalHeight: number): number => {
-  const maxPx = Math.max(TOP_ROW_MIN_PX, totalHeight - ACTIVITY_MIN_PX)
+  const maxPx = Math.max(TOP_ROW_MIN_PX, totalHeight - BOTTOM_MIN_PX)
   return clamp(ratio, TOP_ROW_MIN_PX / totalHeight, maxPx / totalHeight)
 }
 
@@ -94,28 +93,16 @@ const lockCursor = (cursor: 'col-resize' | 'row-resize'): (() => void) => {
   }
 }
 
-const useDashboardPaneLayout = (): UseDashboardPaneLayoutResult => {
-  const [layout, setLayout] = useState<DashboardPaneLayout>(parseStoredLayout)
+export function useFlagSystemPaneLayout(): PaneLayoutResult {
+  const [layout, setLayout] = useState<PaneLayout>(parseStoredLayout)
   const [activeResizeTarget, setActiveResizeTarget] = useState<ResizeTarget | null>(null)
   const workspaceRef = useRef<HTMLDivElement | null>(null)
   const mainColumnRef = useRef<HTMLDivElement | null>(null)
   const topRowRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    globalThis.localStorage.setItem(DASHBOARD_PANE_LAYOUT_STORAGE_KEY, JSON.stringify(layout))
+    globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(layout))
   }, [layout])
-
-  useEffect(() => {
-    const handleLayoutReset = (): void => {
-      globalThis.localStorage.removeItem(DASHBOARD_PANE_LAYOUT_STORAGE_KEY)
-      setLayout(DEFAULT_LAYOUT)
-    }
-
-    globalThis.addEventListener(DASHBOARD_LAYOUT_RESET_EVENT, handleLayoutReset)
-    return () => {
-      globalThis.removeEventListener(DASHBOARD_LAYOUT_RESET_EVENT, handleLayoutReset)
-    }
-  }, [])
 
   const clampLayoutToViewport = useCallback(() => {
     setLayout((current) => {
@@ -142,11 +129,8 @@ const useDashboardPaneLayout = (): UseDashboardPaneLayoutResult => {
 
   useEffect(() => {
     clampLayoutToViewport()
-
     globalThis.addEventListener('resize', clampLayoutToViewport)
-    return () => {
-      globalThis.removeEventListener('resize', clampLayoutToViewport)
-    }
+    return () => globalThis.removeEventListener('resize', clampLayoutToViewport)
   }, [clampLayoutToViewport])
 
   const beginPointerResize = useCallback(
@@ -169,9 +153,7 @@ const useDashboardPaneLayout = (): UseDashboardPaneLayoutResult => {
         globalThis.removeEventListener('pointercancel', handlePointerUp)
       }
 
-      const handlePointerMove = (moveEvent: PointerEvent): void => {
-        updateLayout(moveEvent)
-      }
+      const handlePointerMove = (moveEvent: PointerEvent): void => updateLayout(moveEvent)
 
       globalThis.addEventListener('pointermove', handlePointerMove)
       globalThis.addEventListener('pointerup', handlePointerUp)
@@ -185,7 +167,6 @@ const useDashboardPaneLayout = (): UseDashboardPaneLayoutResult => {
       beginPointerResize(event, 'sidebar', 'col-resize', (moveEvent) => {
         const bounds = workspaceRef.current?.getBoundingClientRect()
         if (!bounds || bounds.width <= 0) return
-
         setLayout((current) => ({
           ...current,
           sidebarRatio: clampSidebarRatio(
@@ -203,7 +184,6 @@ const useDashboardPaneLayout = (): UseDashboardPaneLayoutResult => {
       beginPointerResize(event, 'topPanels', 'col-resize', (moveEvent) => {
         const bounds = topRowRef.current?.getBoundingClientRect()
         if (!bounds || bounds.width <= 0) return
-
         setLayout((current) => ({
           ...current,
           topPanelsRatio: clampTopPanelsRatio(
@@ -221,7 +201,6 @@ const useDashboardPaneLayout = (): UseDashboardPaneLayoutResult => {
       beginPointerResize(event, 'topRow', 'row-resize', (moveEvent) => {
         const bounds = mainColumnRef.current?.getBoundingClientRect()
         if (!bounds || bounds.height <= 0) return
-
         setLayout((current) => ({
           ...current,
           topRowRatio: clampTopRowRatio(
@@ -237,7 +216,6 @@ const useDashboardPaneLayout = (): UseDashboardPaneLayoutResult => {
   const nudgeSidebar = useCallback((direction: 1 | -1) => {
     const width = workspaceRef.current?.getBoundingClientRect().width
     if (!width || width <= 0) return
-
     setLayout((current) => ({
       ...current,
       sidebarRatio: clampSidebarRatio(
@@ -250,7 +228,6 @@ const useDashboardPaneLayout = (): UseDashboardPaneLayoutResult => {
   const nudgeTopPanels = useCallback((direction: 1 | -1) => {
     const width = topRowRef.current?.getBoundingClientRect().width
     if (!width || width <= 0) return
-
     setLayout((current) => ({
       ...current,
       topPanelsRatio: clampTopPanelsRatio(
@@ -263,7 +240,6 @@ const useDashboardPaneLayout = (): UseDashboardPaneLayoutResult => {
   const nudgeTopRow = useCallback((direction: 1 | -1) => {
     const height = mainColumnRef.current?.getBoundingClientRect().height
     if (!height || height <= 0) return
-
     setLayout((current) => ({
       ...current,
       topRowRatio: clampTopRowRatio(
@@ -289,5 +265,3 @@ const useDashboardPaneLayout = (): UseDashboardPaneLayoutResult => {
     nudgeTopRow
   }
 }
-
-export default useDashboardPaneLayout

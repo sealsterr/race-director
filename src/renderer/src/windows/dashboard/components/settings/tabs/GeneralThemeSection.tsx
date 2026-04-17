@@ -1,11 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type CSSProperties
-} from 'react'
+import React, { useCallback, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Pipette } from 'lucide-react'
 import { useI18n } from '../../../../../i18n/I18nProvider'
@@ -13,6 +6,7 @@ import {
   ColorPickerPanel,
   COLOR_PICKER_PORTAL_SELECTOR
 } from '../../../../../components/ui/CustomColorPicker'
+import { useAnchoredPopover } from '../../../../../components/ui/useAnchoredPopover'
 import { ACCENT_PRESETS, CUSTOM_ACCENT_PRESET_ID } from '../../../settings/defaults'
 import type { DashboardSettings, PaletteColors } from '../../../settings/types'
 import { SectionBlock, SettingsRow, SettingsToggle } from '../SettingsPrimitives'
@@ -24,8 +18,6 @@ interface GeneralThemeSectionProps {
 
 type PaletteColorKey = keyof PaletteColors
 
-const VIEWPORT_MARGIN_PX = 8
-const POPOVER_MARGIN_PX = 8
 const PICKER_WIDTH_PX = 244
 const CUSTOM_COLOR_FIELDS: Array<{
   key: PaletteColorKey
@@ -83,9 +75,6 @@ const GeneralThemeSection = ({
   const { t } = useI18n()
   const [isPickerOpen, setIsPickerOpen] = useState(false)
   const [activeKey, setActiveKey] = useState<PaletteColorKey>('accent')
-  const [pickerStyle, setPickerStyle] = useState<CSSProperties>({})
-  const triggerRef = useRef<HTMLButtonElement | null>(null)
-  const popoverRef = useRef<HTMLDivElement | null>(null)
   const isCustomSelected = settings.general.accentPreset === CUSTOM_ACCENT_PRESET_ID
   const activeField =
     CUSTOM_COLOR_FIELDS.find((field) => field.key === activeKey) ?? CUSTOM_COLOR_FIELDS[0]
@@ -93,63 +82,17 @@ const GeneralThemeSection = ({
   const closePicker = useCallback(() => {
     setIsPickerOpen(false)
   }, [])
-
-  useLayoutEffect(() => {
-    if (!isPickerOpen) return
-    const updatePosition = (): void => {
-      const rect = triggerRef.current?.getBoundingClientRect()
-      if (!rect) return
-      const width = Math.min(PICKER_WIDTH_PX, window.innerWidth - VIEWPORT_MARGIN_PX * 2)
-      const maxHeight = window.innerHeight - VIEWPORT_MARGIN_PX * 2
-      const measuredHeight = Math.min(maxHeight, popoverRef.current?.offsetHeight ?? 340)
-      const left = Math.min(
-        Math.max(rect.right - width, VIEWPORT_MARGIN_PX),
-        window.innerWidth - width - VIEWPORT_MARGIN_PX
-      )
-      const availableAbove = rect.top - VIEWPORT_MARGIN_PX - POPOVER_MARGIN_PX
-      const availableBelow =
-        window.innerHeight - rect.bottom - VIEWPORT_MARGIN_PX - POPOVER_MARGIN_PX
-      const openAbove = availableBelow < measuredHeight && availableAbove > availableBelow
-
-      setPickerStyle({
-        left,
-        maxHeight,
-        top: openAbove
-          ? Math.max(VIEWPORT_MARGIN_PX, rect.top - measuredHeight - POPOVER_MARGIN_PX)
-          : Math.max(
-              VIEWPORT_MARGIN_PX,
-              Math.min(
-                rect.bottom + POPOVER_MARGIN_PX,
-                window.innerHeight - measuredHeight - VIEWPORT_MARGIN_PX
-              )
-            ),
-        width
-      })
-    }
-
-    updatePosition()
-    window.addEventListener('resize', updatePosition)
-    window.addEventListener('scroll', updatePosition, true)
-    return () => {
-      window.removeEventListener('resize', updatePosition)
-      window.removeEventListener('scroll', updatePosition, true)
-    }
-  }, [isPickerOpen])
-
-  useEffect(() => {
-    if (!isPickerOpen) return
-    const handlePointerDown = (event: MouseEvent): void => {
-      const target = event.target
-      if (!(target instanceof Element)) return
-      if (triggerRef.current?.contains(target)) return
-      if (popoverRef.current?.contains(target)) return
-      if (target.closest(COLOR_PICKER_PORTAL_SELECTOR)) return
-      closePicker()
-    }
-
-    document.addEventListener('mousedown', handlePointerDown)
-    return () => document.removeEventListener('mousedown', handlePointerDown)
-  }, [closePicker, isPickerOpen])
+  const {
+    triggerRef,
+    popoverRef,
+    popoverStyle: pickerStyle
+  } = useAnchoredPopover<HTMLButtonElement, HTMLDivElement>({
+    isOpen: isPickerOpen,
+    onClose: closePicker,
+    width: PICKER_WIDTH_PX,
+    fallbackHeight: 340,
+    ignoredClosestSelector: COLOR_PICKER_PORTAL_SELECTOR
+  })
 
   return (
     <SectionBlock title={t('settings.general.section.theme')}>

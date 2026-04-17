@@ -50,7 +50,8 @@ const useDashboardStartup = ({
       )
       try {
         await globalThis.api.connect(settings.network.apiUrl, settings.network.pollRateMs)
-      } catch {
+      } catch (error) {
+        console.warn('Startup auto-connect attempt failed:', error)
         onLog('Startup auto-connect attempt failed.', 'WARNING')
       }
     }

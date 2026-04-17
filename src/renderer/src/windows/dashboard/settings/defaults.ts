@@ -128,7 +128,8 @@ export const loadDashboardSettingsFromStorage = (storage: Storage): DashboardSet
     if (!raw) return DEFAULT_DASHBOARD_SETTINGS
     const parsed = JSON.parse(raw) as Partial<DashboardSettings>
     return clampSettings(mergeDashboardSettings(parsed))
-  } catch {
+  } catch (error) {
+    console.warn('Failed to load dashboard settings from storage; using defaults:', error)
     return DEFAULT_DASHBOARD_SETTINGS
   }
 }

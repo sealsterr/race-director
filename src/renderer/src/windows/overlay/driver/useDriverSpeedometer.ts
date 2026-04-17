@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DriverStanding, TelemetrySnapshot } from '../../../types/lmu'
+import { clampTelemetryMetric, smoothTelemetryValue } from '../telemetryMath'
 import { createTelemetryLookup, findTelemetryForDriver } from './driverTelemetryUtils'
 
 interface DriverSpeedometerData {
@@ -48,7 +49,9 @@ export function useDriverSpeedometer(
           applySnapshot(snapshot)
         }
       })
-      .catch(() => undefined)
+      .catch((error) => {
+        console.warn('Failed to load initial driver telemetry snapshot:', error)
+      })
 
     const unsubscribe = globalThis.api.onTelemetryUpdate((snapshot) => {
       applySnapshot(snapshot)
@@ -61,6 +64,7 @@ export function useDriverSpeedometer(
       unsubscribe()
     }
   }, [
+    driver,
     driver.carName,
     driver.carNumber,
     driver.driverName,
@@ -103,21 +107,13 @@ function resolveTargetData(
   const telemetry = findTelemetryForDriver(driver, createTelemetryLookup(snapshot?.cars ?? []))
 
   return {
-    speedKph: clampMetric(telemetry?.speedKph),
-    rpm: clampMetric(telemetry?.rpm),
-    fuelLevel: clampMetric(telemetry?.fuelPercentage ?? driver.fuel),
-    veLevel: clampMetric(telemetry?.batteryChargePercentage),
-    throttleLevel: clampMetric(telemetry?.throttle),
-    brakeLevel: clampMetric(telemetry?.brake)
+    speedKph: clampTelemetryMetric(telemetry?.speedKph),
+    rpm: clampTelemetryMetric(telemetry?.rpm),
+    fuelLevel: clampTelemetryMetric(telemetry?.fuelPercentage ?? driver.fuel),
+    veLevel: clampTelemetryMetric(telemetry?.batteryChargePercentage),
+    throttleLevel: clampTelemetryMetric(telemetry?.throttle),
+    brakeLevel: clampTelemetryMetric(telemetry?.brake)
   }
-}
-
-function clampMetric(value: number | null | undefined): number {
-  if (value === null || value === undefined || !Number.isFinite(value)) {
-    return 0
-  }
-
-  return Math.max(0, value)
 }
 
 function smoothTelemetry(
@@ -126,25 +122,16 @@ function smoothTelemetry(
   deltaSeconds: number
 ): DriverSpeedometerData {
   return {
-    speedKph: smoothValue(current.speedKph, target.speedKph, deltaSeconds, 14),
-    rpm: smoothValue(current.rpm, target.rpm, deltaSeconds, 18),
-    fuelLevel: smoothValue(current.fuelLevel, target.fuelLevel, deltaSeconds, 5),
-    veLevel: smoothValue(current.veLevel, target.veLevel, deltaSeconds, 5),
-    throttleLevel: smoothValue(current.throttleLevel, target.throttleLevel, deltaSeconds, 20),
-    brakeLevel: smoothValue(current.brakeLevel, target.brakeLevel, deltaSeconds, 20)
+    speedKph: smoothTelemetryValue(current.speedKph, target.speedKph, deltaSeconds, 14),
+    rpm: smoothTelemetryValue(current.rpm, target.rpm, deltaSeconds, 18),
+    fuelLevel: smoothTelemetryValue(current.fuelLevel, target.fuelLevel, deltaSeconds, 5),
+    veLevel: smoothTelemetryValue(current.veLevel, target.veLevel, deltaSeconds, 5),
+    throttleLevel: smoothTelemetryValue(
+      current.throttleLevel,
+      target.throttleLevel,
+      deltaSeconds,
+      20
+    ),
+    brakeLevel: smoothTelemetryValue(current.brakeLevel, target.brakeLevel, deltaSeconds, 20)
   }
-}
-
-function smoothValue(
-  current: number,
-  target: number,
-  deltaSeconds: number,
-  responsiveness: number
-): number {
-  if (Math.abs(current - target) < 0.02) {
-    return target
-  }
-
-  const easing = 1 - Math.exp(-deltaSeconds * responsiveness)
-  return current + (target - current) * easing
 }

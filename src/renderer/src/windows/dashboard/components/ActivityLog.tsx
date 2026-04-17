@@ -23,14 +23,12 @@ const formatTimestamp = (date: Date): string =>
 const ActivityLog = ({ entries }: ActivityLogProps): React.ReactElement => {
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  //* auto-scroll to bottom on new entry
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [entries])
 
   return (
     <div className="flex h-full min-h-0 flex-col rounded border border-rd-border bg-rd-surface">
-      {/* -- header -- */}
       <div className="flex items-center gap-2 border-b border-rd-border px-4 py-3">
         <Terminal size={14} className="text-rd-muted" />
         <span className="text-xs font-semibold uppercase tracking-wider text-rd-text">
@@ -39,7 +37,6 @@ const ActivityLog = ({ entries }: ActivityLogProps): React.ReactElement => {
         <span className="ml-auto font-mono text-xs text-rd-subtle">{entries.length} events</span>
       </div>
 
-      {/* -- log entries -- */}
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-2">
         {entries.length === 0 ? (
           <div className="flex flex-1 items-center justify-center">
@@ -57,17 +54,14 @@ const ActivityLog = ({ entries }: ActivityLogProps): React.ReactElement => {
                   transition={{ duration: 0.15 }}
                   className="flex items-baseline gap-3 rounded px-2 py-1 hover:bg-rd-elevated"
                 >
-                  {/* -- timestamp -- */}
                   <span className="shrink-0 font-mono text-xs text-rd-subtle">
                     {formatTimestamp(entry.timestamp)}
                   </span>
 
-                  {/* -- type badge -- */}
                   <span className={`shrink-0 font-mono text-xs font-semibold ${cfg.color}`}>
                     {cfg.label}
                   </span>
 
-                  {/* -- message -- */}
                   <span className="font-mono text-xs text-rd-text">{entry.message}</span>
                 </motion.div>
               )

@@ -56,21 +56,17 @@ const getWindowControlsOverlay = (): WindowControlsOverlayLike | undefined => {
   return navigatorWithOverlay.windowControlsOverlay
 }
 
-//* compute how much of titlebar area is NOT safe for content
 const computeOverlayInsets = (fallback: OverlayInsets = DEFAULT_OVERLAY_INSETS): OverlayInsets => {
-  //* navigator.windowControlsOverlay exists only when titleBarOverlay is enabled
   const wco = getWindowControlsOverlay()
   if (!wco?.visible) return fallback
 
   const rect = wco.getTitlebarAreaRect()
 
-  //* rect is safe titlebar area for web contents
-  //* anything outside it (left/right) is where native buttons live
+  // Space outside the safe titlebar rect belongs to native window controls.
   const left = Math.max(0, Math.round(rect.x))
   const right = Math.max(0, Math.round(window.innerWidth - (rect.x + rect.width)))
   const height = Math.max(0, Math.round(rect.height))
 
-  //* if something looks off, use safe fallback padding so UI won't overlap
   const looksInvalid = height === 0 || (left === 0 && right === 0)
   if (looksInvalid) return fallback
 
@@ -156,7 +152,6 @@ const TopBar = ({ connection }: TopBarProps): React.ReactElement => {
         style={{ width: overlayInsets.left }}
       />
 
-      {/* -- left: branding -- */}
       <div className="relative z-20 flex items-center gap-3">
         <div className="flex items-center gap-2">
           <span className="text-sm font-bold tracking-[0.2em] text-rd-logo-primary">Race</span>
@@ -168,9 +163,7 @@ const TopBar = ({ connection }: TopBarProps): React.ReactElement => {
         <span className="font-mono text-xs text-rd-subtle">v0.2.0-pre</span>
       </div>
 
-      {/* -- right: clock + connection -- */}
       <div className="relative z-20 flex items-center gap-4">
-        {/* clock */}
         <div className="text-right">
           <p className="font-mono text-sm font-medium text-rd-text">{timeString}</p>
           <p className="font-mono text-xs text-rd-subtle">{dateString}</p>
@@ -178,7 +171,6 @@ const TopBar = ({ connection }: TopBarProps): React.ReactElement => {
 
         <div className="h-6 w-px bg-rd-border" />
 
-        {/* connection pill */}
         <motion.div
           key={connection}
           initial={{ opacity: 0, scale: 0.95 }}

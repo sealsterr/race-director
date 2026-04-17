@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type, react-hooks/set-state-in-effect */
-import { useState, useEffect, useRef } from 'react'
+import { useCallback, useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { SectorTime } from '../../../types/lmu'
 
@@ -16,6 +16,11 @@ const SECTOR_KEYS: SectorKey[] = ['sector1', 'sector2', 'sector3']
 
 const HOLD_MS = 4000
 const GREY = '#475569'
+const EMPTY_SECTORS: SectorTime = {
+  sector1: null,
+  sector2: null,
+  sector3: null
+}
 
 function isAllNull(sectors: SectorTime): boolean {
   return sectors.sector1 === null && sectors.sector2 === null && sectors.sector3 === null
@@ -44,11 +49,7 @@ export default function SectorBar({
 
   // displaySectors drives what's actually rendered
   // null = grey, number = colored
-  const [displaySectors, setDisplaySectors] = useState<SectorTime>({
-    sector1: null,
-    sector2: null,
-    sector3: null
-  })
+  const [displaySectors, setDisplaySectors] = useState<SectorTime>(EMPTY_SECTORS)
 
   const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isHoldingRef = useRef(false)
@@ -57,6 +58,18 @@ export default function SectorBar({
     sector2: null,
     sector3: null
   })
+  const startHoldTimer = useCallback(() => {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current)
+    }
+
+    isHoldingRef.current = true
+    holdTimerRef.current = setTimeout(() => {
+      isHoldingRef.current = false
+      setDisplaySectors(EMPTY_SECTORS)
+      holdTimerRef.current = null
+    }, HOLD_MS)
+  }, [])
 
   useEffect(() => {
     const previousLive = previousLiveRef.current
@@ -69,21 +82,7 @@ export default function SectorBar({
 
     if (allComplete) {
       setDisplaySectors({ ...currentSectors })
-
-      if (holdTimerRef.current) {
-        clearTimeout(holdTimerRef.current)
-      }
-
-      isHoldingRef.current = true
-      holdTimerRef.current = setTimeout(() => {
-        isHoldingRef.current = false
-        setDisplaySectors({
-          sector1: null,
-          sector2: null,
-          sector3: null
-        })
-        holdTimerRef.current = null
-      }, HOLD_MS)
+      startHoldTimer()
 
       previousLiveRef.current = currentSectors
       return
@@ -96,38 +95,20 @@ export default function SectorBar({
 
       if (hasAtLeastTwoSectors(previousLive)) {
         setDisplaySectors(buildHeldLapSectors(previousLive, bestSectors))
-
-        if (holdTimerRef.current) {
-          clearTimeout(holdTimerRef.current)
-        }
-
-        isHoldingRef.current = true
-        holdTimerRef.current = setTimeout(() => {
-          isHoldingRef.current = false
-          setDisplaySectors({
-            sector1: null,
-            sector2: null,
-            sector3: null
-          })
-          holdTimerRef.current = null
-        }, HOLD_MS)
+        startHoldTimer()
 
         previousLiveRef.current = currentSectors
         return
       }
 
-      setDisplaySectors({
-        sector1: null,
-        sector2: null,
-        sector3: null
-      })
+      setDisplaySectors(EMPTY_SECTORS)
       previousLiveRef.current = currentSectors
       return
     }
 
     setDisplaySectors({ ...currentSectors })
     previousLiveRef.current = currentSectors
-  }, [currentSectors, bestSectors])
+  }, [currentSectors, bestSectors, startHoldTimer])
 
   useEffect(() => {
     return () => {

@@ -1,106 +1,51 @@
 import { create } from 'zustand'
-import type { CarClass } from '../types/lmu'
+import type {
+  DriverSettings,
+  GapSettings,
+  OverlayConfig,
+  OverlayConfigForId,
+  OverlayConfigUnion,
+  OverlayId,
+  OverlaySpecificSettings,
+  SessionSettings,
+  TowerSettings
+} from '../../../shared/overlay'
 import {
   DEFAULT_DASHBOARD_SETTINGS,
   loadDashboardSettingsFromStorage,
   resolvePaletteColors
 } from '../windows/dashboard/settings/defaults'
 
-//* types
-export type OverlayId = 'OVERLAY-TOWER' | 'OVERLAY-DRIVER' | 'OVERLAY-GAP' | 'OVERLAY-SESSION'
+export type {
+  DriverSettings,
+  DriverOverlayConfig,
+  GapSettings,
+  GapOverlayConfig,
+  OverlayConfig,
+  OverlayConfigForId,
+  OverlayConfigUnion,
+  OverlayId,
+  OverlaySpecificSettings,
+  SessionOverlayConfig,
+  SessionSettings,
+  TowerOverlayConfig,
+  TowerQualiMode,
+  TowerRaceMode,
+  TowerSettings,
+  TowerViewLayout
+} from '../../../shared/overlay'
 
 function getDefaultSessionProgressBarColor(): string {
   try {
     const settings = loadDashboardSettingsFromStorage(globalThis.localStorage)
     return resolvePaletteColors(settings.general).accent
-  } catch {
+  } catch (error) {
+    console.warn('Failed to resolve session overlay accent color; using default:', error)
     return resolvePaletteColors(DEFAULT_DASHBOARD_SETTINGS.general).accent
   }
 }
 
-//* specific settings
-export type TowerRaceMode = 'GAP_AHEAD' | 'GAP_LEADER' | 'PITS' | 'FUEL' | 'TYRES' | 'POSITIONS'
-
-export type TowerQualiMode = 'QUALI_GAP' | 'QUALI_TIMES'
-
-export type TowerViewLayout = 'CLASS_ONLY' | 'MIXED_TOP' | 'EVERYONE_TOP' | 'PER_CLASS'
-
-export interface TowerSettings {
-  viewLayout: TowerViewLayout
-  specificClass: CarClass | null
-  raceMode: TowerRaceMode
-  qualiMode: TowerQualiMode
-  maxRowsPerClass: number
-  standingsRefreshMs: number
-  fightEnabled: boolean
-  fightOnlyInIntervalMode: boolean
-  fightThresholdSeconds: number
-  fightHoldSeconds: number
-  fightDisabledLaps: number
-  fightRequireSameLap: boolean
-  fightIgnorePitAndFinished: boolean
-  showCarNumber: boolean
-  showClassBar: boolean
-  animationSpeed: 'slow' | 'normal' | 'fast'
-
-  // class colors
-  colorHypercar: string
-  colorLMP2: string
-  colorLMP3: string
-  colorLMGT3: string
-  colorGTE: string
-
-  // tyre colors
-  colorHard: string
-  colorMedium: string
-  colorSoft: string
-  colorWet: string
-
-  colorPitBadge: string
-  colorFinishBadge: string
-}
-
-export interface DriverSettings {
-  showPart1: boolean
-  showPart2: boolean
-  showPart3: boolean
-  colorSessionBest: string
-  colorPersonalBest: string
-  colorCompleted: string
-  colorPending: string
-}
-
-export interface GapSettings {
-  triggerThresholdSeconds: number
-  showCarClass: boolean
-}
-
-export interface SessionSettings {
-  customLabel: string
-  showSessionType: boolean
-  showTimeRemaining: boolean
-  showLapCount: boolean
-  progressBarColor: string
-  animateProgressPulse: boolean
-}
-
-export type OverlaySpecificSettings = TowerSettings | DriverSettings | GapSettings | SessionSettings
-
-//* base config
-export interface OverlayConfig<T extends OverlaySpecificSettings = OverlaySpecificSettings> {
-  id: OverlayId
-  enabled: boolean
-  opacity: number // 0 – 100
-  scale: number // 0.5 – 2.0
-  x: number // px from left of target display
-  y: number // px from top of target display
-  displayId: number // electron display id
-  dragMode: boolean // true = draggable, false = click-through
-  settings: T
-}
-
-//* default configs
-const DEFAULT_CONFIGS: OverlayConfig[] = [
+const DEFAULT_CONFIGS: OverlayConfigUnion[] = [
   {
     id: 'OVERLAY-TOWER',
     enabled: false,
@@ -193,34 +138,75 @@ const DEFAULT_CONFIGS: OverlayConfig[] = [
   }
 ]
 
-function cloneConfig<T extends OverlaySpecificSettings>(
-  config: OverlayConfig<T>
-): OverlayConfig<T> {
-  return {
-    ...config,
-    settings: { ...config.settings }
+function cloneConfig(config: OverlayConfigUnion): OverlayConfigUnion {
+  switch (config.id) {
+    case 'OVERLAY-TOWER':
+      return { ...config, settings: { ...config.settings } }
+    case 'OVERLAY-DRIVER':
+      return { ...config, settings: { ...config.settings } }
+    case 'OVERLAY-GAP':
+      return { ...config, settings: { ...config.settings } }
+    case 'OVERLAY-SESSION':
+      return { ...config, settings: { ...config.settings } }
   }
 }
 
-function createDefaultConfigMap(): Map<OverlayId, OverlayConfig> {
+function mergeOverlayConfig(
+  base: OverlayConfigUnion,
+  overlay: OverlayConfigUnion
+): OverlayConfigUnion {
+  switch (base.id) {
+    case 'OVERLAY-TOWER':
+      return overlay.id === 'OVERLAY-TOWER'
+        ? { ...base, ...overlay, settings: { ...base.settings, ...overlay.settings } }
+        : base
+    case 'OVERLAY-DRIVER':
+      return overlay.id === 'OVERLAY-DRIVER'
+        ? { ...base, ...overlay, settings: { ...base.settings, ...overlay.settings } }
+        : base
+    case 'OVERLAY-GAP':
+      return overlay.id === 'OVERLAY-GAP'
+        ? { ...base, ...overlay, settings: { ...base.settings, ...overlay.settings } }
+        : base
+    case 'OVERLAY-SESSION':
+      return overlay.id === 'OVERLAY-SESSION'
+        ? { ...base, ...overlay, settings: { ...base.settings, ...overlay.settings } }
+        : base
+  }
+}
+
+function applyOverlaySettings(
+  overlay: OverlayConfigUnion,
+  settings: Partial<OverlaySpecificSettings>
+): OverlayConfigUnion {
+  switch (overlay.id) {
+    case 'OVERLAY-TOWER':
+      return { ...overlay, settings: { ...overlay.settings, ...settings } }
+    case 'OVERLAY-DRIVER':
+      return { ...overlay, settings: { ...overlay.settings, ...settings } }
+    case 'OVERLAY-GAP':
+      return { ...overlay, settings: { ...overlay.settings, ...settings } }
+    case 'OVERLAY-SESSION':
+      return { ...overlay, settings: { ...overlay.settings, ...settings } }
+  }
+}
+
+type OverlayConfigPatch = Partial<
+  Pick<OverlayConfig, 'enabled' | 'opacity' | 'scale' | 'x' | 'y' | 'displayId' | 'dragMode'>
+>
+
+function createDefaultConfigMap(): Map<OverlayId, OverlayConfigUnion> {
   return new Map(DEFAULT_CONFIGS.map((config) => [config.id, cloneConfig(config)]))
 }
 
-export function normalizeOverlayConfigs(overlays: OverlayConfig[]): OverlayConfig[] {
+export function normalizeOverlayConfigs(overlays: OverlayConfigUnion[]): OverlayConfigUnion[] {
   const defaults = createDefaultConfigMap()
 
   for (const overlay of overlays) {
     const base = defaults.get(overlay.id)
     if (!base) continue
 
-    defaults.set(overlay.id, {
-      ...base,
-      ...overlay,
-      settings: {
-        ...base.settings,
-        ...overlay.settings
-      }
-    })
+    defaults.set(overlay.id, mergeOverlayConfig(base, overlay))
   }
 
   return DEFAULT_CONFIGS.map((config) => {
@@ -229,21 +215,22 @@ export function normalizeOverlayConfigs(overlays: OverlayConfig[]): OverlayConfi
   })
 }
 
-//* store shape
 interface OverlayStore {
-  overlays: OverlayConfig[]
+  overlays: OverlayConfigUnion[]
   savePath: string
 
-  // actions
-  setOverlayConfig: (id: OverlayId, partial: Partial<OverlayConfig>) => void
+  setOverlayConfig: (id: OverlayId, partial: OverlayConfigPatch) => void
   setOverlayRuntimePosition: (
     id: OverlayId,
     position: Pick<OverlayConfig, 'x' | 'y' | 'displayId'>
   ) => void
-  setOverlaySettings: (id: OverlayId, settings: Partial<OverlaySpecificSettings>) => void
+  setOverlaySettings: <Id extends OverlayId>(
+    id: Id,
+    settings: Partial<OverlayConfigForId<Id>['settings']>
+  ) => void
   setSavePath: (path: string) => void
-  getOverlay: (id: OverlayId) => OverlayConfig | undefined
-  loadFromPreset: (overlays: OverlayConfig[], savePath: string) => OverlayConfig[]
+  getOverlay: <Id extends OverlayId>(id: Id) => OverlayConfigForId<Id> | undefined
+  loadFromPreset: (overlays: OverlayConfigUnion[], savePath: string) => OverlayConfigUnion[]
 }
 
 export const useOverlayStore = create<OverlayStore>((set, get) => ({
@@ -265,9 +252,7 @@ export const useOverlayStore = create<OverlayStore>((set, get) => ({
 
   setOverlaySettings: (id, settings) => {
     set((state) => ({
-      overlays: state.overlays.map((o) =>
-        o.id === id ? { ...o, settings: { ...o.settings, ...settings } } : o
-      )
+      overlays: state.overlays.map((o) => (o.id === id ? applyOverlaySettings(o, settings) : o))
     }))
     const updated = get().overlays.find((o) => o.id === id)
     if (updated) globalThis.api?.overlay?.broadcastConfig?.(updated)
@@ -275,7 +260,8 @@ export const useOverlayStore = create<OverlayStore>((set, get) => ({
 
   setSavePath: (path) => set({ savePath: path }),
 
-  getOverlay: (id) => get().overlays.find((o) => o.id === id),
+  getOverlay: (id) =>
+    get().overlays.find((overlay): overlay is OverlayConfigForId<typeof id> => overlay.id === id),
 
   loadFromPreset: (overlays, savePath) => {
     const normalized = normalizeOverlayConfigs(overlays)

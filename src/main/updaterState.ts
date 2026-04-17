@@ -1,12 +1,14 @@
 import type { AppUpdaterState } from '../shared/updater'
 
-//* updater reducer state
 // Pure transitions keep main-process updater logic predictable.
 type UpdaterStatePatch = Partial<AppUpdaterState> & Pick<AppUpdaterState, 'status'>
 
 const toIsoNow = (): string => new Date().toISOString()
 
-const withLegacyFlags = (state: AppUpdaterState, patch: UpdaterStatePatch): AppUpdaterState => {
+const withDerivedStatusFlags = (
+  state: AppUpdaterState,
+  patch: UpdaterStatePatch
+): AppUpdaterState => {
   const status = patch.status
   const merged: AppUpdaterState = {
     ...state,
@@ -61,7 +63,7 @@ export const createInitialUpdaterState = (currentVersion: string): AppUpdaterSta
 })
 
 export const setUpdaterEnabled = (state: AppUpdaterState, enabled: boolean): AppUpdaterState =>
-  withLegacyFlags(state, {
+  withDerivedStatusFlags(state, {
     enabled,
     status: enabled ? 'idle' : 'disabled',
     message: null,
@@ -71,7 +73,7 @@ export const setUpdaterEnabled = (state: AppUpdaterState, enabled: boolean): App
   })
 
 export const reduceUpdaterStateOnCheckStart = (state: AppUpdaterState): AppUpdaterState =>
-  withLegacyFlags(state, {
+  withDerivedStatusFlags(state, {
     status: 'checking',
     checkedAt: toIsoNow(),
     message: null,
@@ -84,7 +86,7 @@ export const reduceUpdaterStateOnCheckFailure = (
   state: AppUpdaterState,
   message: string
 ): AppUpdaterState =>
-  withLegacyFlags(state, {
+  withDerivedStatusFlags(state, {
     status: 'error',
     checkedAt: toIsoNow(),
     message,
@@ -97,7 +99,7 @@ export const reduceUpdaterStateOnUpdateAvailable = (
   state: AppUpdaterState,
   version: string | null
 ): AppUpdaterState =>
-  withLegacyFlags(state, {
+  withDerivedStatusFlags(state, {
     status: 'available',
     latestVersion: version ?? state.latestVersion,
     checkedAt: toIsoNow(),
@@ -111,7 +113,7 @@ export const reduceUpdaterStateOnNoUpdate = (
   state: AppUpdaterState,
   version: string | null
 ): AppUpdaterState =>
-  withLegacyFlags(state, {
+  withDerivedStatusFlags(state, {
     status: 'up-to-date',
     latestVersion: version ?? state.currentVersion,
     checkedAt: toIsoNow(),
@@ -122,7 +124,7 @@ export const reduceUpdaterStateOnNoUpdate = (
   })
 
 export const reduceUpdaterStateOnDownloadStart = (state: AppUpdaterState): AppUpdaterState =>
-  withLegacyFlags(state, {
+  withDerivedStatusFlags(state, {
     status: 'downloading',
     message: null,
     errorContext: null,
@@ -138,7 +140,7 @@ export const reduceUpdaterStateOnDownloadFailure = (
   state: AppUpdaterState,
   message: string
 ): AppUpdaterState =>
-  withLegacyFlags(state, {
+  withDerivedStatusFlags(state, {
     status: nextStatusAfterDownloadFailure(state),
     message,
     errorContext: 'download',
@@ -150,7 +152,7 @@ export const reduceUpdaterStateOnDownloadProgress = (
   state: AppUpdaterState,
   percent: number
 ): AppUpdaterState =>
-  withLegacyFlags(state, {
+  withDerivedStatusFlags(state, {
     status: 'downloading',
     downloadProgress: percent,
     message: null,
@@ -162,7 +164,7 @@ export const reduceUpdaterStateOnDownloadComplete = (
   state: AppUpdaterState,
   version: string | null
 ): AppUpdaterState =>
-  withLegacyFlags(state, {
+  withDerivedStatusFlags(state, {
     status: 'downloaded',
     latestVersion: version ?? state.latestVersion,
     downloadProgress: 100,
@@ -175,7 +177,7 @@ export const reduceUpdaterStateOnInstallFailure = (
   state: AppUpdaterState,
   message: string
 ): AppUpdaterState =>
-  withLegacyFlags(state, {
+  withDerivedStatusFlags(state, {
     status: 'downloaded',
     message,
     errorContext: 'install',
@@ -199,7 +201,6 @@ export const getAutoUpdateDisabledReason = (args: {
   appImage?: string | undefined
   disabledByEnv: boolean
 }): string | null => {
-  // TODO: Add signed-build checks if distribution policy requires it.
   if (!args.isPackaged) {
     return 'Automatic updates are only available in packaged production builds.'
   }

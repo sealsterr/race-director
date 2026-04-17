@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { useRaceStore } from '../../store/raceStore' // "@renderer/store/raceStore"
+import { useRaceStore } from '../../store/raceStore'
 import type { CarClass, DriverStanding, DriverStatus, Penalty, PenaltyType } from '../../types/lmu'
 
-//* camera types
-//* trackSideGroup always 0 && shouldAdvance always false
+// LMU camera changes use trackSideGroup 0 and shouldAdvance false for fixed camera selection.
 export const CAMERA_TYPES = [
   { label: 'Cockpit 1', value: 1, description: 'Driver eye, facing forward -> classic onboard' },
   { label: 'Grille', value: 2, description: 'Top of hood/grille -> good for watching a chaser' },
@@ -17,7 +16,6 @@ export const CAMERA_TYPES = [
 
 export type CameraTypeValue = (typeof CAMERA_TYPES)[number]['value']
 
-//* helpers
 const formatTime = (s: number | null): string => {
   if (s === null || s <= 0) return '—'
 
@@ -40,7 +38,6 @@ const formatFuel = (f: number | null): string => {
   return `${f.toFixed(1)}%`
 }
 
-//* class badge
 const CLASS_COLORS: Record<CarClass, string> = {
   HYPERCAR: 'bg-red-700 text-white',
   LMP2: 'bg-blue-700 text-white',
@@ -58,7 +55,6 @@ const ClassBadge = ({ cls }: { cls: CarClass }): React.ReactElement => (
   </span>
 )
 
-//* status badge
 const STATUS_STYLES: Record<DriverStatus, string> = {
   RACING: 'bg-rd-success/20 text-rd-success',
   PITTING: 'bg-rd-warning/20 text-rd-warning',
@@ -79,9 +75,8 @@ const PENALTY_LABEL: Record<PenaltyType, string> = {
 }
 
 const formatPenaltyLabel = (p: Penalty): string => {
-  //* user-added time penalty with known seconds
   if (p.type === 'TIME_PENALTY' && p.time > 0) return `+${p.time}s`
-  //* api-sourced
+
   const countMatch = /^(\d+) pending$/.exec(p.reason)
   if (countMatch && Number(countMatch[1]) > 1) {
     return `PEN x${countMatch[1]}`
@@ -97,7 +92,6 @@ const StatusBadge = ({ status }: { status: DriverStatus }): React.ReactElement =
   </span>
 )
 
-//* column config
 type ColumnKey =
   | 'position'
   | 'class'
@@ -139,17 +133,8 @@ const COLUMNS: ColumnDef[] = [
   { key: 'status', label: 'Status', defaultVisible: true }
 ]
 
-//* class filter
 const ALL_CLASSES: CarClass[] = ['HYPERCAR', 'LMP2', 'LMP3', 'LMGT3', 'GTE', 'UNKNOWN']
 
-//* row
-interface RowProps {
-  driver: DriverStanding
-  visibleCols: Set<ColumnKey>
-  isLapped: boolean
-}
-
-//* cell components
 const CellPosition = ({ v }: { v: DriverStanding }): React.ReactElement => (
   <td className="border-r border-rd-border px-2 py-1.5 text-center last:border-r-0 text-center font-mono text-xs font-semibold">
     {v.position}
@@ -295,7 +280,6 @@ const CELL_MAP: Record<ColumnKey, (v: DriverStanding) => React.ReactElement> = {
   status: (v): React.ReactElement => <CellStatus key="status" v={v} />
 }
 
-//* row
 interface RowProps {
   driver: DriverStanding
   visibleCols: Set<ColumnKey>
@@ -327,19 +311,16 @@ const DriverRow = ({
   )
 }
 
-//* main component
 const InfoWindow = (): React.ReactElement => {
   const { connection, session, standings, setConnection, setSession, setStandings } = useRaceStore()
 
   useEffect(() => {
-    //* hydrate with current state on mount
     globalThis.api.getState().then((state) => {
       setConnection(state.connection)
       setSession(state.session)
       setStandings(state.standings)
     })
 
-    //* subscribe to live updates
     const unsubState = globalThis.api.onStateUpdate((state) => {
       setSession(state.session)
       setStandings(state.standings)
@@ -355,17 +336,16 @@ const InfoWindow = (): React.ReactElement => {
     }
   }, [setConnection, setSession, setStandings])
 
-  // camera
   const [selectedCamera] = useState<CameraTypeValue>(4)
   const [focusedSlotId, setFocusedSlotId] = useState<number | null>(null)
   const activeCameraType = React.useRef<CameraTypeValue | null>(null)
 
   const handleRowClick = async (driver: DriverStanding): Promise<void> => {
     if (connection !== 'CONNECTED') return
-    //* always switch focus to clicked car
+
     await globalThis.api.focusVehicle(driver.slotId)
-    //* only send camera angle if differs from what's currently active
-    //* switching drivers does NOT change camera type, no setCameraAngle needed
+
+    // Switching drivers preserves the active camera type in LMU.
     if (activeCameraType.current !== selectedCamera) {
       await globalThis.api.setCameraAngle(selectedCamera, 0, false)
       activeCameraType.current = selectedCamera
@@ -373,17 +353,12 @@ const InfoWindow = (): React.ReactElement => {
     setFocusedSlotId(driver.slotId)
   }
 
-  // handleCameraChange grave, RIP
-
-  // column visibility
   const [visibleCols, setVisibleCols] = useState<Set<ColumnKey>>(
     () => new Set(COLUMNS.filter((c) => c.defaultVisible).map((c) => c.key))
   )
 
-  // class filter
   const [activeClasses, setActiveClasses] = useState<Set<CarClass>>(() => new Set(ALL_CLASSES))
 
-  // show col settings panel
   const [showColMenu, setShowColMenu] = useState(false)
   const colMenuRef = React.useRef<HTMLDivElement>(null)
   const colBtnRef = React.useRef<HTMLButtonElement>(null)
@@ -404,7 +379,6 @@ const InfoWindow = (): React.ReactElement => {
     setVisibleCols((prev) => {
       const next = new Set(prev)
       if (next.has(key)) {
-        // always show position and driver
         if (key === 'position' || key === 'driver') return prev
         next.delete(key)
       } else {
@@ -418,7 +392,6 @@ const InfoWindow = (): React.ReactElement => {
     setActiveClasses((prev) => {
       const next = new Set(prev)
       if (next.has(cls)) {
-        // prevent deselecting all
         if (next.size === 1) return prev
         next.delete(cls)
       } else {
@@ -443,7 +416,6 @@ const InfoWindow = (): React.ReactElement => {
 
   return (
     <div className="flex h-screen w-screen flex-col bg-rd-bg text-rd-text">
-      {/* -- header -- */}
       <div
         className="flex h-12 shrink-0 items-center justify-between border-b border-rd-border bg-rd-surface px-4"
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
@@ -476,10 +448,7 @@ const InfoWindow = (): React.ReactElement => {
         </div>
       </div>
 
-      {/* -- toolbar -- */}
       <div className="flex shrink-0 items-center gap-2 border-b border-rd-border bg-rd-surface px-4 py-1.5">
-        {/* camera selector grave, RIP */}
-        {/* -- class filters -- */}
         <div className="flex items-center gap-1.5">
           {ALL_CLASSES.filter((c) => c !== 'UNKNOWN').map((cls) => (
             <button
@@ -497,10 +466,8 @@ const InfoWindow = (): React.ReactElement => {
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          {/* -- standings count --*/}
           <span className="font-mono text-xs text-rd-subtle">{filteredStandings.length} cars</span>
 
-          {/* -- column toggle button --*/}
           <button
             ref={colBtnRef}
             onClick={() => setShowColMenu((v) => !v)}
@@ -511,7 +478,6 @@ const InfoWindow = (): React.ReactElement => {
         </div>
       </div>
 
-      {/* -- dropdown column menu -- */}
       {showColMenu && (
         <div
           ref={colMenuRef}
@@ -537,7 +503,6 @@ const InfoWindow = (): React.ReactElement => {
         </div>
       )}
 
-      {/* -- table -- */}
       <div className="min-h-0 flex-1 overflow-y-auto">
         {filteredStandings.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-2">

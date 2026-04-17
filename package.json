@@ -58,7 +58,11 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "RaceDirector"
+      "shortcutName": "RaceDirector",
+      "uninstallDisplayName": "RaceDirector",
+      "installerIcon": "resources/rd-icon-2.ico",
+      "uninstallerIcon": "resources/rd-icon-2.ico",
+      "include": "build/installer.nsh"
     }
   },
   "dependencies": {

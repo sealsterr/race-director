@@ -26,12 +26,8 @@ interface GapOverlayData {
 
 export function useGapOverlayData(): GapOverlayData {
   const { speedUnit } = useMeasurementUnits()
-  const storeGapConfig = useOverlayStore(
-    (state) => state.getOverlay('OVERLAY-GAP') as OverlayConfig<GapSettings> | undefined
-  )
-  const storeDriverConfig = useOverlayStore(
-    (state) => state.getOverlay('OVERLAY-DRIVER') as OverlayConfig<DriverSettings> | undefined
-  )
+  const storeGapConfig = useOverlayStore((state) => state.getOverlay('OVERLAY-GAP'))
+  const storeDriverConfig = useOverlayStore((state) => state.getOverlay('OVERLAY-DRIVER'))
   const [overlayConfig, setOverlayConfig] = useState<OverlayConfig<GapSettings>>(
     storeGapConfig ?? {
       id: 'OVERLAY-GAP',
@@ -65,32 +61,35 @@ export function useGapOverlayData(): GapOverlayData {
 
   useEffect(() => {
     let cancelled = false
+    const configPromise = globalThis.api?.overlay?.getConfig?.('OVERLAY-GAP')
 
-    void globalThis.api?.overlay
-      ?.getConfig?.('OVERLAY-GAP')
-      .then((raw: unknown) => {
-        if (cancelled || !raw) return
-
-        const incoming = raw as OverlayConfig<GapSettings>
-        if (incoming?.id !== 'OVERLAY-GAP') return
-        setOverlayConfig({
-          ...incoming,
-          settings: { ...GAP_DEFAULT_SETTINGS, ...incoming.settings }
-        })
-        setIsConfigReady(true)
-      })
-      .finally(() => {
-        if (!cancelled) {
+    if (!configPromise) {
+      setIsConfigReady(true)
+    } else {
+      void configPromise
+        .then((incoming) => {
+          if (cancelled || !incoming) return
+          if (incoming?.id !== 'OVERLAY-GAP') return
+          setOverlayConfig({
+            ...incoming,
+            settings: { ...GAP_DEFAULT_SETTINGS, ...incoming.settings }
+          })
           setIsConfigReady(true)
-        }
-      })
+        })
+        .catch((error) => {
+          console.warn('Failed to load gap overlay config:', error)
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setIsConfigReady(true)
+          }
+        })
+    }
 
-    const unsubscribe = globalThis.api?.overlay?.onConfigUpdate?.((raw: unknown) => {
-      const incoming = raw as OverlayConfig<GapSettings | DriverSettings>
-
+    const unsubscribe = globalThis.api?.overlay?.onConfigUpdate?.((incoming) => {
       if (incoming?.id === 'OVERLAY-GAP') {
         setOverlayConfig({
-          ...(incoming as OverlayConfig<GapSettings>),
+          ...incoming,
           settings: { ...GAP_DEFAULT_SETTINGS, ...incoming.settings }
         })
         setIsConfigReady(true)
@@ -99,7 +98,7 @@ export function useGapOverlayData(): GapOverlayData {
       if (incoming?.id === 'OVERLAY-DRIVER') {
         setDriverSettings({
           ...DRIVER_DEFAULT_SETTINGS,
-          ...((incoming as OverlayConfig<DriverSettings>).settings ?? {})
+          ...incoming.settings
         })
       }
     })

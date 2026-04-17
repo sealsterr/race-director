@@ -8,7 +8,16 @@ import GapOverlay from './windows/overlay/gap'
 import SessionOverlay from './windows/overlay/session'
 import useGlobalUiSettings from './hooks/useGlobalUiSettings'
 
-const ROUTES: Record<string, React.ReactElement> = {
+type AppRoute =
+  | ''
+  | 'info'
+  | 'overlay-control'
+  | 'overlay/tower'
+  | 'overlay/driver'
+  | 'overlay/gap'
+  | 'overlay/session'
+
+const ROUTES: Record<AppRoute, React.ReactElement> = {
   '': <Dashboard />,
   info: <InfoWindow />,
   'overlay-control': <OverlayControl />,
@@ -16,6 +25,10 @@ const ROUTES: Record<string, React.ReactElement> = {
   'overlay/driver': <DriverOverlay />,
   'overlay/gap': <GapOverlay />,
   'overlay/session': <SessionOverlay />
+}
+
+function isAppRoute(route: string): route is AppRoute {
+  return route in ROUTES
 }
 
 const App = (): React.ReactElement => {
@@ -31,7 +44,7 @@ const App = (): React.ReactElement => {
     return () => globalThis.removeEventListener('hashchange', onHashChange)
   }, [])
 
-  return ROUTES[route] ?? <Dashboard />
+  return isAppRoute(route) ? ROUTES[route] : <Dashboard />
 }
 
 export default App

@@ -1,28 +1,32 @@
-appId: com.electron.app
-productName: race-director
+appId: com.racedirector.app
+productName: RaceDirector
 directories:
+  output: release
   buildResources: build
 files:
-  - '!**/.vscode/*'
-  - '!src/*'
-  - '!electron.vite.config.{js,ts,mjs,cjs}'
-  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
-  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
-  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - out/**/*
+  - resources/**/*
 extraResources:
   - from: src/main/lmu-telemetry-bridge/bin/Release/net9.0
     to: telemetry-bridge
     filter:
       - '**/*'
-asarUnpack:
-  - resources/**
 win:
-  executableName: race-director
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: resources/rd-icon-2.ico
 nsis:
-  artifactName: ${name}-${version}-setup.${ext}
-  shortcutName: ${productName}
-  uninstallDisplayName: ${productName}
-  createDesktopShortcut: always
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: RaceDirector
+  uninstallDisplayName: RaceDirector
+  installerIcon: resources/rd-icon-2.ico
+  uninstallerIcon: resources/rd-icon-2.ico
+  include: build/installer.nsh
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:

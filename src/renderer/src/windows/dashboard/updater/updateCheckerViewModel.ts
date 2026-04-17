@@ -1,16 +1,8 @@
 import type { AppUpdaterState } from '../../../types/updater'
 
 type UpdateCheckerAction = 'check' | 'download' | 'install'
-type UpdateCheckerTone = 'neutral' | 'accent' | 'warning'
-
-interface UpdateCheckerStatusControl {
-  kind: 'status'
-  label: string
-  tone: UpdateCheckerTone
-}
 
 interface UpdateCheckerButtonControl {
-  kind: 'button'
   label: string
   action: UpdateCheckerAction
   disabled: boolean
@@ -21,8 +13,7 @@ interface UpdateCheckerButtonControl {
 export interface UpdateCheckerViewModel {
   description: string
   statusNote: string | null
-  lastCheckedLabel: string
-  control: UpdateCheckerStatusControl | UpdateCheckerButtonControl
+  control: UpdateCheckerButtonControl
 }
 
 const formatLastChecked = (checkedAt: string | null): string => {
@@ -45,13 +36,14 @@ export const getUpdateCheckerViewModel = (
 ): UpdateCheckerViewModel => {
   if (!state) {
     return {
-      description: 'Check for updates.',
+      description: 'Last checked: loading...',
       statusNote: null,
-      lastCheckedLabel: 'Last checked: loading...',
       control: {
-        kind: 'status',
         label: 'Loading',
-        tone: 'neutral'
+        action: 'check',
+        disabled: true,
+        busy: true,
+        title: 'Loading updater status.'
       }
     }
   }
@@ -60,11 +52,9 @@ export const getUpdateCheckerViewModel = (
 
   if (!state.enabled) {
     return {
-      description: 'Check for updates.',
+      description: lastChecked,
       statusNote: null,
-      lastCheckedLabel: lastChecked,
       control: {
-        kind: 'button',
         label: 'Unavailable',
         action: 'check',
         disabled: true,
@@ -75,14 +65,12 @@ export const getUpdateCheckerViewModel = (
 
   if (state.downloaded) {
     return {
-      description: 'Check for updates.',
+      description: lastChecked,
       statusNote:
         state.message ??
         `Version ${state.latestVersion ?? state.currentVersion} is ready to install.`,
-      lastCheckedLabel: lastChecked,
       control: {
-        kind: 'button',
-        label: 'Restart to Update',
+        label: 'Restart',
         action: 'install',
         disabled: false,
         title: 'Apply the downloaded update and restart the app.'
@@ -97,12 +85,10 @@ export const getUpdateCheckerViewModel = (
         : 'Downloading...'
 
     return {
-      description: 'Check for updates.',
+      description: lastChecked,
       statusNote:
         state.message ?? `Downloading version ${state.latestVersion ?? state.currentVersion}.`,
-      lastCheckedLabel: lastChecked,
       control: {
-        kind: 'button',
         label: progressLabel,
         action: 'download',
         disabled: true,
@@ -114,12 +100,10 @@ export const getUpdateCheckerViewModel = (
 
   if (state.hasUpdate) {
     return {
-      description: 'Check for updates.',
+      description: lastChecked,
       statusNote: `Version ${state.latestVersion ?? state.currentVersion} is available.`,
-      lastCheckedLabel: lastChecked,
       control: {
-        kind: 'button',
-        label: 'Download Update',
+        label: 'Download',
         action: 'download',
         disabled: false,
         title: 'Download the latest Race Director update.'
@@ -129,11 +113,9 @@ export const getUpdateCheckerViewModel = (
 
   if (state.checking) {
     return {
-      description: 'Check for updates.',
-      statusNote: 'Checking for Race Director updates.',
-      lastCheckedLabel: lastChecked,
+      description: lastChecked,
+      statusNote: null,
       control: {
-        kind: 'button',
         label: 'Checking...',
         action: 'check',
         disabled: true,
@@ -145,46 +127,38 @@ export const getUpdateCheckerViewModel = (
 
   if (state.status === 'up-to-date') {
     return {
-      description: 'Check for updates.',
-      statusNote: `Race Director ${state.currentVersion} is up to date.`,
-      lastCheckedLabel: lastChecked,
+      description: lastChecked,
+      statusNote: null,
       control: {
-        kind: 'button',
         label: 'Up to Date',
         action: 'check',
-        disabled: false,
-        title: 'Check again for updates.'
+        disabled: true,
+        title: `Race Director ${state.currentVersion} is up to date.`
       }
     }
   }
 
   if (state.status === 'error') {
     return {
-      description: 'Check for updates.',
+      description: lastChecked,
       statusNote: state.message ?? 'The last update check failed.',
-      lastCheckedLabel: lastChecked,
       control: {
-        kind: 'button',
-        label: 'Retry Check',
+        label: 'Check Failed',
         action: 'check',
-        disabled: false,
-        title: 'Check again for updates.'
+        disabled: true,
+        title: state.message ?? 'The last update check failed.'
       }
     }
   }
 
   return {
-    description: 'Check for updates.',
+    description: lastChecked,
     statusNote: null,
-    lastCheckedLabel: lastChecked,
     control: {
-      kind: 'button',
-      label: 'Check for Updates',
+      label: 'Up to Date',
       action: 'check',
-      disabled: false,
-      title: 'Check for updates now.'
+      disabled: true,
+      title: `Race Director ${state.currentVersion} is up to date.`
     }
   }
 }
-
-export type { UpdateCheckerTone }

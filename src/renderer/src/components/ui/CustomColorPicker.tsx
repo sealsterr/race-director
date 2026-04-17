@@ -1,20 +1,10 @@
-import React, {
-  useCallback,
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties
-} from 'react'
+import React, { useCallback, useId, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Pipette } from 'lucide-react'
+import { useAnchoredPopover } from './useAnchoredPopover'
 
 export const COLOR_PICKER_PORTAL_SELECTOR = "[data-rd-color-picker-portal='true']"
 
-const VIEWPORT_MARGIN_PX = 8
-const POPOVER_MARGIN_PX = 8
 const DEFAULT_POPOVER_WIDTH_PX = 236
 const HEX_PATTERN = /^#?[0-9a-fA-F]{0,6}$/
 const FULL_HEX_PATTERN = /^#?[0-9a-fA-F]{6}$/
@@ -382,70 +372,20 @@ const CustomColorPicker = ({
   stopPropagation = false
 }: CustomColorPickerProps): React.ReactElement => {
   const [isOpen, setIsOpen] = useState(false)
-  const [popoverStyle, setPopoverStyle] = useState<CSSProperties>({})
-  const triggerRef = useRef<HTMLButtonElement | null>(null)
-  const popoverRef = useRef<HTMLDivElement | null>(null)
   const baseId = useId()
   const hexInputId = `${baseId}-hex`
 
   const close = useCallback(() => setIsOpen(false), [])
   const toggle = useCallback(() => setIsOpen((current) => !current), [])
-
-  useLayoutEffect(() => {
-    if (!isOpen) return
-    const updatePosition = (): void => {
-      const rect = triggerRef.current?.getBoundingClientRect()
-      if (!rect) return
-      const width = Math.min(DEFAULT_POPOVER_WIDTH_PX, window.innerWidth - VIEWPORT_MARGIN_PX * 2)
-      const maxHeight = window.innerHeight - VIEWPORT_MARGIN_PX * 2
-      const measuredHeight = Math.min(maxHeight, popoverRef.current?.offsetHeight ?? 280)
-      const availableAbove = rect.top - VIEWPORT_MARGIN_PX - POPOVER_MARGIN_PX
-      const availableBelow =
-        window.innerHeight - rect.bottom - VIEWPORT_MARGIN_PX - POPOVER_MARGIN_PX
-      const openAbove = availableBelow < measuredHeight && availableAbove > availableBelow
-      const left = clamp(
-        rect.right - width,
-        VIEWPORT_MARGIN_PX,
-        window.innerWidth - width - VIEWPORT_MARGIN_PX
-      )
-      setPopoverStyle({
-        left,
-        maxHeight,
-        top: openAbove
-          ? Math.max(VIEWPORT_MARGIN_PX, rect.top - measuredHeight - POPOVER_MARGIN_PX)
-          : Math.max(
-              VIEWPORT_MARGIN_PX,
-              Math.min(
-                rect.bottom + POPOVER_MARGIN_PX,
-                window.innerHeight - measuredHeight - VIEWPORT_MARGIN_PX
-              )
-            ),
-        width
-      })
-    }
-
-    updatePosition()
-    window.addEventListener('resize', updatePosition)
-    window.addEventListener('scroll', updatePosition, true)
-    return () => {
-      window.removeEventListener('resize', updatePosition)
-      window.removeEventListener('scroll', updatePosition, true)
-    }
-  }, [isOpen])
-
-  useEffect(() => {
-    if (!isOpen) return
-    const handlePointerDown = (event: MouseEvent): void => {
-      const target = event.target
-      if (!(target instanceof Node)) return
-      if (triggerRef.current?.contains(target)) return
-      if (popoverRef.current?.contains(target)) return
-      close()
-    }
-
-    document.addEventListener('mousedown', handlePointerDown)
-    return () => document.removeEventListener('mousedown', handlePointerDown)
-  }, [close, isOpen])
+  const { triggerRef, popoverRef, popoverStyle } = useAnchoredPopover<
+    HTMLButtonElement,
+    HTMLDivElement
+  >({
+    isOpen,
+    onClose: close,
+    width: DEFAULT_POPOVER_WIDTH_PX,
+    fallbackHeight: 280
+  })
 
   return (
     <>

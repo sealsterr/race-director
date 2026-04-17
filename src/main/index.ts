@@ -1,9 +1,10 @@
 import { app, BrowserWindow, shell, screen } from 'electron'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import type { GlobalUiSettingsPayload } from '../shared/globalUi'
 import { DEFAULT_MEASUREMENT_UNITS } from '../shared/measurementUnits'
+import type { OverlayId } from '../shared/overlay'
 import { getOverlayWindowScale } from '../shared/overlayWindowSizing'
 import { registerIpcHandlers } from './ipc/handlers'
 import { registerOverlayHandlers } from './ipc/overlayHandlers'
@@ -20,10 +21,10 @@ const INFO_WINDOW_DEFAULTS = {
   minHeight: 400
 } as const
 const OVERLAY_CONTROL_WINDOW_DEFAULTS = {
-  width: 1240,
-  height: 760,
-  minWidth: 1180,
-  minHeight: 680
+  width: 1600,
+  height: 900,
+  minWidth: 1400,
+  minHeight: 760
 } as const
 
 interface UiPrefs {
@@ -52,19 +53,16 @@ let isAppQuitting = false
 let isQuitDialogOpen = false
 const modalBackdropWindowIds = new Set<number>()
 
-//* track child windows so we don't open duplicates
 const childWindows: Map<string, BrowserWindow> = new Map()
 const suppressOverlayMoveEvents = new Set<string>()
 
-const OVERLAY_WINDOW_IDS = new Set<string>([
-  'OVERLAY-TOWER',
-  'OVERLAY-DRIVER',
-  'OVERLAY-GAP',
-  'OVERLAY-SESSION'
-])
-
-function isOverlayWindowId(id: string): boolean {
-  return OVERLAY_WINDOW_IDS.has(id)
+function isOverlayWindowId(id: string): id is OverlayId {
+  return (
+    id === 'OVERLAY-TOWER' ||
+    id === 'OVERLAY-DRIVER' ||
+    id === 'OVERLAY-GAP' ||
+    id === 'OVERLAY-SESSION'
+  )
 }
 
 function closeAllOverlayWindows(): void {
@@ -138,14 +136,20 @@ function getUiPrefsPath(): string {
 }
 
 function loadUiPrefs(): UiPrefs {
+  const path = getUiPrefsPath()
+  if (!existsSync(path)) {
+    return DEFAULT_UI_PREFS
+  }
+
   try {
-    const raw = readFileSync(getUiPrefsPath(), 'utf8')
+    const raw = readFileSync(path, 'utf8')
     const parsed = JSON.parse(raw) as Partial<UiPrefs>
     return {
       ...DEFAULT_UI_PREFS,
       ...parsed
     }
-  } catch {
+  } catch (error) {
+    console.warn('Failed to load UI preferences; using defaults:', error)
     return DEFAULT_UI_PREFS
   }
 }
@@ -330,7 +334,7 @@ function resetQuitConfirmPreference(): void {
 }
 
 function toSafeExternalUrl(rawUrl: string): string | null {
-  if (typeof rawUrl !== 'string' || rawUrl.length === 0) {
+  if (rawUrl.length === 0) {
     return null
   }
 
@@ -435,7 +439,6 @@ const createChildWindow = (
   options: Partial<Electron.BrowserWindowConstructorOptions>,
   mainWindow: BrowserWindow
 ): BrowserWindow => {
-  //* if already open just focus it
   const existing = childWindows.get(id)
   if (existing && !existing.isDestroyed()) {
     existing.focus()
@@ -469,7 +472,6 @@ const createChildWindow = (
   })
   attachWebContentsSecurityHandlers(win)
 
-  //* load same renderer with hash route
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     const base = process.env['ELECTRON_RENDERER_URL'].replace(/\/$/, '')
     win.loadURL(`${base}/#${route}`)
@@ -479,7 +481,6 @@ const createChildWindow = (
     })
   }
 
-  //* clean up map entry and notify dashboard when closed
   win.on('closed', () => {
     childWindows.delete(id)
     modalBackdropWindowIds.delete(win.id)
@@ -532,7 +533,7 @@ const createOverlayWindow = (
     }
   })
 
-  // click-through by default
+  // Overlay windows stay click-through unless drag mode is enabled.
   win.setIgnoreMouseEvents(true, { forward: true })
 
   win.once('ready-to-show', () => win.show())
@@ -583,7 +584,6 @@ const createOverlayWindow = (
 }
 
 const registerWindowIpc = (mainWindow: BrowserWindow): void => {
-  //* open a named window
   registerIpcHandle('window:open', (_event, id: string): boolean => {
     if (id === 'INFO') {
       createChildWindow(
@@ -611,16 +611,15 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
       return true
     }
 
-    //* overlay windows
-    const OVERLAY_SIZES: Record<string, { route: string; w: number; h: number }> = {
+    const OVERLAY_SIZES: Record<OverlayId, { route: string; w: number; h: number }> = {
       'OVERLAY-TOWER': { route: 'overlay/tower', w: 400, h: 700 },
       'OVERLAY-DRIVER': { route: 'overlay/driver', w: 896, h: 286 },
       'OVERLAY-GAP': { route: 'overlay/gap', w: 1904, h: 316 },
       'OVERLAY-SESSION': { route: 'overlay/session', w: 1120, h: 430 }
     }
 
-    const def = OVERLAY_SIZES[id]
-    if (def) {
+    if (isOverlayWindowId(id)) {
+      const def = OVERLAY_SIZES[id]
       const overlayScale = getOverlayWindowScale(id)
       createOverlayWindow(
         id,
@@ -636,7 +635,6 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
     return false
   })
 
-  // move/resize overlay windows
   registerIpcHandle(
     'overlay:updateBounds',
     (_e, id: string, x: number, y: number, w: number, h: number): Electron.Rectangle | null => {
@@ -652,7 +650,6 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
     }
   )
 
-  // toggle drag mode
   registerIpcHandle('overlay:setDragMode', (_e, id: string, enabled: boolean): void => {
     const win = childWindows.get(id)
     if (win && !win.isDestroyed()) {
@@ -661,14 +658,12 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
     }
   })
 
-  // get bounds of overlay window
   registerIpcHandle('overlay:getBounds', (_e, id: string): Electron.Rectangle | null => {
     const win = childWindows.get(id)
     if (win && !win.isDestroyed()) return win.getBounds()
     return null
   })
 
-  //* close a named window
   registerIpcHandle('window:close', (_event, id: string): void => {
     const win = childWindows.get(id)
     if (win && !win.isDestroyed()) win.close()
@@ -730,7 +725,6 @@ const registerWindowIpc = (mainWindow: BrowserWindow): void => {
     applyWindowTheme(targetWindow, titlebarHeight)
   })
 
-  //* query which windows are open
   registerIpcHandle('window:getOpen', (): string[] => {
     return Array.from(childWindows.entries())
       .filter(([, w]) => !w.isDestroyed())

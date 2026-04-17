@@ -42,9 +42,7 @@ function findSpectatedDriver(standings: DriverStanding[]): DriverStanding | null
 }
 
 export function useDriverCardData(): DriverCardData {
-  const storeConfig = useOverlayStore(
-    (state) => state.getOverlay('OVERLAY-DRIVER') as OverlayConfig<DriverSettings> | undefined
-  )
+  const storeConfig = useOverlayStore((state) => state.getOverlay('OVERLAY-DRIVER'))
   const [overlayConfig, setOverlayConfig] = useState<OverlayConfig<DriverSettings>>(
     storeConfig ?? {
       id: 'OVERLAY-DRIVER',
@@ -78,29 +76,33 @@ export function useDriverCardData(): DriverCardData {
 
   useEffect(() => {
     let cancelled = false
+    const configPromise = globalThis.api?.overlay?.getConfig?.('OVERLAY-DRIVER')
 
-    void globalThis.api?.overlay
-      ?.getConfig?.('OVERLAY-DRIVER')
-      .then((raw: unknown) => {
-        if (cancelled || !raw) return
+    if (!configPromise) {
+      setIsConfigReady(true)
+    } else {
+      void configPromise
+        .then((incoming) => {
+          if (cancelled || !incoming) return
+          if (incoming?.id !== 'OVERLAY-DRIVER') return
 
-        const incoming = raw as OverlayConfig<DriverSettings>
-        if (incoming?.id !== 'OVERLAY-DRIVER') return
-
-        setOverlayConfig({
-          ...incoming,
-          settings: { ...DRIVER_DEFAULT_SETTINGS, ...incoming.settings }
-        })
-        setIsConfigReady(true)
-      })
-      .finally(() => {
-        if (!cancelled) {
+          setOverlayConfig({
+            ...incoming,
+            settings: { ...DRIVER_DEFAULT_SETTINGS, ...incoming.settings }
+          })
           setIsConfigReady(true)
-        }
-      })
+        })
+        .catch((error) => {
+          console.warn('Failed to load driver overlay config:', error)
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setIsConfigReady(true)
+          }
+        })
+    }
 
-    const unsubscribe = globalThis.api?.overlay?.onConfigUpdate?.((raw: unknown) => {
-      const incoming = raw as OverlayConfig<DriverSettings>
+    const unsubscribe = globalThis.api?.overlay?.onConfigUpdate?.((incoming) => {
       if (incoming?.id === 'OVERLAY-DRIVER') {
         setOverlayConfig({
           ...incoming,

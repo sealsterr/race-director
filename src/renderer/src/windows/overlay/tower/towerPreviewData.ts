@@ -9,7 +9,7 @@ function createStanding(
     carNumber: standing.carNumber ?? String(standing.slotId),
     driverName: standing.driverName,
     nationalityCode: standing.nationalityCode ?? 'INT',
-    teamName: standing.teamName ?? 'Placeholder Racing',
+    teamName: standing.teamName ?? 'Independent Racing',
     carClass: standing.carClass ?? 'HYPERCAR',
     carName: standing.carName ?? 'Prototype',
     lastLapTime: standing.lastLapTime ?? 191.214,

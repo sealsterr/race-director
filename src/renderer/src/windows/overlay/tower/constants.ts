@@ -1,7 +1,6 @@
 import type { TowerSettings } from '../../../store/overlayStore'
 import type { CarClass, TyreCompound } from '../../../types/lmu'
 
-//* class colors
 export const DEFAULT_CLASS_COLORS: Record<CarClass, string> = {
   HYPERCAR: '#E4002B',
   LMP2: '#0057A8',
@@ -28,7 +27,6 @@ export function getClassColor(carClass: CarClass, settings: TowerSettings): stri
   }
 }
 
-//* tyre compounds
 export type TyreCompoundKey = 'HARD' | 'MEDIUM' | 'SOFT' | 'WET' | 'UNKNOWN'
 
 export interface TyreInfo {
@@ -85,7 +83,6 @@ export function normalizeTyreCompound(raw: TyreCompound): TyreCompoundKey {
   return 'UNKNOWN'
 }
 
-//* class order for consistent rendering
 export const CLASS_ORDER: CarClass[] = ['HYPERCAR', 'LMP2', 'LMP3', 'LMGT3', 'GTE']
 
 export const CLASS_LABELS: Record<CarClass, string> = {
@@ -97,7 +94,6 @@ export const CLASS_LABELS: Record<CarClass, string> = {
   UNKNOWN: 'UNKNOWN'
 }
 
-//* fight special labels
 export type FightLabel =
   | 'FIGHT FOR POLE'
   | 'FIGHT FOR PODIUM'
@@ -111,26 +107,15 @@ export function getFightLabel(classPosition: number): FightLabel {
   return `FIGHT FOR P${classPosition}`
 }
 
-//* animation durations
 export const ANIMATION_DURATION: Record<TowerSettings['animationSpeed'], number> = {
   slow: 0.6,
   normal: 0.35,
   fast: 0.18
 }
 
-//* fight timeout
-/* ms before a fight highlight auto-expires */
 export const FIGHT_TIMEOUT_MS = 60_000
 
-/* consecutive polls interval must exceed threshold before fight clears */
 export const FIGHT_CLEAR_POLLS = 5
-
-//* overlay window size
-/*
-    default overlay dimensions
-    width 360 fits: pos(30) + car#(40) + name(160) + value(90) + bar(3) + padding
-    height 700 fits ~20 rows comfortably
- */
 
 export const TOWER_DEFAULT_WIDTH = 400
 export const TOWER_DEFAULT_HEIGHT = 700

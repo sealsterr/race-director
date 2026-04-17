@@ -6,6 +6,7 @@ import CustomColorPicker, {
   COLOR_PICKER_PORTAL_SELECTOR
 } from '../../components/ui/CustomColorPicker'
 import { getOverlayWindowScale } from '../../../../shared/overlayWindowSizing'
+import type { DisplayInfo } from '../../../../shared/overlay'
 import {
   Save,
   FolderOpen,
@@ -23,9 +24,13 @@ import {
 } from 'lucide-react'
 import { useOverlayStore } from '../../store/overlayStore'
 import type {
+  DriverOverlayConfig,
   OverlayId,
-  OverlayConfig,
+  OverlayConfigUnion,
   OverlaySpecificSettings,
+  GapOverlayConfig,
+  SessionOverlayConfig,
+  TowerOverlayConfig,
   TowerSettings,
   TowerRaceMode,
   TowerQualiMode,
@@ -38,12 +43,12 @@ import { useRaceStore } from '../../store/raceStore'
 import type { CarClass, DriverStanding } from '../../types/lmu'
 import { TOWER_DEFAULT_WIDTH, TOWER_DEFAULT_HEIGHT } from '../overlay/tower/constants'
 import { getTowerBaseHeight } from '../overlay/tower/windowLayout'
+import { FlagSystemWorkspace } from './flag-system/FlagSystemWorkspace'
 
-//* overlay metadata
 interface OverlayMeta {
   id: OverlayId
   label: string
-  description: string
+  description?: string
   icon: React.ComponentType<{ size?: number; className?: string }>
   defaultSize: { w: number; h: number }
 }
@@ -52,28 +57,24 @@ const OVERLAY_META: OverlayMeta[] = [
   {
     id: 'OVERLAY-TOWER',
     label: 'Live Standings',
-    description: '',
     icon: LayoutList,
     defaultSize: { w: TOWER_DEFAULT_WIDTH, h: TOWER_DEFAULT_HEIGHT }
   },
   {
     id: 'OVERLAY-DRIVER',
     label: 'Driver Card',
-    description: '',
     icon: User,
     defaultSize: { w: 896, h: 286 }
   },
   {
     id: 'OVERLAY-GAP',
     label: 'Gap',
-    description: '',
     icon: Gauge,
     defaultSize: { w: 1904, h: 316 }
   },
   {
     id: 'OVERLAY-SESSION',
     label: 'Session Info',
-    description: '',
     icon: Timer,
     defaultSize: { w: 1120, h: 430 }
   }
@@ -82,6 +83,26 @@ const OVERLAY_META: OverlayMeta[] = [
 type TowerSelectableClass = Exclude<CarClass, 'UNKNOWN'>
 
 const TOWER_CLASS_ORDER: TowerSelectableClass[] = ['HYPERCAR', 'LMP2', 'LMP3', 'LMGT3', 'GTE']
+const TOWER_ANIMATION_SPEEDS = [
+  'slow',
+  'normal',
+  'fast'
+] as const satisfies readonly TowerSettings['animationSpeed'][]
+const TOWER_QUALI_MODES = ['QUALI_GAP', 'QUALI_TIMES'] as const satisfies readonly TowerQualiMode[]
+const TOWER_RACE_MODES = [
+  'GAP_AHEAD',
+  'GAP_LEADER',
+  'PITS',
+  'FUEL',
+  'TYRES',
+  'POSITIONS'
+] as const satisfies readonly TowerRaceMode[]
+const TOWER_VIEW_LAYOUTS = [
+  'CLASS_ONLY',
+  'MIXED_TOP',
+  'EVERYONE_TOP',
+  'PER_CLASS'
+] as const satisfies readonly TowerViewLayout[]
 
 const TOWER_CLASS_LABELS: Record<TowerSelectableClass, string> = {
   HYPERCAR: 'Hypercar',
@@ -98,11 +119,27 @@ function getAvailableTowerClasses(classes: CarClass[]): TowerSelectableClass[] {
   return TOWER_CLASS_ORDER.filter((carClass) => present.has(carClass))
 }
 
-function isTowerSelectableClass(value: CarClass | null | undefined): value is TowerSelectableClass {
-  return value !== undefined && value !== null && value !== 'UNKNOWN'
+function isTowerSelectableClass(value: string | null | undefined): value is TowerSelectableClass {
+  return TOWER_CLASS_ORDER.some((carClass) => carClass === value)
 }
 
-function getTargetDisplay(cfg: OverlayConfig, displays: DisplayInfo[]): DisplayInfo | null {
+function isTowerAnimationSpeed(value: string): value is TowerSettings['animationSpeed'] {
+  return TOWER_ANIMATION_SPEEDS.some((speed) => speed === value)
+}
+
+function isTowerQualiMode(value: string): value is TowerQualiMode {
+  return TOWER_QUALI_MODES.some((mode) => mode === value)
+}
+
+function isTowerRaceMode(value: string): value is TowerRaceMode {
+  return TOWER_RACE_MODES.some((mode) => mode === value)
+}
+
+function isTowerViewLayout(value: string): value is TowerViewLayout {
+  return TOWER_VIEW_LAYOUTS.some((layout) => layout === value)
+}
+
+function getTargetDisplay(cfg: OverlayConfigUnion, displays: DisplayInfo[]): DisplayInfo | null {
   if (displays.length === 0) return null
   return (
     displays.find((display) => display.id === cfg.displayId) ??
@@ -113,7 +150,7 @@ function getTargetDisplay(cfg: OverlayConfig, displays: DisplayInfo[]): DisplayI
 }
 
 function getOverlayWindowBounds(
-  cfg: OverlayConfig,
+  cfg: OverlayConfigUnion,
   meta: OverlayMeta,
   displays: DisplayInfo[],
   standings: DriverStanding[] = []
@@ -123,7 +160,7 @@ function getOverlayWindowBounds(
 
   const defaultHeight =
     cfg.id === 'OVERLAY-TOWER'
-      ? Math.max(meta.defaultSize.h, getTowerBaseHeight(standings, cfg.settings as TowerSettings))
+      ? Math.max(meta.defaultSize.h, getTowerBaseHeight(standings, cfg.settings))
       : meta.defaultSize.h
   const overlayWindowScale = getOverlayWindowScale(cfg.id)
 
@@ -139,7 +176,7 @@ function getOverlayWindowBounds(
 }
 
 async function applyOverlayWindowState(
-  cfg: OverlayConfig,
+  cfg: OverlayConfigUnion,
   meta: OverlayMeta,
   displays: DisplayInfo[],
   standings: DriverStanding[]
@@ -168,7 +205,7 @@ async function applyOverlayWindowState(
 }
 
 async function syncOverlayWindowBounds(
-  cfg: OverlayConfig,
+  cfg: OverlayConfigUnion,
   meta: OverlayMeta,
   displays: DisplayInfo[],
   standings: DriverStanding[]
@@ -221,7 +258,7 @@ async function syncOverlayWindowBounds(
 function getOverlayPositionFromBounds(
   bounds: { x: number; y: number; width: number; height: number },
   displays: DisplayInfo[]
-): Pick<OverlayConfig, 'x' | 'y' | 'displayId'> | null {
+): Pick<OverlayConfigUnion, 'x' | 'y' | 'displayId'> | null {
   if (displays.length === 0) return null
 
   const centerX = bounds.x + bounds.width / 2
@@ -275,11 +312,9 @@ function syncRuntimePositionFromBounds(
   useOverlayStore.getState().setOverlayRuntimePosition(id, nextPosition)
 }
 
-//* helpers
 const cls = (...classes: (string | false | undefined | null)[]): string =>
   classes.filter(Boolean).join(' ')
 
-//* toast
 interface Toast {
   id: number
   type: 'success' | 'error'
@@ -300,7 +335,6 @@ function pushToast(
   }, 3500)
 }
 
-//* slider
 interface SliderProps {
   label: string
   value: number
@@ -345,7 +379,6 @@ const Slider = ({
   </div>
 )
 
-//* toggle
 interface ToggleProps {
   label: string
   value: boolean
@@ -365,8 +398,6 @@ const Toggle = ({ label, value, onChange }: ToggleProps): React.ReactElement => 
       type="button"
       aria-pressed={value}
     >
-      {/* track */}
-      {/* thumb */}
       <span
         className={cls(
           'inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition-transform duration-200',
@@ -377,7 +408,6 @@ const Toggle = ({ label, value, onChange }: ToggleProps): React.ReactElement => 
   </div>
 )
 
-//* select
 interface SelectProps {
   label: string
   value: string
@@ -418,7 +448,6 @@ const TextInput = ({ label, value, maxLength, onChange }: TextInputProps): React
   </label>
 )
 
-//* color picker
 interface ColorPickerProps {
   readonly label: string
   readonly value: string
@@ -441,21 +470,19 @@ const ColorPicker = ({ label, value, onChange }: ColorPickerProps): React.ReactE
   </div>
 )
 
-//* section heading inside a settings panel
 const PanelSection = ({ title }: { readonly title: string }): React.ReactElement => (
   <p className="pt-1 text-[10px] font-bold uppercase tracking-widest text-rd-subtle border-t border-rd-border/60">
     {title}
   </p>
 )
 
-const TowerSettingsPanel = ({ cfg }: { readonly cfg: OverlayConfig }): React.ReactElement => {
+const TowerSettingsPanel = ({ cfg }: { readonly cfg: TowerOverlayConfig }): React.ReactElement => {
   const { setOverlaySettings } = useOverlayStore()
-  const s = cfg.settings as TowerSettings
+  const s = cfg.settings
   const set = (partial: Partial<TowerSettings>): void => setOverlaySettings(cfg.id, partial)
 
   return (
     <div className="flex flex-col gap-3">
-      {/* layout */}
       <PanelSection title="Layout" />
       <Slider
         label="Standings refresh"
@@ -494,10 +521,13 @@ const TowerSettingsPanel = ({ cfg }: { readonly cfg: OverlayConfig }): React.Rea
           { label: 'Normal', value: 'normal' },
           { label: 'Fast', value: 'fast' }
         ]}
-        onChange={(v) => set({ animationSpeed: v as TowerSettings['animationSpeed'] })}
+        onChange={(v) => {
+          if (isTowerAnimationSpeed(v)) {
+            set({ animationSpeed: v })
+          }
+        }}
       />
 
-      {/* fight detection */}
       <PanelSection title="Fight detection" />
       <Toggle
         label="Enable fight detection"
@@ -546,7 +576,6 @@ const TowerSettingsPanel = ({ cfg }: { readonly cfg: OverlayConfig }): React.Rea
         onChange={(v) => set({ fightIgnorePitAndFinished: v })}
       />
 
-      {/* class colors */}
       <PanelSection title="Class colors" />
       <ColorPicker
         label="Hypercar"
@@ -558,14 +587,12 @@ const TowerSettingsPanel = ({ cfg }: { readonly cfg: OverlayConfig }): React.Rea
       <ColorPicker label="LMGT3" value={s.colorLMGT3} onChange={(v) => set({ colorLMGT3: v })} />
       <ColorPicker label="GTE" value={s.colorGTE} onChange={(v) => set({ colorGTE: v })} />
 
-      {/* tyre colors */}
       <PanelSection title="Tyre colors" />
       <ColorPicker label="Hard" value={s.colorHard} onChange={(v) => set({ colorHard: v })} />
       <ColorPicker label="Medium" value={s.colorMedium} onChange={(v) => set({ colorMedium: v })} />
       <ColorPicker label="Soft" value={s.colorSoft} onChange={(v) => set({ colorSoft: v })} />
       <ColorPicker label="Wet" value={s.colorWet} onChange={(v) => set({ colorWet: v })} />
 
-      {/* status colors */}
       <PanelSection title="Status colors" />
       <ColorPicker
         label="Pit badge"
@@ -581,9 +608,9 @@ const TowerSettingsPanel = ({ cfg }: { readonly cfg: OverlayConfig }): React.Rea
   )
 }
 
-const DriverSettingsPanel = ({ cfg }: { cfg: OverlayConfig }): React.ReactElement => {
+const DriverSettingsPanel = ({ cfg }: { cfg: DriverOverlayConfig }): React.ReactElement => {
   const { setOverlaySettings } = useOverlayStore()
-  const s = cfg.settings as DriverSettings
+  const s = cfg.settings
   const set = (partial: Partial<DriverSettings>): void => setOverlaySettings(cfg.id, partial)
 
   return (
@@ -618,9 +645,9 @@ const DriverSettingsPanel = ({ cfg }: { cfg: OverlayConfig }): React.ReactElemen
   )
 }
 
-const GapSettingsPanel = ({ cfg }: { cfg: OverlayConfig }): React.ReactElement => {
+const GapSettingsPanel = ({ cfg }: { cfg: GapOverlayConfig }): React.ReactElement => {
   const { setOverlaySettings } = useOverlayStore()
-  const s = cfg.settings as GapSettings
+  const s = cfg.settings
   const set = (partial: Partial<GapSettings>): void => setOverlaySettings(cfg.id, partial)
 
   return (
@@ -643,9 +670,9 @@ const GapSettingsPanel = ({ cfg }: { cfg: OverlayConfig }): React.ReactElement =
   )
 }
 
-const SessionSettingsPanel = ({ cfg }: { cfg: OverlayConfig }): React.ReactElement => {
+const SessionSettingsPanel = ({ cfg }: { cfg: SessionOverlayConfig }): React.ReactElement => {
   const { setOverlaySettings } = useOverlayStore()
-  const s = cfg.settings as SessionSettings
+  const s = cfg.settings
   const set = (partial: Partial<SessionSettings>): void => setOverlaySettings(cfg.id, partial)
 
   return (
@@ -675,30 +702,27 @@ const SessionSettingsPanel = ({ cfg }: { cfg: OverlayConfig }): React.ReactEleme
   )
 }
 
-const SPECIFIC_PANELS: Record<OverlayId, (props: { cfg: OverlayConfig }) => React.ReactElement> = {
-  'OVERLAY-TOWER': TowerSettingsPanel,
-  'OVERLAY-DRIVER': DriverSettingsPanel,
-  'OVERLAY-GAP': GapSettingsPanel,
-  'OVERLAY-SESSION': SessionSettingsPanel
+function renderSettingsPanel(cfg: OverlayConfigUnion): React.ReactElement {
+  switch (cfg.id) {
+    case 'OVERLAY-TOWER':
+      return <TowerSettingsPanel cfg={cfg} />
+    case 'OVERLAY-DRIVER':
+      return <DriverSettingsPanel cfg={cfg} />
+    case 'OVERLAY-GAP':
+      return <GapSettingsPanel cfg={cfg} />
+    case 'OVERLAY-SESSION':
+      return <SessionSettingsPanel cfg={cfg} />
+  }
 }
 
-//* settings drawer
 interface SettingsDrawerProps {
-  cfg: OverlayConfig
+  cfg: OverlayConfigUnion
   meta: OverlayMeta
   onClose: () => void
 }
 
-interface DisplayInfo {
-  id: number
-  label: string
-  bounds: { x: number; y: number; width: number; height: number }
-  isPrimary: boolean
-}
-
 const SettingsDrawer = ({ cfg, meta, onClose }: SettingsDrawerProps): React.ReactElement => {
   const { setOverlayConfig } = useOverlayStore()
-  const SpecificPanel = SPECIFIC_PANELS[cfg.id]
   const Icon = meta.icon
   const drawerRef = useRef<HTMLDivElement>(null)
 
@@ -734,7 +758,6 @@ const SettingsDrawer = ({ cfg, meta, onClose }: SettingsDrawerProps): React.Reac
       className="absolute inset-y-0 right-0 z-30 flex w-80 flex-col
                 border-l border-rd-border bg-rd-surface shadow-2xl"
     >
-      {/* header */}
       <div className="flex items-center gap-3 border-b border-rd-border px-5 py-4">
         <div className="flex h-8 w-8 items-center justify-center rounded bg-rd-border/40 text-rd-muted">
           <Icon size={15} className="text-rd-muted" />
@@ -751,9 +774,7 @@ const SettingsDrawer = ({ cfg, meta, onClose }: SettingsDrawerProps): React.Reac
         </button>
       </div>
 
-      {/* scrollable content */}
       <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-6">
-        {/* general */}
         <section>
           <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-rd-text">
             General
@@ -780,7 +801,6 @@ const SettingsDrawer = ({ cfg, meta, onClose }: SettingsDrawerProps): React.Reac
           </div>
         </section>
 
-        {/* position */}
         <section>
           <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-rd-text">
             Position
@@ -823,21 +843,19 @@ const SettingsDrawer = ({ cfg, meta, onClose }: SettingsDrawerProps): React.Reac
           </div>
         </section>
 
-        {/* overlay-specific */}
         <section>
           <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-rd-text">
             Custom
           </p>
-          <SpecificPanel cfg={cfg} />
+          {renderSettingsPanel(cfg)}
         </section>
       </div>
     </motion.div>
   )
 }
 
-//* overlay card
 interface OverlayCardProps {
-  cfg: OverlayConfig
+  cfg: OverlayConfigUnion
   meta: OverlayMeta
   isSettingsOpen: boolean
   onToggleEnabled: () => void
@@ -863,10 +881,10 @@ const OverlayCard = ({
   const availableTowerClasses = getAvailableTowerClasses(
     standings.map((standing) => standing.carClass)
   )
-  const isTowerCard = meta.id === 'OVERLAY-TOWER'
-  const isDriverCard = meta.id === 'OVERLAY-DRIVER'
-  const towerCfg = isTowerCard ? (cfg.settings as TowerSettings) : null
-  const driverCfg = isDriverCard ? (cfg.settings as DriverSettings) : null
+  const isTowerCard = cfg.id === 'OVERLAY-TOWER'
+  const isDriverCard = cfg.id === 'OVERLAY-DRIVER'
+  const towerCfg = isTowerCard ? cfg.settings : null
+  const driverCfg = isDriverCard ? cfg.settings : null
   const normalizedViewLayout =
     towerCfg?.viewLayout === 'PER_CLASS' || towerCfg?.viewLayout === 'EVERYONE_TOP'
       ? 'MIXED_TOP'
@@ -889,14 +907,16 @@ const OverlayCard = ({
     if (!towerCfg) return
 
     if (isQualiSession) {
+      if (!isTowerQualiMode(nextValue)) return
       onSettingsChange('OVERLAY-TOWER', {
-        qualiMode: nextValue as TowerQualiMode
+        qualiMode: nextValue
       })
       return
     }
 
+    if (!isTowerRaceMode(nextValue)) return
     onSettingsChange('OVERLAY-TOWER', {
-      raceMode: nextValue as TowerRaceMode
+      raceMode: nextValue
     })
   }
 
@@ -904,16 +924,18 @@ const OverlayCard = ({
     if (!towerCfg) return
 
     if (nextValue.startsWith('CLASS_ONLY:')) {
-      const nextClass = nextValue.replace('CLASS_ONLY:', '') as CarClass
+      const nextClass = nextValue.replace('CLASS_ONLY:', '')
+      if (!isTowerSelectableClass(nextClass)) return
       onSettingsChange('OVERLAY-TOWER', {
-        viewLayout: 'CLASS_ONLY' as TowerViewLayout,
+        viewLayout: 'CLASS_ONLY',
         specificClass: nextClass
       })
       return
     }
 
+    if (!isTowerViewLayout(nextValue)) return
     onSettingsChange('OVERLAY-TOWER', {
-      viewLayout: nextValue as TowerViewLayout,
+      viewLayout: nextValue,
       specificClass: towerCfg.specificClass
     })
   }
@@ -926,7 +948,6 @@ const OverlayCard = ({
         cfg.enabled ? 'border-rd-accent/40 bg-rd-elevated' : 'border-rd-border bg-rd-surface'
       )}
     >
-      {/* live pulse dot */}
       {cfg.enabled && (
         <span className="absolute right-3 top-3 flex h-2 w-2 z-10">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rd-accent opacity-60" />
@@ -934,7 +955,6 @@ const OverlayCard = ({
         </span>
       )}
 
-      {/* top section: icon + name */}
       <div className="flex min-h-0 flex-1 items-center gap-3 px-4 py-3 pr-8">
         <div
           className={cls(
@@ -1007,12 +1027,9 @@ const OverlayCard = ({
         </div>
       </div>
 
-      {/* divider */}
       <div className="mx-4 h-px shrink-0 bg-rd-border" />
 
-      {/* action row */}
       <div className="mt-auto flex shrink-0 items-stretch bg-rd-surface/40">
-        {/* on/off */}
         <button
           onClick={onToggleEnabled}
           className={cls(
@@ -1027,10 +1044,8 @@ const OverlayCard = ({
           {cfg.enabled ? 'Live' : 'Off'}
         </button>
 
-        {/* separator */}
         <div className="w-px bg-rd-border/80" />
 
-        {/* drag */}
         <button
           onClick={onToggleDrag}
           title={cfg.dragMode ? 'Drag mode ON' : 'Enable dragging'}
@@ -1046,10 +1061,8 @@ const OverlayCard = ({
           <span className="hidden sm:inline">Drag</span>
         </button>
 
-        {/* separator */}
         <div className="w-px bg-rd-border/80" />
 
-        {/* settings */}
         <button
           onClick={onOpenSettings}
           data-overlay-settings-toggle="true"
@@ -1070,21 +1083,22 @@ const OverlayCard = ({
   )
 }
 
-//* main component
 const OverlayControl = (): React.ReactElement => {
   const { overlays, savePath, setOverlayConfig, setOverlaySettings, setSavePath, loadFromPreset } =
     useOverlayStore()
   const connection = useRaceStore((s) => s.connection)
   const standings = useRaceStore((s) => s.standings)
 
+  const [dashboardMode, setDashboardMode] = useState<'manual' | 'race-control'>('race-control')
   const [displays, setDisplays] = useState<DisplayInfo[]>([])
   const [openSettings, setOpenSettings] = useState<OverlayId | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [isSaving, setIsSaving] = useState(false)
 
-  //* overlay control does not need the full live push stream; pull snapshots instead
+  // Overlay control polls snapshots instead of subscribing to the full live push stream.
   useEffect(() => {
     let cancelled = false
+    let hasLoggedSyncError = false
 
     const syncState = async (): Promise<void> => {
       try {
@@ -1093,8 +1107,12 @@ const OverlayControl = (): React.ReactElement => {
         useRaceStore.getState().setSession(state.session)
         useRaceStore.getState().setStandings(state.standings)
         useRaceStore.getState().setConnection(state.connection)
-      } catch {
+      } catch (error) {
         if (cancelled) return
+        if (!hasLoggedSyncError) {
+          console.warn('Failed to sync overlay control race state:', error)
+          hasLoggedSyncError = true
+        }
       }
     }
 
@@ -1107,9 +1125,8 @@ const OverlayControl = (): React.ReactElement => {
       cancelled = true
       globalThis.clearInterval(timer)
     }
-  }, [])
+  }, [savePath, setSavePath])
 
-  //* load displays + default save path
   useEffect(() => {
     ;(async () => {
       const d = await globalThis.api.overlay.getDisplays()
@@ -1120,13 +1137,13 @@ const OverlayControl = (): React.ReactElement => {
         setSavePath(def)
       }
     })()
-  }, [])
+  }, [savePath, setSavePath])
 
   useEffect(() => {
     const towerCfg = overlays.find((overlay) => overlay.id === 'OVERLAY-TOWER')
     if (!towerCfg) return
 
-    const settings = towerCfg.settings as TowerSettings
+    const settings = towerCfg.settings
     const availableClasses = getAvailableTowerClasses(
       standings.map((standing) => standing.carClass)
     )
@@ -1167,7 +1184,6 @@ const OverlayControl = (): React.ReactElement => {
     }
   }, [displays, overlays, standings])
 
-  //* auto-save on overlay change
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     if (!savePath) return
@@ -1187,7 +1203,6 @@ const OverlayControl = (): React.ReactElement => {
     }
   }, [overlays, savePath])
 
-  //* save / load
   const handleSave = async (): Promise<void> => {
     setIsSaving(true)
     const r = await globalThis.api.overlay.savePreset(overlays, savePath)
@@ -1222,7 +1237,6 @@ const OverlayControl = (): React.ReactElement => {
     }
   }
 
-  //* overlay actions
   const handleToggleEnabled = async (id: OverlayId): Promise<void> => {
     const cfg = overlays.find((o) => o.id === id)
     const meta = OVERLAY_META.find((item) => item.id === id)
@@ -1261,7 +1275,6 @@ const OverlayControl = (): React.ReactElement => {
       className="flex h-screen flex-col bg-rd-bg text-rd-text overflow-hidden"
       style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
     >
-      {/* title bar */}
       <div
         className="flex h-12 shrink-0 items-center gap-4 border-b border-rd-border bg-rd-surface px-4"
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
@@ -1274,29 +1287,38 @@ const OverlayControl = (): React.ReactElement => {
 
         <div className="h-4 w-px bg-rd-border shrink-0" />
 
-        {/* mode switcher */}
         <div
           className="flex items-center gap-1 rounded-lg border border-rd-border bg-rd-bg p-1"
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
-          <button className="rounded px-3 py-1 text-xs font-semibold bg-rd-elevated text-rd-text transition-colors">
+          <button
+            type="button"
+            onClick={() => setDashboardMode('manual')}
+            className={`rounded px-3 py-1 text-xs font-semibold transition-colors ${
+              dashboardMode === 'manual'
+                ? 'bg-rd-elevated text-rd-text'
+                : 'text-rd-subtle hover:text-rd-text'
+            }`}
+          >
             Manual
           </button>
-          <div className="relative">
-            <button
-              disabled
-              className="rounded px-3 py-1 text-xs font-semibold text-rd-subtle opacity-50 cursor-not-allowed"
-            >
-              Automatic
-            </button>
-            <span className="absolute -top-2 -right-1 rounded px-1 text-[8px] font-bold uppercase tracking-wide bg-rd-logo-primary/20 text-rd-logo-primary leading-4">
-              Coming Soon
-            </span>
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setOpenSettings(null)
+              setDashboardMode('race-control')
+            }}
+            className={`rounded px-3 py-1 text-xs font-semibold transition-colors ${
+              dashboardMode === 'race-control'
+                ? 'bg-rd-elevated text-rd-text'
+                : 'text-rd-subtle hover:text-rd-text'
+            }`}
+          >
+            Race Control
+          </button>
         </div>
       </div>
 
-      {/* connection warning always at top of body when not connected */}
       {connection !== 'CONNECTED' && (
         <div className="flex shrink-0 items-center gap-2 border-b border-rd-warning/20 bg-rd-warning/10 px-4 py-2">
           <AlertCircle size={25} className="text-rd-warning shrink-0" />
@@ -1304,90 +1326,87 @@ const OverlayControl = (): React.ReactElement => {
         </div>
       )}
 
-      {/* body */}
-      <div className="relative flex flex-1 overflow-hidden">
-        {/* scrollable content */}
-        <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
-          {/* preset manager */}
-          <div className="rounded-lg border border-rd-border bg-rd-surface p-4 flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <p className="text-xl font-semibold uppercase tracking-widest text-rd-accent">
-                Preset
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleLoad}
-                  className="flex items-center gap-1.5 rounded border border-rd-border bg-rd-elevated
+      {dashboardMode === 'race-control' ? (
+        <FlagSystemWorkspace />
+      ) : (
+        <div className="relative flex flex-1 overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
+            <div className="rounded-lg border border-rd-border bg-rd-surface p-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xl font-semibold uppercase tracking-widest text-rd-accent">
+                  Preset
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleLoad}
+                    className="flex items-center gap-1.5 rounded border border-rd-border bg-rd-elevated
                                         px-3 py-1.5 text-xs text-rd-muted hover:border-rd-muted hover:text-rd-text transition-colors"
-                >
-                  <FolderOpen size={15} />
-                  Load
-                </button>
-                <button
-                  onClick={handleSaveAs}
-                  className="flex items-center gap-1.5 rounded border border-rd-border bg-rd-elevated
+                  >
+                    <FolderOpen size={15} />
+                    Load
+                  </button>
+                  <button
+                    onClick={handleSaveAs}
+                    className="flex items-center gap-1.5 rounded border border-rd-border bg-rd-elevated
                                         px-3 py-1.5 text-xs text-rd-muted hover:border-rd-muted hover:text-rd-text transition-colors"
-                >
-                  <Save size={15} />
-                  Save As
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="flex items-center gap-1.5 rounded border border-rd-accent/40
+                  >
+                    <Save size={15} />
+                    Save As
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="flex items-center gap-1.5 rounded border border-rd-accent/40
                                         bg-rd-accent/10 px-3 py-1.5 text-xs text-rd-accent hover:bg-rd-accent/20
                                         transition-colors disabled:opacity-50"
-                >
-                  <Save size={15} />
-                  {isSaving ? 'Saving…' : 'Save'}
-                </button>
+                  >
+                    <Save size={15} />
+                    {isSaving ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 rounded border border-rd-border/60 bg-rd-bg px-3 py-2">
+                <Save size={15} className="shrink-0 text-rd-subtle" />
+                <p className="flex-1 truncate font-mono text-[14px] text-rd-subtle">
+                  {savePath || 'No save path set'}
+                </p>
               </div>
             </div>
-            {/* file path */}
-            <div className="flex items-center gap-2 rounded border border-rd-border/60 bg-rd-bg px-3 py-2">
-              <Save size={15} className="shrink-0 text-rd-subtle" />
-              <p className="flex-1 truncate font-mono text-[14px] text-rd-subtle">
-                {savePath || 'No save path set'}
-              </p>
+
+            <div className="grid grid-cols-3 gap-3">
+              {OVERLAY_META.map((meta) => {
+                const cfg = overlays.find((o) => o.id === meta.id)
+                if (!cfg) return null
+                return (
+                  <OverlayCard
+                    key={meta.id}
+                    cfg={cfg}
+                    meta={meta}
+                    onSettingsChange={(id, settings) => setOverlaySettings(id, settings)}
+                    isSettingsOpen={openSettings === meta.id}
+                    onToggleEnabled={() => void handleToggleEnabled(meta.id)}
+                    onToggleDrag={() => void handleToggleDrag(meta.id)}
+                    onOpenSettings={() =>
+                      setOpenSettings((prev) => (prev === meta.id ? null : meta.id))
+                    }
+                  />
+                )
+              })}
             </div>
           </div>
 
-          {/* overlay cards */}
-          <div className="grid grid-cols-2 gap-3">
-            {OVERLAY_META.map((meta) => {
-              const cfg = overlays.find((o) => o.id === meta.id)
-              if (!cfg) return null
-              return (
-                <OverlayCard
-                  key={meta.id}
-                  cfg={cfg}
-                  meta={meta}
-                  onSettingsChange={(id, settings) => setOverlaySettings(id, settings)}
-                  isSettingsOpen={openSettings === meta.id}
-                  onToggleEnabled={() => void handleToggleEnabled(meta.id)}
-                  onToggleDrag={() => void handleToggleDrag(meta.id)}
-                  onOpenSettings={() =>
-                    setOpenSettings((prev) => (prev === meta.id ? null : meta.id))
-                  }
-                />
-              )
-            })}
-          </div>
+          <AnimatePresence>
+            {openSettings && openSettingsMeta && openSettingsCfg && (
+              <SettingsDrawer
+                cfg={openSettingsCfg}
+                meta={openSettingsMeta}
+                onClose={() => setOpenSettings(null)}
+              />
+            )}
+          </AnimatePresence>
         </div>
+      )}
 
-        {/* settings drawer */}
-        <AnimatePresence>
-          {openSettings && openSettingsMeta && openSettingsCfg && (
-            <SettingsDrawer
-              cfg={openSettingsCfg}
-              meta={openSettingsMeta}
-              onClose={() => setOpenSettings(null)}
-            />
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* toast stack */}
       <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none">
         <AnimatePresence>
           {toasts.map((t) => (
@@ -1415,5 +1434,3 @@ const OverlayControl = (): React.ReactElement => {
 }
 
 export default OverlayControl
-
-// productivity final boss

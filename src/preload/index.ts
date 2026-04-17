@@ -1,12 +1,21 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { ConnectionStatus, AppState, TelemetrySnapshot } from '../renderer/src/types/lmu'
+import type { ConnectionStatus, AppState, TelemetrySnapshot } from '../shared/types'
 import type { AppUpdaterState } from '../shared/updater'
 import type { GlobalUiSettingsPayload } from '../shared/globalUi'
+import type {
+  DisplayInfo,
+  OverlayBounds,
+  OverlayBoundsChangedPayload,
+  OverlayConfigForId,
+  OverlayConfigUnion,
+  OverlayId,
+  OverlayPathPickResult,
+  OverlayPresetLoadResult,
+  OverlayPresetSaveResult
+} from '../shared/overlay'
 
-//* preload bridge surface
 // Keep methods small and explicit so IPC contracts stay auditable.
 const api = {
-  //* connection
   connect: (url: string, pollRate: number): Promise<void> =>
     ipcRenderer.invoke('lmu:connect', url, pollRate),
 
@@ -21,12 +30,10 @@ const api = {
   ): Promise<void> =>
     ipcRenderer.invoke('lmu:setCameraAngle', cameraType, trackSideGroup, shouldAdvance),
 
-  //* state
   getState: (): Promise<AppState> => ipcRenderer.invoke('lmu:getState'),
 
   getTelemetry: (): Promise<TelemetrySnapshot> => ipcRenderer.invoke('lmu:getTelemetry'),
 
-  //* event subscriptions
   onStateUpdate: (callback: (state: AppState) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, state: AppState): void => {
       callback(state)
@@ -51,7 +58,6 @@ const api = {
     return () => ipcRenderer.removeListener('lmu:telemetryUpdate', handler)
   },
 
-  //* window management
   windows: {
     open: (id: string): Promise<boolean> => ipcRenderer.invoke('window:open', id),
 
@@ -138,56 +144,57 @@ const api = {
     }
   },
 
-  //* overlay management
   overlay: {
-    getDisplays: () => ipcRenderer.invoke('overlay:getDisplays'),
+    getDisplays: (): Promise<DisplayInfo[]> => ipcRenderer.invoke('overlay:getDisplays'),
 
-    getDefaultSavePath: () => ipcRenderer.invoke('overlay:getDefaultSavePath'),
+    getDefaultSavePath: (): Promise<string> => ipcRenderer.invoke('overlay:getDefaultSavePath'),
 
-    savePreset: (overlays: unknown[], savePath: string) =>
+    savePreset: (
+      overlays: OverlayConfigUnion[],
+      savePath: string
+    ): Promise<OverlayPresetSaveResult> =>
       ipcRenderer.invoke('overlay:savePreset', overlays, savePath),
 
-    loadPreset: (savePath: string) => ipcRenderer.invoke('overlay:loadPreset', savePath),
+    loadPreset: (savePath: string): Promise<OverlayPresetLoadResult> =>
+      ipcRenderer.invoke('overlay:loadPreset', savePath),
 
-    pickSavePath: () => ipcRenderer.invoke('overlay:pickSavePath'),
+    pickSavePath: (): Promise<OverlayPathPickResult> => ipcRenderer.invoke('overlay:pickSavePath'),
 
-    pickLoadPath: () => ipcRenderer.invoke('overlay:pickLoadPath'),
+    pickLoadPath: (): Promise<OverlayPathPickResult> => ipcRenderer.invoke('overlay:pickLoadPath'),
 
-    getConfig: (id: string) => ipcRenderer.invoke('overlay:getConfig', id),
+    getConfig: <Id extends OverlayId>(id: Id): Promise<OverlayConfigForId<Id> | null> =>
+      ipcRenderer.invoke('overlay:getConfig', id),
 
     updateBounds: (
-      id: string,
+      id: OverlayId,
       x: number,
       y: number,
       w: number,
       h: number
-    ): Promise<{ x: number; y: number; width: number; height: number } | null> =>
-      ipcRenderer.invoke('overlay:updateBounds', id, x, y, w, h),
+    ): Promise<OverlayBounds | null> => ipcRenderer.invoke('overlay:updateBounds', id, x, y, w, h),
 
-    setDragMode: (id: string, enabled: boolean) =>
+    setDragMode: (id: OverlayId, enabled: boolean): Promise<void> =>
       ipcRenderer.invoke('overlay:setDragMode', id, enabled),
 
-    getBounds: (id: string) => ipcRenderer.invoke('overlay:getBounds', id),
-    broadcastConfig: (config: unknown) => ipcRenderer.invoke('overlay:broadcastConfig', config),
-    onBoundsChanged: (
-      cb: (payload: { id: string; x: number; y: number; displayId: number }) => void
-    ) => {
-      const handler = (
-        _e: Electron.IpcRendererEvent,
-        payload: { id: string; x: number; y: number; displayId: number }
-      ): void => cb(payload)
+    getBounds: (id: OverlayId): Promise<OverlayBounds | null> =>
+      ipcRenderer.invoke('overlay:getBounds', id),
+    broadcastConfig: (config: OverlayConfigUnion): Promise<void> =>
+      ipcRenderer.invoke('overlay:broadcastConfig', config),
+    onBoundsChanged: (cb: (payload: OverlayBoundsChangedPayload) => void): (() => void) => {
+      const handler = (_e: Electron.IpcRendererEvent, payload: OverlayBoundsChangedPayload): void =>
+        cb(payload)
       ipcRenderer.on('overlay:boundsChanged', handler)
       return () => ipcRenderer.removeListener('overlay:boundsChanged', handler)
     },
-    onConfigUpdate: (cb: (config: unknown) => void) => {
-      const handler = (_e: unknown, config: unknown): void => cb(config)
+    onConfigUpdate: (cb: (config: OverlayConfigUnion) => void): (() => void) => {
+      const handler = (_e: Electron.IpcRendererEvent, config: OverlayConfigUnion): void =>
+        cb(config)
       ipcRenderer.on('overlay:configUpdate', handler)
       return () => ipcRenderer.removeListener('overlay:configUpdate', handler)
     }
   }
 }
 
-// TODO: Keep new bridge methods grouped by domain section.
 contextBridge.exposeInMainWorld('api', api)
 
 export type ElectronAPI = typeof api

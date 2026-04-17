@@ -10,7 +10,9 @@ export const APP_LANGUAGE_LOCALE_TAGS: Record<AppLanguage, string> = {
   de: 'de-DE'
 }
 
-const LEGACY_LANGUAGE_MAP: Record<string, AppLanguage> = {
+type LegacyLanguage = 'English' | 'French' | 'German' | 'Romanian' | 'Hungarian'
+
+const LEGACY_LANGUAGE_MAP: Record<LegacyLanguage, AppLanguage> = {
   English: 'en',
   French: 'fr',
   German: 'de',
@@ -18,15 +20,17 @@ const LEGACY_LANGUAGE_MAP: Record<string, AppLanguage> = {
   Hungarian: 'en'
 }
 
+const isLegacyLanguage = (value: string): value is LegacyLanguage => value in LEGACY_LANGUAGE_MAP
+
 export const isAppLanguage = (value: unknown): value is AppLanguage =>
-  typeof value === 'string' && APP_LANGUAGES.includes(value as AppLanguage)
+  typeof value === 'string' && APP_LANGUAGES.some((language) => language === value)
 
 export const coerceAppLanguage = (value: unknown): AppLanguage => {
   if (isAppLanguage(value)) {
     return value
   }
 
-  if (typeof value === 'string' && value in LEGACY_LANGUAGE_MAP) {
+  if (typeof value === 'string' && isLegacyLanguage(value)) {
     return LEGACY_LANGUAGE_MAP[value]
   }
 

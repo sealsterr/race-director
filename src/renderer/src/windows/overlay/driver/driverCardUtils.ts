@@ -1,6 +1,7 @@
 import type { CarClass, DriverStanding, SectorTime } from '../../../types/lmu'
 import type { DriverSettings } from '../../../store/overlayStore'
 type SectorKey = 'sector1' | 'sector2' | 'sector3'
+const SECTOR_KEYS = ['sector1', 'sector2', 'sector3'] as const satisfies readonly SectorKey[]
 
 export interface NationalityMark {
   readonly code: string
@@ -87,9 +88,10 @@ export function getSessionBestSectors(standings: DriverStanding[]): SectorTime {
   const best: SectorTime = { sector1: null, sector2: null, sector3: null }
 
   for (const standing of standings) {
-    for (const key of ['sector1', 'sector2', 'sector3'] as SectorKey[]) {
+    for (const key of SECTOR_KEYS) {
       const value = standing.bestSectors[key]
-      if (value !== null && (best[key] === null || value < (best[key] as number))) {
+      const currentBest = best[key]
+      if (value !== null && (currentBest === null || value < currentBest)) {
         best[key] = value
       }
     }
@@ -138,11 +140,13 @@ export function getSectorColor(
     return settings.colorPending
   }
 
-  if (sessionBestSectors[key] !== null && currentValue <= (sessionBestSectors[key] as number)) {
+  const sessionBestSector = sessionBestSectors[key]
+  if (sessionBestSector !== null && currentValue <= sessionBestSector) {
     return settings.colorSessionBest
   }
 
-  if (bestSectors[key] !== null && currentValue <= (bestSectors[key] as number)) {
+  const personalBestSector = bestSectors[key]
+  if (personalBestSector !== null && currentValue <= personalBestSector) {
     return settings.colorPersonalBest
   }
 

@@ -88,7 +88,8 @@ export function loadPlayerProfile(): PlayerProfile | null {
       vehicleNumber: cleanValue(raw.CUSTOMLIVERY?.vehicleNumber),
       nationalityCode: cleanValue(raw.DRIVER?.Nationality)?.toUpperCase() ?? null
     }
-  } catch {
+  } catch (error) {
+    console.warn(`Failed to load LMU player profile from ${path}:`, error)
     return null
   }
 }

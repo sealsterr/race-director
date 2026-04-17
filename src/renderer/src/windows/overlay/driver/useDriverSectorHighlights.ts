@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { DriverSettings } from '../../../store/overlayStore'
 import type { SectorTime } from '../../../types/lmu'
 import { getBestLapHighlightColor, getSectorColor } from './driverCardUtils'
@@ -13,7 +13,7 @@ import {
 
 type SectorKey = 'sector1' | 'sector2' | 'sector3'
 
-const SECTOR_KEYS: SectorKey[] = ['sector1', 'sector2', 'sector3']
+const SECTOR_KEYS = ['sector1', 'sector2', 'sector3'] as const satisfies readonly SectorKey[]
 const HOLD_MS = 3000
 const DEFAULT_BEST_LAP_COLOR = DEFAULT_TEXT_COLOR
 
@@ -51,34 +51,97 @@ export function useDriverSectorHighlights({
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const holdEndsAtRef = useRef(0)
 
+  const activateSector = useCallback(
+    (key: SectorKey, value: number): void => {
+      const highlightColor = getSectorColor(key, value, bestSectors, sessionBestSectors, settings)
+
+      const existingTextTimer = textTimerRefs.current[key]
+      if (existingTextTimer) {
+        clearTimeout(existingTextTimer)
+      }
+
+      setSectorVisuals((current) => ({
+        ...current,
+        [key]: {
+          value,
+          lineColor: highlightColor,
+          textColor: highlightColor
+        }
+      }))
+
+      textTimerRefs.current[key] = setTimeout(() => {
+        setSectorVisuals((current) => ({
+          ...current,
+          [key]: {
+            ...current[key],
+            textColor: DEFAULT_TEXT_COLOR
+          }
+        }))
+        delete textTimerRefs.current[key]
+      }, HOLD_MS)
+
+      if (key !== 'sector3') {
+        return
+      }
+
+      clearResetTimer(resetTimerRef)
+      holdEndsAtRef.current = Date.now() + HOLD_MS
+      resetTimerRef.current = setTimeout(() => {
+        holdEndsAtRef.current = 0
+        setBestLapColor(DEFAULT_BEST_LAP_COLOR)
+        setSectorVisuals(buildEmptyVisuals(settings))
+        resetTimerRef.current = null
+      }, HOLD_MS)
+    },
+    [bestSectors, sessionBestSectors, settings]
+  )
+
   useEffect(() => {
     if (!enabled) {
       clearTextTimers(textTimerRefs.current)
       clearResetTimer(resetTimerRef)
       holdEndsAtRef.current = 0
-      setBestLapColor(DEFAULT_BEST_LAP_COLOR)
-      setSectorVisuals(
-        buildStaticVisuals(currentSectors, bestSectors, sessionBestSectors, settings)
-      )
+      const resetTimer = window.setTimeout(() => {
+        setBestLapColor(DEFAULT_BEST_LAP_COLOR)
+        setSectorVisuals(
+          buildStaticVisuals(currentSectors, bestSectors, sessionBestSectors, settings)
+        )
+      }, 0)
       previousSectorsRef.current = currentSectors
       previousLastLapRef.current = lastLapTime
-      return
+      return () => window.clearTimeout(resetTimer)
     }
 
     const previous = previousSectorsRef.current
+    const activationTimers: number[] = []
     for (const key of SECTOR_KEYS) {
       const nextValue = currentSectors[key]
-      if (didSectorAdvance(previous[key], nextValue)) {
-        activateSector(key, nextValue as number)
+      if (nextValue !== null && didSectorAdvance(previous[key], nextValue)) {
+        activationTimers.push(
+          window.setTimeout(() => {
+            activateSector(key, nextValue)
+          }, 0)
+        )
       }
     }
 
     previousSectorsRef.current = currentSectors
-  }, [bestSectors, currentSectors, enabled, lastLapTime, sessionBestSectors, settings])
+    return () => {
+      activationTimers.forEach((timer) => window.clearTimeout(timer))
+    }
+  }, [
+    activateSector,
+    bestSectors,
+    currentSectors,
+    enabled,
+    lastLapTime,
+    sessionBestSectors,
+    settings
+  ])
 
   useEffect(() => {
     if (!enabled) {
-      return
+      return undefined
     }
 
     const previousLastLap = previousLastLapRef.current
@@ -88,6 +151,8 @@ export function useDriverSectorHighlights({
       lastLapTime !== previousLastLap &&
       holdEndsAtRef.current > Date.now()
 
+    previousLastLapRef.current = lastLapTime
+
     if (isNewLapTime) {
       const highlight = getBestLapHighlightColor(
         lastLapTime,
@@ -96,70 +161,28 @@ export function useDriverSectorHighlights({
         settings
       )
       if (highlight) {
-        setBestLapColor(highlight)
+        const applyTimer = window.setTimeout(() => {
+          setBestLapColor(highlight)
+        }, 0)
+        return () => window.clearTimeout(applyTimer)
       }
     }
 
-    previousLastLapRef.current = lastLapTime
+    return undefined
   }, [bestLapTime, classBestLapTime, enabled, lastLapTime, settings])
 
   useEffect(() => {
+    const textTimers = textTimerRefs.current
     return () => {
-      clearTextTimers(textTimerRefs.current)
+      clearTextTimers(textTimers)
       clearResetTimer(resetTimerRef)
     }
   }, [])
 
   return { sectorVisuals, bestLapColor }
-
-  function activateSector(key: SectorKey, value: number): void {
-    const highlightColor = getSectorColor(key, value, bestSectors, sessionBestSectors, settings)
-
-    const existingTextTimer = textTimerRefs.current[key]
-    if (existingTextTimer) {
-      clearTimeout(existingTextTimer)
-    }
-
-    setSectorVisuals((current) => ({
-      ...current,
-      [key]: {
-        value,
-        lineColor: highlightColor,
-        textColor: highlightColor
-      }
-    }))
-
-    textTimerRefs.current[key] = setTimeout(() => {
-      setSectorVisuals((current) => ({
-        ...current,
-        [key]: {
-          ...current[key],
-          textColor: DEFAULT_TEXT_COLOR
-        }
-      }))
-      delete textTimerRefs.current[key]
-    }, HOLD_MS)
-
-    if (key !== 'sector3') {
-      return
-    }
-
-    clearResetTimer(resetTimerRef)
-    holdEndsAtRef.current = Date.now() + HOLD_MS
-    resetTimerRef.current = setTimeout(() => {
-      holdEndsAtRef.current = 0
-      setBestLapColor(DEFAULT_BEST_LAP_COLOR)
-      setSectorVisuals(buildEmptyVisuals(settings))
-      resetTimerRef.current = null
-    }, HOLD_MS)
-  }
 }
 
-function didSectorAdvance(previousValue: number | null, nextValue: number | null): boolean {
-  if (nextValue === null) {
-    return false
-  }
-
+function didSectorAdvance(previousValue: number | null, nextValue: number): boolean {
   if (previousValue === null) {
     return true
   }

@@ -47,9 +47,8 @@ interface SessionSnapshot {
 
 export function useSessionOverlayData(): SessionOverlayData {
   const appState = useBufferedAppState(250)
-  const storeConfig = useOverlayStore(
-    (state) => state.getOverlay('OVERLAY-SESSION') as OverlayConfig<SessionSettings> | undefined
-  )
+  const storeConfig = useOverlayStore((state) => state.getOverlay('OVERLAY-SESSION'))
+  const canLoadInitialConfig = Boolean(globalThis.api?.overlay?.getConfig)
   const [overlayConfig, setOverlayConfig] = useState<OverlayConfig<SessionSettings>>(
     storeConfig ?? {
       id: 'OVERLAY-SESSION',
@@ -63,7 +62,7 @@ export function useSessionOverlayData(): SessionOverlayData {
       settings: SESSION_OVERLAY_DEFAULT_SETTINGS
     }
   )
-  const [isConfigReady, setIsConfigReady] = useState(false)
+  const [isConfigReady, setIsConfigReady] = useState(!canLoadInitialConfig)
   const [previewIndex, setPreviewIndex] = useState(0)
   const [displayRemaining, setDisplayRemaining] = useState(
     SESSION_PREVIEW_SEQUENCE[0].timeRemaining
@@ -79,28 +78,30 @@ export function useSessionOverlayData(): SessionOverlayData {
 
   useEffect(() => {
     let cancelled = false
+    const configPromise = globalThis.api?.overlay?.getConfig?.('OVERLAY-SESSION')
 
-    void globalThis.api?.overlay
-      ?.getConfig?.('OVERLAY-SESSION')
-      .then((raw: unknown) => {
-        if (cancelled || !raw) return
-
-        const incoming = raw as OverlayConfig<SessionSettings>
-        if (incoming?.id !== 'OVERLAY-SESSION') return
-        setOverlayConfig({
-          ...incoming,
-          settings: { ...SESSION_OVERLAY_DEFAULT_SETTINGS, ...incoming.settings }
-        })
-        setIsConfigReady(true)
-      })
-      .finally(() => {
-        if (!cancelled) {
+    if (configPromise) {
+      void configPromise
+        .then((incoming) => {
+          if (cancelled || !incoming) return
+          if (incoming?.id !== 'OVERLAY-SESSION') return
+          setOverlayConfig({
+            ...incoming,
+            settings: { ...SESSION_OVERLAY_DEFAULT_SETTINGS, ...incoming.settings }
+          })
           setIsConfigReady(true)
-        }
-      })
+        })
+        .catch((error) => {
+          console.warn('Failed to load session overlay config:', error)
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setIsConfigReady(true)
+          }
+        })
+    }
 
-    const unsubscribe = globalThis.api?.overlay?.onConfigUpdate?.((raw: unknown) => {
-      const incoming = raw as OverlayConfig<SessionSettings>
+    const unsubscribe = globalThis.api?.overlay?.onConfigUpdate?.((incoming) => {
       if (incoming?.id !== 'OVERLAY-SESSION') return
 
       setOverlayConfig({
@@ -114,7 +115,7 @@ export function useSessionOverlayData(): SessionOverlayData {
       cancelled = true
       unsubscribe?.()
     }
-  }, [])
+  }, [canLoadInitialConfig])
 
   useEffect(() => {
     const timerId = window.setInterval(() => {

@@ -16,14 +16,12 @@ import {
   TOWER_PREVIEW_START_POSITIONS
 } from './towerPreviewData'
 
-//* empty sector time sentinel
 const EMPTY_SECTORS: SectorTime = {
   sector1: null,
   sector2: null,
   sector3: null
 }
 
-//* derive session-best sectors from all standings
 function deriveSessionBestSectors(standings: DriverStanding[]): SectorTime {
   let s1: number | null = null
   let s2: number | null = null
@@ -49,8 +47,6 @@ function getStatusEarGutter(sections: ReturnType<typeof useTowerData>['sections'
   return hasVisibleStatusEar ? STATUS_EAR_GUTTER : 0
 }
 
-//* overtake detection
-// returns a map of slotId: "gained" or "lost" clears after flash duration
 const OVERTAKE_FLASH_MS = 600
 
 function applyOvertakeFlash(
@@ -85,9 +81,7 @@ function applyOvertakeFlash(
 }
 
 export default function TowerOverlay() {
-  const storeConfig = useOverlayStore(
-    (s) => s.getOverlay('OVERLAY-TOWER') as OverlayConfig<TowerSettings> | undefined
-  )
+  const storeConfig = useOverlayStore((s) => s.getOverlay('OVERLAY-TOWER'))
   const [overlayConfig, setOverlayConfig] = useState<OverlayConfig<TowerSettings> | undefined>(
     storeConfig
   )
@@ -128,14 +122,12 @@ export default function TowerOverlay() {
   }
   const appState = useBufferedAppState(towerSettings.standingsRefreshMs)
 
-  //* start positions: captured once at race start, never reset mid-race
+  // Capture race start positions once so gained/lost values do not reset mid-race.
   const startPositionsRef = useRef<Map<number, number>>(new Map())
   const raceStartedRef = useRef(false)
 
-  //* previous positions for overtake detection
   const prevPositionsRef = useRef<Map<number, number>>(new Map())
 
-  //* overtaking flash state
   const [overtakingSlots, setOvertakingSlots] = useState<Map<number, 'gained' | 'lost'>>(new Map())
   const overtakeTimersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map())
   const contentRef = useRef<HTMLDivElement>(null)
@@ -146,10 +138,8 @@ export default function TowerOverlay() {
     ? TOWER_PREVIEW_START_POSITIONS
     : startPositionsRef.current
 
-  //* self-hydrate on mount
   useEffect(() => {
-    const unsubConfig = globalThis.api?.overlay?.onConfigUpdate?.((raw: unknown) => {
-      const incoming = raw as OverlayConfig<TowerSettings>
+    const unsubConfig = globalThis.api?.overlay?.onConfigUpdate?.((incoming) => {
       if (incoming?.id === 'OVERLAY-TOWER') {
         setOverlayConfig(incoming)
       }
@@ -160,7 +150,6 @@ export default function TowerOverlay() {
     }
   }, [])
 
-  //* capture start positions when race begins
   useEffect(() => {
     const { session, standings } = appState
     if (session?.sessionType !== 'RACE') {
@@ -178,12 +167,10 @@ export default function TowerOverlay() {
     raceStartedRef.current = true
   }, [appState])
 
-  //* overtake detection
   useEffect(() => {
     const { standings } = appState
     const prev = prevPositionsRef.current
     if (prev.size === 0) {
-      // first frame — just record, no flash
       for (const d of standings) {
         prev.set(d.slotId, d.position)
       }
@@ -204,16 +191,15 @@ export default function TowerOverlay() {
       applyOvertakeFlash(gained, lost, setOvertakingSlots, overtakeTimersRef)
     }
 
-    // update prev positions
     for (const d of standings) {
       prev.set(d.slotId, d.position)
     }
-  }, [appState.standings])
+  }, [appState])
 
-  //* cleanup timers on unmount
   useEffect(() => {
+    const overtakeTimers = overtakeTimersRef.current
     return () => {
-      for (const t of overtakeTimersRef.current.values()) {
+      for (const t of overtakeTimers.values()) {
         clearTimeout(t)
       }
     }
