@@ -8,22 +8,32 @@ import type { AppLanguage } from '../../../../../shared/language'
 
 export type SettingsTabId = 'general' | 'network' | 'overlay' | 'advanced'
 
-export type AccentPresetId =
-  | 'ember-red'
-  | 'signal-orange'
-  | 'pit-blue'
-  | 'stint-teal'
-  | 'royal-violet'
-  | 'flag-yellow'
-  | 'custom'
-
-export type BuiltInAccentPresetId = Exclude<AccentPresetId, 'custom'>
+export type ThemeAppearance = 'dark' | 'light'
+export type AccentPresetId = string
+export type BuiltInAccentPresetId = string
 
 export interface PaletteColors {
   accent: string
   logoPrimary: string
   logoSecondary: string
 }
+
+export interface ThemeSurfaceColors {
+  appearance: ThemeAppearance
+  background: string
+  surface: string
+  elevated: string
+  border: string
+  text: string
+  muted: string
+  subtle: string
+  titlebarSurface: string
+  titlebarSymbol: string
+  windowBackground: string
+  modalBackdrop: string
+}
+
+export type ThemeColors = PaletteColors & ThemeSurfaceColors
 
 export interface DashboardSettings {
   general: {
@@ -59,7 +69,7 @@ export interface DashboardSettings {
   }
 }
 
-export interface AccentPreset extends PaletteColors {
+export interface AccentPreset extends ThemeColors {
   id: BuiltInAccentPresetId
   label: string
 }

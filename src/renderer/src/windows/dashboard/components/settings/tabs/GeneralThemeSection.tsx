@@ -1,15 +1,20 @@
 import React, { useCallback, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Pipette } from 'lucide-react'
 import { useI18n } from '../../../../../i18n/I18nProvider'
 import {
   ColorPickerPanel,
   COLOR_PICKER_PORTAL_SELECTOR
 } from '../../../../../components/ui/CustomColorPicker'
 import { useAnchoredPopover } from '../../../../../components/ui/useAnchoredPopover'
-import { ACCENT_PRESETS, CUSTOM_ACCENT_PRESET_ID } from '../../../settings/defaults'
+import {
+  ACCENT_PRESETS,
+  CUSTOM_ACCENT_PRESET_ID,
+  getAccentPreset,
+  resolveThemeColors
+} from '../../../settings/defaults'
 import type { DashboardSettings, PaletteColors } from '../../../settings/types'
-import { SectionBlock, SettingsRow, SettingsToggle } from '../SettingsPrimitives'
+import { SectionBlock, SettingsRow } from '../SettingsPrimitives'
+import { CustomThemeButton, ThemePresetButton } from './ThemePresetButton'
 
 interface GeneralThemeSectionProps {
   settings: DashboardSettings
@@ -44,13 +49,27 @@ const CUSTOM_COLOR_FIELDS: Array<{
 const updateAccentPreset = (
   previous: DashboardSettings,
   accentPreset: DashboardSettings['general']['accentPreset']
-): DashboardSettings => ({
-  ...previous,
-  general: {
-    ...previous.general,
-    accentPreset
+): DashboardSettings => {
+  if (accentPreset === CUSTOM_ACCENT_PRESET_ID) {
+    return {
+      ...previous,
+      general: {
+        ...previous.general,
+        accentPreset
+      }
+    }
   }
-})
+
+  const preset = getAccentPreset(accentPreset)
+  return {
+    ...previous,
+    general: {
+      ...previous.general,
+      accentPreset,
+      darkMode: preset.appearance === 'dark'
+    }
+  }
+}
 
 const updateCustomPaletteColor = (
   previous: DashboardSettings,
@@ -76,6 +95,10 @@ const GeneralThemeSection = ({
   const [isPickerOpen, setIsPickerOpen] = useState(false)
   const [activeKey, setActiveKey] = useState<PaletteColorKey>('accent')
   const isCustomSelected = settings.general.accentPreset === CUSTOM_ACCENT_PRESET_ID
+  const customColors = resolveThemeColors({
+    ...settings.general,
+    accentPreset: CUSTOM_ACCENT_PRESET_ID
+  })
   const activeField =
     CUSTOM_COLOR_FIELDS.find((field) => field.key === activeKey) ?? CUSTOM_COLOR_FIELDS[0]
 
@@ -97,25 +120,6 @@ const GeneralThemeSection = ({
   return (
     <SectionBlock title={t('settings.general.section.theme')}>
       <SettingsRow
-        label={t('settings.theme.darkMode.label')}
-        description={t('settings.theme.darkMode.description')}
-      >
-        {({ descriptionId, labelId }) => (
-          <SettingsToggle
-            checked={settings.general.darkMode}
-            onChange={(checked) =>
-              onChange((prev) => ({
-                ...prev,
-                general: { ...prev.general, darkMode: checked }
-              }))
-            }
-            describedBy={descriptionId}
-            labelledBy={labelId}
-          />
-        )}
-      </SettingsRow>
-
-      <SettingsRow
         label={t('settings.theme.palette.label')}
         description={t('settings.theme.palette.description')}
       >
@@ -124,49 +128,27 @@ const GeneralThemeSection = ({
             role="radiogroup"
             aria-describedby={descriptionId}
             aria-labelledby={labelId}
-            className="flex max-w-[420px] flex-wrap justify-end gap-2"
+            className="grid max-h-[88px] w-[420px] max-w-full grid-cols-2 gap-2 overflow-y-auto pr-1"
           >
-            {ACCENT_PRESETS.map((preset) => {
-              const selected = settings.general.accentPreset === preset.id
-              return (
-                <button
-                  key={preset.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  aria-label={preset.label}
-                  title={preset.label}
-                  onClick={() => onChange((prev) => updateAccentPreset(prev, preset.id))}
-                  className={`h-8 w-8 rounded-md border transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rd-accent/70 focus-visible:ring-offset-2 focus-visible:ring-offset-rd-surface ${
-                    selected ? 'border-rd-text' : 'border-rd-border'
-                  }`}
-                  style={{ backgroundColor: preset.accent }}
-                >
-                  <span className="sr-only">{preset.label}</span>
-                </button>
-              )
-            })}
+            {ACCENT_PRESETS.map((preset) => (
+              <ThemePresetButton
+                key={preset.id}
+                preset={preset}
+                selected={settings.general.accentPreset === preset.id}
+                onSelect={() => onChange((prev) => updateAccentPreset(prev, preset.id))}
+              />
+            ))}
 
-            <button
-              ref={triggerRef}
-              type="button"
-              role="radio"
-              aria-checked={isCustomSelected}
-              aria-label={t('settings.theme.customPalette')}
-              title={t('settings.theme.customPalette')}
-              onClick={() => {
+            <CustomThemeButton
+              triggerRef={triggerRef}
+              colors={customColors}
+              selected={isCustomSelected}
+              label={t('settings.theme.customPalette')}
+              onSelect={() => {
                 onChange((prev) => updateAccentPreset(prev, CUSTOM_ACCENT_PRESET_ID))
                 setIsPickerOpen((current) => !current)
               }}
-              className={`flex h-8 w-8 items-center justify-center rounded-md border bg-transparent transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rd-accent/70 focus-visible:ring-offset-2 focus-visible:ring-offset-rd-surface ${
-                isCustomSelected
-                  ? 'border-rd-accent/70 text-rd-accent'
-                  : 'border-rd-border text-rd-muted'
-              }`}
-            >
-              <span className="sr-only">{t('settings.theme.customPalette')}</span>
-              <Pipette size={14} />
-            </button>
+            />
           </div>
         )}
       </SettingsRow>
@@ -179,8 +161,8 @@ const GeneralThemeSection = ({
               className="fixed z-[130] overflow-visible"
               style={pickerStyle}
             >
-              <div className="max-h-full overflow-y-auto rounded-2xl">
-                <div className="rounded-2xl border border-rd-border bg-rd-surface/96 p-1.5 shadow-[0_24px_60px_rgba(0,0,0,0.5)] backdrop-blur">
+              <div className="max-h-full overflow-y-auto rounded-lg">
+                <div className="rounded-lg border border-rd-border bg-rd-surface/96 p-1.5 shadow-[0_24px_60px_rgba(0,0,0,0.5)] backdrop-blur">
                   <div className="grid grid-cols-3 gap-1.5">
                     {CUSTOM_COLOR_FIELDS.map((field) => {
                       const selected = field.key === activeKey

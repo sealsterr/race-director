@@ -45,6 +45,17 @@ const DEFAULT_GLOBAL_UI_SETTINGS: GlobalUiSettings = {
   accent: '#dc2626',
   logoPrimary: '#eb7b27',
   logoSecondary: '#14537e',
+  background: '#08090c',
+  surface: '#0f1117',
+  elevated: '#161820',
+  border: '#1e2030',
+  text: '#f1f5f9',
+  muted: '#94a3b8',
+  subtle: '#475569',
+  titlebarSurface: '#0f1117',
+  titlebarSymbol: '#f1f5f9',
+  windowBackground: '#08090c',
+  modalBackdrop: 'rgba(6, 10, 16, 0.74)',
   reduceMotion: false,
   measurementUnits: { ...DEFAULT_MEASUREMENT_UNITS }
 }
@@ -161,29 +172,19 @@ function saveUiPrefs(next: UiPrefs): void {
 }
 
 function getTitlebarOverlayTheme(height: number): Electron.TitleBarOverlay {
-  if (globalUiSettings.darkMode) {
-    return {
-      color: '#0f1117',
-      symbolColor: '#f1f5f9',
-      height
-    }
-  }
-
   return {
-    color: '#e9edf3',
-    symbolColor: '#0f172a',
+    color: globalUiSettings.titlebarSurface,
+    symbolColor: globalUiSettings.titlebarSymbol,
     height
   }
 }
 
 function getSolidWindowBackground(): string {
-  return globalUiSettings.darkMode ? '#08090c' : '#dbe4ef'
+  return globalUiSettings.windowBackground
 }
 
 function getModalMaskedTitlebarOverlayTheme(height: number): Electron.TitleBarOverlay {
-  const modalBackdropColor = globalUiSettings.darkMode
-    ? 'rgba(6, 10, 16, 0.74)'
-    : 'rgba(148, 163, 184, 0.34)'
+  const modalBackdropColor = globalUiSettings.modalBackdrop
 
   return {
     color: modalBackdropColor,
@@ -193,8 +194,16 @@ function getModalMaskedTitlebarOverlayTheme(height: number): Electron.TitleBarOv
   }
 }
 
-function applyWindowTheme(win: BrowserWindow, titlebarHeight: number): void {
+function applyWindowTheme(
+  win: BrowserWindow,
+  titlebarHeight: number,
+  updateSolidBackground = true
+): void {
   if (win.isDestroyed()) return
+
+  if (updateSolidBackground) {
+    win.setBackgroundColor(getSolidWindowBackground())
+  }
 
   try {
     if (modalBackdropWindowIds.has(win.id)) {
@@ -219,9 +228,9 @@ function broadcastGlobalUiSettings(): void {
 function applyThemeToOpenWindows(mainWindow: BrowserWindow): void {
   applyWindowTheme(mainWindow, 56)
 
-  for (const win of childWindows.values()) {
+  for (const [id, win] of childWindows.entries()) {
     if (win.isDestroyed()) continue
-    applyWindowTheme(win, 40)
+    applyWindowTheme(win, 40, !isOverlayWindowId(id))
   }
 }
 

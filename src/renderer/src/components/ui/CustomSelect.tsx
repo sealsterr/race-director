@@ -35,7 +35,8 @@ interface CustomSelectProps {
 
 const DEFAULT_BUTTON_CLASS =
   'flex h-10 items-center justify-between gap-2 rounded-md border border-rd-border bg-rd-elevated px-3 py-2 text-left text-sm text-rd-text outline-none transition-colors hover:border-rd-muted focus-visible:ring-2 focus-visible:ring-rd-accent/70 focus-visible:ring-offset-2 focus-visible:ring-offset-rd-surface'
-const DEFAULT_OPTION_CLASS = 'px-3 py-2 text-sm text-rd-text transition-colors'
+const DEFAULT_OPTION_CLASS =
+  'border-l-2 border-transparent px-3 py-2 text-sm text-rd-text transition-colors'
 const MENU_MARGIN_PX = 4
 const VIEWPORT_MARGIN_PX = 8
 const MAX_MENU_HEIGHT_PX = 280
@@ -276,9 +277,9 @@ const CustomSelect = ({
                     onClick={() => selectIndex(index)}
                     className={`${DEFAULT_OPTION_CLASS} ${optionClassName ?? ''} ${
                       isHighlighted
-                        ? 'bg-rd-accent text-rd-text'
+                        ? 'border-rd-accent bg-rd-elevated text-rd-text'
                         : isSelected
-                          ? 'bg-rd-accent/15 text-rd-text'
+                          ? 'border-rd-accent bg-rd-surface text-rd-text'
                           : 'text-rd-text hover:bg-rd-elevated'
                     } cursor-pointer`}
                   >

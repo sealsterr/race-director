@@ -1,59 +1,23 @@
-import type { AccentPreset, BuiltInAccentPresetId, DashboardSettings, PaletteColors } from './types'
+import type {
+  AccentPreset,
+  BuiltInAccentPresetId,
+  DashboardSettings,
+  PaletteColors,
+  ThemeColors
+} from './types'
 import { coerceAppLanguage, DEFAULT_APP_LANGUAGE } from '../../../../../shared/language'
 import { DEFAULT_MEASUREMENT_UNITS } from '../../../../../shared/measurementUnits'
+import { createCustomThemeColors, DEFAULT_THEME_COLORS, THEME_PRESETS } from './themePresets'
 
 export const DASHBOARD_SETTINGS_STORAGE_KEY = 'race-director.dashboard.settings.v1'
 export const CUSTOM_ACCENT_PRESET_ID = 'custom' as const
 
-export const ACCENT_PRESETS: AccentPreset[] = [
-  {
-    id: 'ember-red',
-    label: 'Ember Red',
-    accent: '#dc2626',
-    logoPrimary: '#eb7b27',
-    logoSecondary: '#14537e'
-  },
-  {
-    id: 'signal-orange',
-    label: 'Signal Orange',
-    accent: '#ea580c',
-    logoPrimary: '#f59e0b',
-    logoSecondary: '#1f4f9c'
-  },
-  {
-    id: 'pit-blue',
-    label: 'Pit Blue',
-    accent: '#2563eb',
-    logoPrimary: '#60a5fa',
-    logoSecondary: '#1d4ed8'
-  },
-  {
-    id: 'stint-teal',
-    label: 'Stint Teal',
-    accent: '#0f766e',
-    logoPrimary: '#2dd4bf',
-    logoSecondary: '#155e75'
-  },
-  {
-    id: 'royal-violet',
-    label: 'Royal Violet',
-    accent: '#7c3aed',
-    logoPrimary: '#c4b5fd',
-    logoSecondary: '#5b21b6'
-  },
-  {
-    id: 'flag-yellow',
-    label: 'Flag Yellow',
-    accent: '#ca8a04',
-    logoPrimary: '#facc15',
-    logoSecondary: '#a16207'
-  }
-]
+export const ACCENT_PRESETS: AccentPreset[] = THEME_PRESETS
 
 export const DEFAULT_CUSTOM_PALETTE: PaletteColors = {
-  accent: ACCENT_PRESETS[0].accent,
-  logoPrimary: ACCENT_PRESETS[0].logoPrimary,
-  logoSecondary: ACCENT_PRESETS[0].logoSecondary
+  accent: DEFAULT_THEME_COLORS.accent,
+  logoPrimary: DEFAULT_THEME_COLORS.logoPrimary,
+  logoSecondary: DEFAULT_THEME_COLORS.logoSecondary
 }
 
 export const DEFAULT_DASHBOARD_SETTINGS: DashboardSettings = {
@@ -65,7 +29,7 @@ export const DEFAULT_DASHBOARD_SETTINGS: DashboardSettings = {
     temperatureUnit: DEFAULT_MEASUREMENT_UNITS.temperatureUnit,
     distanceUnit: DEFAULT_MEASUREMENT_UNITS.distanceUnit,
     pressureUnit: DEFAULT_MEASUREMENT_UNITS.pressureUnit,
-    accentPreset: 'ember-red',
+    accentPreset: 'dark',
     customPalette: { ...DEFAULT_CUSTOM_PALETTE },
     activityLogLimit: 400
   },
@@ -91,7 +55,13 @@ export const DEFAULT_DASHBOARD_SETTINGS: DashboardSettings = {
 }
 
 export const getAccentPreset = (id: BuiltInAccentPresetId): AccentPreset => {
-  return ACCENT_PRESETS.find((preset) => preset.id === id) ?? ACCENT_PRESETS[0]
+  return (
+    ACCENT_PRESETS.find((preset) => preset.id === id) ?? {
+      id: 'dark',
+      label: 'Dark',
+      ...DEFAULT_THEME_COLORS
+    }
+  )
 }
 
 const normalizeHexColor = (value: string, fallback: string): string => {
@@ -104,12 +74,15 @@ export const normalizePaletteColors = (palette: PaletteColors): PaletteColors =>
   logoSecondary: normalizeHexColor(palette.logoSecondary, DEFAULT_CUSTOM_PALETTE.logoSecondary)
 })
 
-export const resolvePaletteColors = (general: DashboardSettings['general']): PaletteColors => {
+export const resolveThemeColors = (general: DashboardSettings['general']): ThemeColors => {
   if (general.accentPreset === CUSTOM_ACCENT_PRESET_ID) {
-    return normalizePaletteColors(general.customPalette)
+    return createCustomThemeColors(general.darkMode, normalizePaletteColors(general.customPalette))
   }
   return getAccentPreset(general.accentPreset)
 }
+
+export const resolvePaletteColors = (general: DashboardSettings['general']): PaletteColors =>
+  resolveThemeColors(general)
 
 export const mergeDashboardSettings = (stored: Partial<DashboardSettings>): DashboardSettings => {
   return {
@@ -147,6 +120,10 @@ export const clampSettings = (candidate: DashboardSettings): DashboardSettings =
     ...candidate.general,
     language: coerceAppLanguage(candidate.general.language),
     uiScale: 1,
+    accentPreset:
+      candidate.general.accentPreset === CUSTOM_ACCENT_PRESET_ID
+        ? CUSTOM_ACCENT_PRESET_ID
+        : getAccentPreset(candidate.general.accentPreset).id,
     customPalette: normalizePaletteColors(candidate.general.customPalette),
     activityLogLimit: Math.min(2000, Math.max(100, Math.round(candidate.general.activityLogLimit)))
   },
