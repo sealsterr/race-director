@@ -1,0 +1,105 @@
+name: Feature request
+description: Propose a scoped improvement or new capability.
+title: '[Feature]: '
+labels:
+  - enhancement
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for new capabilities or meaningful improvements to existing behavior.
+        Small, concrete requests that clearly explain the problem and scope are much easier to evaluate.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues and did not find a duplicate.
+          required: true
+        - label: I am describing a concrete problem or use case, not just a vague idea.
+          required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of RaceDirector would this change affect?
+      options:
+        - Main Dashboard
+        - Info Window
+        - Overlay Dashboard
+        - Stream overlays
+        - Teleprompter
+        - API connection
+        - Telemetry
+        - Build, installer, updater, or release flow
+        - Docs
+        - Other
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What are you trying to do? What is hard, slow, or impossible?
+      placeholder: I want a faster way to toggle overlays during a broadcast.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the behavior, workflow, or UI you want.
+      placeholder: Add a Select/Deselect All switch in the Overlay Dashboard with keyboard shortcuts.
+    validations:
+      required: true
+
+  - type: textarea
+    id: value
+    attributes:
+      label: Why this matters
+      description: Who benefits, and what outcome does this unlock?
+      placeholder: This would help streamers and commentators react faster during live broadcasts without manually controlling overlays.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Smallest useful scope
+      description: What is the narrowest version of this request that would still solve your problem?
+      placeholder: This could be a single new keyboard shortcut that toggles all overlays on/off, without any UI changes.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Workarounds, or other approaches you considered.
+      placeholder: I currently have to click each overlay toggle individually, which is slow during an eventful live broadcast.
+
+  - type: textarea
+    id: tradeoffs
+    attributes:
+      label: Risks or tradeoffs
+      description: What costs, complexity, or edge cases should be considered?
+      placeholder: Adding a global toggle could lead to accidentally hiding all overlays, and may require additional confirmation.
+
+  - type: textarea
+    id: references
+    attributes:
+      label: Examples or references
+      description: Links, screenshots, mockups, or comparable tools.
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I would be open to helping implement this.

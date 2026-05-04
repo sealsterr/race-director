@@ -1,0 +1,119 @@
+name: Bug report
+description: Report broken behavior, crashes, or reliability issues.
+title: '[Bug]: '
+labels:
+  - bug
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for broken behavior, crashes, or reliability problems in RaceDirector.
+        Search existing issues first and keep the report focused on one problem.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues and did not find a duplicate.
+          required: true
+        - label: I included enough detail to reproduce or investigate the problem.
+          required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of RaceDirector is affected?
+      options:
+        - Main Dashboard
+        - Info Window
+        - Overlay Dashboard
+        - Stream overlays
+        - Teleprompter
+        - API connection
+        - Telemetry
+        - Build, installer, updater, or release flow
+        - Docs
+        - Other
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Provide a minimal repro.
+      placeholder: |
+        1. Start RaceDirector
+        2. Connect to LMU
+        3. Open the Overlay Dashboard
+        4. Enable ...
+        5. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: The overlay should stay visible and continue updating after reconnecting.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      placeholder: The overlay disappears, stops updating, or the layout is disrupted.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact
+      description: How bad is this in practice?
+      options:
+        - Blocks use completely
+        - Major degradation or frequent failure
+        - Minor bug or occasional failure
+        - Cosmetic issue
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: RaceDirector version or commit
+      description: Release version or commit SHA.
+      placeholder: v0.2.0 or @ abc1234
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, install method, LMU version, and anything else that could be relevant.
+      placeholder: Windows 11, installed release, LMU v1.3.2.0
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Paste the relevant logs only.
+      render: shell
+
+  - type: textarea
+    id: attachments
+    attributes:
+      label: Screenshots, recordings, or supporting files
+      description: Drag screenshots, short recordings, or logs into this field if helpful.
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Workaround
+      description: If you found a temporary workaround, include it.
+      placeholder: Reopening the overlay window restores it until the next reconnect.

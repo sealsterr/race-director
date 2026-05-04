@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: RaceDirector Discord
+    url: https://discord.gg/ncqVwZtQED
+    about: Use Discord for setup help, support questions, and quick discussion before opening a scoped issue.
