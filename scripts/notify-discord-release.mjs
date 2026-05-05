@@ -29,8 +29,7 @@ const payload = {
     {
       title: `RaceDirector ${releaseTag}`,
       url: releaseUrl,
-      description:
-        'A new release is available!',
+      description: 'A new release is available!',
       color: 0xe85d27,
       fields: [
         {
