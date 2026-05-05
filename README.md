@@ -4,7 +4,6 @@
 
 ### Professional streamer and commentator broadcast overlay for Le Mans Ultimate
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Version](https://img.shields.io/badge/version-0.2.0-blue)
 ![Status](https://img.shields.io/badge/status-Early%20Development-orange)
 
