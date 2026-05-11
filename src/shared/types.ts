@@ -18,6 +18,7 @@ export interface SessionInfo {
   totalSessionTime: number
   sessionTime: number
   flagState: FlagState
+  sectorFlags: [FlagState, FlagState, FlagState]
   numCars: number
   numCarsOnTrack: number
   isActive: boolean

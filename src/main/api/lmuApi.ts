@@ -27,7 +27,7 @@ interface RawSessionInfo {
   yellowFlagState: string // "NONE", "PENDING", "RESUME", "FULLCOURSE"
   inRealtime: boolean
   numberOfVehicles: number
-  sectorFlag: string[] // per-sector flag states
+  sectorFlag?: string[] // per-sector flag states
 }
 
 interface RawVehicleStanding {
@@ -81,9 +81,75 @@ const mapSessionType = (session: string): SessionType => {
 
 const hasFlagToken = (value: string, token: string): boolean => value.toUpperCase().includes(token)
 
+const normalizeFlagState = (value: string): FlagState => {
+  const upper = value.toUpperCase()
+  if (
+    hasFlagToken(upper, 'CHEQU') ||
+    hasFlagToken(upper, 'CHECK') ||
+    hasFlagToken(upper, 'BLACKWHITE')
+  ) {
+    return 'CHEQUERED'
+  }
+  if (hasFlagToken(upper, 'RED')) return 'RED'
+  if (hasFlagToken(upper, 'SAFETY') || hasFlagToken(upper, 'SAFETYCAR')) return 'SAFETY_CAR'
+  if (hasFlagToken(upper, 'FULLCOURSE') || hasFlagToken(upper, 'FULL_COURSE')) {
+    return 'FULL_COURSE_YELLOW'
+  }
+  if (hasFlagToken(upper, 'YELLOW')) return 'YELLOW'
+  if (hasFlagToken(upper, 'GREEN')) return 'GREEN'
+  if (hasFlagToken(upper, 'NONE') || upper.trim() === '') return 'NONE'
+  return 'NONE'
+}
+
+const sectorIndexFromRaw = (sector: string): 0 | 1 | 2 | null => {
+  const upper = sector.toUpperCase()
+  if (upper.includes('1')) return 0
+  if (upper.includes('2')) return 1
+  if (upper.includes('3')) return 2
+  return null
+}
+
+const mapSectorFlags = (
+  yellowFlagState: string,
+  sectorFlags: string[] | undefined,
+  vehicles: RawVehicleStanding[],
+  sessionFlag: FlagState
+): [FlagState, FlagState, FlagState] => {
+  if (
+    sessionFlag === 'FULL_COURSE_YELLOW' ||
+    sessionFlag === 'SAFETY_CAR' ||
+    sessionFlag === 'RED' ||
+    sessionFlag === 'CHEQUERED'
+  ) {
+    return [sessionFlag, sessionFlag, sessionFlag]
+  }
+
+  const globalFlag = normalizeFlagState(yellowFlagState)
+  const mapped: [FlagState, FlagState, FlagState] =
+    globalFlag === 'GREEN' || globalFlag === 'NONE'
+      ? ['NONE', 'NONE', 'NONE']
+      : [globalFlag, globalFlag, globalFlag]
+  const normalizedSectorFlags = sectorFlags ?? []
+
+  normalizedSectorFlags.slice(0, 3).forEach((flag, index) => {
+    const sectorFlag = normalizeFlagState(flag)
+    mapped[index] = sectorFlag === 'GREEN' ? 'NONE' : sectorFlag
+  })
+
+  vehicles.forEach((vehicle) => {
+    const sectorIndex = sectorIndexFromRaw(vehicle.sector ?? '')
+    if (sectorIndex === null) return
+    const vehicleFlag = normalizeFlagState(vehicle.flag ?? '')
+    if (vehicleFlag === 'NONE' || vehicleFlag === 'GREEN') return
+    mapped[sectorIndex] = vehicleFlag
+  })
+
+  return mapped
+}
+
 const mapFlagState = (
   yellowFlagState: string,
-  sectorFlags: string[],
+  sectorFlags: string[] | undefined,
   vehicles: RawVehicleStanding[],
   timeRemaining: number
 ): FlagState => {
@@ -96,7 +162,9 @@ const mapFlagState = (
     SAFETYCAR: 'SAFETY_CAR'
   }
   const vehicleFlags = vehicles.flatMap((vehicle) => [vehicle.flag ?? '', vehicle.gamePhase ?? ''])
-  const allFlags = [upper, ...sectorFlags, ...vehicleFlags].map((flag) => flag.toUpperCase())
+  const allFlags = [upper, ...(sectorFlags ?? []), ...vehicleFlags].map((flag) =>
+    flag.toUpperCase()
+  )
 
   const hasChequeredSignal =
     (timeRemaining <= 0 &&
@@ -377,6 +445,8 @@ const transformSession = (raw: RawSessionInfo, vehicles: RawVehicleStanding[]): 
     return true
   }).length
 
+  const flagState = mapFlagState(raw.yellowFlagState, raw.sectorFlag, vehicles, timeRemaining)
+
   return {
     sessionType: mapSessionType(raw.session),
     trackName: raw.trackName || 'Unknown Track',
@@ -385,7 +455,8 @@ const transformSession = (raw: RawSessionInfo, vehicles: RawVehicleStanding[]): 
     timeRemaining,
     totalSessionTime,
     sessionTime: current,
-    flagState: mapFlagState(raw.yellowFlagState, raw.sectorFlag, vehicles, timeRemaining),
+    flagState,
+    sectorFlags: mapSectorFlags(raw.yellowFlagState, raw.sectorFlag, vehicles, flagState),
     numCars: vehicleCount,
     numCarsOnTrack,
     isActive: vehicleCount > 0

@@ -106,18 +106,16 @@ export function FlagFeedPanel({
                   <AlertTriangle size={14} className="text-rd-gold" />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-rd-text">
-                      Car {alert.carNumber} | {alert.driverName}
+                      #{alert.carNumber} {alert.driverName}
                     </p>
-                    <p className="text-xs text-rd-subtle">
-                      {alert.location} | {alert.speedKph} km/h
-                    </p>
+                    <p className="text-xs text-rd-subtle">{alert.title}</p>
                   </div>
-                  <span className="font-mono text-xs text-rd-subtle">{alert.timestamp}</span>
+                  <span className="font-mono text-xs text-rd-subtle">{alert.primaryMetric}</span>
                 </div>
               ))
             ) : (
               <div className="rounded border border-dashed border-rd-border px-3 py-4 text-sm text-rd-subtle">
-                No overspeed alerts at the current threshold.
+                No alert placeholders are active.
               </div>
             )}
           </div>

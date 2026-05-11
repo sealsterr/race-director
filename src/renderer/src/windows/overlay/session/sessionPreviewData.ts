@@ -13,6 +13,7 @@ export const SESSION_PREVIEW_SEQUENCE: readonly SessionInfo[] = [
     totalSessionTime: PREVIEW_TOTAL_SESSION_TIME,
     sessionTime: 0,
     flagState: 'NONE',
+    sectorFlags: ['NONE', 'NONE', 'NONE'],
     numCars: 36,
     numCarsOnTrack: 35,
     isActive: true
@@ -26,6 +27,7 @@ export const SESSION_PREVIEW_SEQUENCE: readonly SessionInfo[] = [
     totalSessionTime: PREVIEW_TOTAL_SESSION_TIME,
     sessionTime: PREVIEW_TOTAL_SESSION_TIME - 6105,
     flagState: 'YELLOW',
+    sectorFlags: ['NONE', 'YELLOW', 'NONE'],
     numCars: 36,
     numCarsOnTrack: 34,
     isActive: true
@@ -39,6 +41,7 @@ export const SESSION_PREVIEW_SEQUENCE: readonly SessionInfo[] = [
     totalSessionTime: PREVIEW_TOTAL_SESSION_TIME,
     sessionTime: PREVIEW_TOTAL_SESSION_TIME - 6102,
     flagState: 'GREEN',
+    sectorFlags: ['NONE', 'NONE', 'NONE'],
     numCars: 36,
     numCarsOnTrack: 35,
     isActive: true
@@ -52,6 +55,7 @@ export const SESSION_PREVIEW_SEQUENCE: readonly SessionInfo[] = [
     totalSessionTime: PREVIEW_TOTAL_SESSION_TIME,
     sessionTime: PREVIEW_TOTAL_SESSION_TIME - 1680,
     flagState: 'RED',
+    sectorFlags: ['RED', 'RED', 'RED'],
     numCars: 36,
     numCarsOnTrack: 29,
     isActive: true
@@ -65,6 +69,7 @@ export const SESSION_PREVIEW_SEQUENCE: readonly SessionInfo[] = [
     totalSessionTime: PREVIEW_TOTAL_SESSION_TIME,
     sessionTime: PREVIEW_TOTAL_SESSION_TIME - 1677,
     flagState: 'GREEN',
+    sectorFlags: ['NONE', 'NONE', 'NONE'],
     numCars: 36,
     numCarsOnTrack: 34,
     isActive: true
@@ -78,6 +83,7 @@ export const SESSION_PREVIEW_SEQUENCE: readonly SessionInfo[] = [
     totalSessionTime: PREVIEW_TOTAL_SESSION_TIME,
     sessionTime: PREVIEW_TOTAL_SESSION_TIME,
     flagState: 'CHEQUERED',
+    sectorFlags: ['CHEQUERED', 'CHEQUERED', 'CHEQUERED'],
     numCars: 36,
     numCarsOnTrack: 35,
     isActive: true

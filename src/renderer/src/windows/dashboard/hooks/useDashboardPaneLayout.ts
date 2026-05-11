@@ -4,7 +4,7 @@ import type { PointerEvent as ReactPointerEvent, RefObject } from 'react'
 export const DASHBOARD_PANE_LAYOUT_STORAGE_KEY = 'race-director.dashboard.layout.v1'
 export const DASHBOARD_LAYOUT_RESET_EVENT = 'rd:dashboardLayoutReset'
 const DEFAULT_LAYOUT = {
-  sidebarRatio: 256 / 1100,
+  sidebarRatio: 280 / 1100,
   topRowRatio: 212 / 580,
   topPanelsRatio: 0.5
 }

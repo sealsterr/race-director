@@ -1,7 +1,15 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CustomSelectOption } from '../../../components/ui/CustomSelect'
+import { useRaceStore } from '../../../store/raceStore'
+import type {
+  ConnectionStatus,
+  DriverStanding,
+  SessionInfo,
+  TelemetrySnapshot
+} from '../../../types/lmu'
 import type {
   ActivityFilter,
+  ActivityFilterToggle,
   ActiveFlagState,
   FlagHistoryItem,
   FlagType,
@@ -9,114 +17,34 @@ import type {
   SpeedAlert,
   SyncState
 } from './types'
-import { FLAG_LABELS, FLAG_OPTIONS } from './types'
+import { FLAG_OPTIONS } from './types'
+import { formatSessionElapsed } from './flagTimeUtils'
+import { useStickySpeedAlerts } from './useStickySpeedAlerts'
+import {
+  createConnectionActivity,
+  createDetectedFlagState,
+  createDriverActivities,
+  createFlagActivity,
+  createPenaltyAlerts,
+  createSectorFlagActivities,
+  createSessionActivity,
+  createSpeedAlerts,
+  mapFlagStateToFlagType,
+  type ActivityHistoryEntry
+} from './activityDetectionUtils'
 
-const FLAG_NOTE_PRESETS: Record<FlagType, string> = {
-  GREEN: 'Circuit clear. Resume normal racing conditions.',
-  YELLOW: 'Local caution requested for a slowing car in sector 2.',
-  CHEQUERED: 'Session completed. Field should proceed under chequered conditions.',
-  RED: 'Session suspended. Cars to pit lane and await further direction.',
-  FCY: 'Recovery vehicle crossing sector 2 access road.',
-  SC: 'Safety car deployed for controlled field neutralisation.',
-  SC_THIS_LAP: 'Safety car ending. Restart procedure begins.'
-}
-
-const ALERT_SEEDS = [
-  {
-    id: 'alert-1',
-    driverName: 'N. Jamin',
-    carName: 'Oreca 07',
-    carNumber: '38',
-    speedKph: 91,
-    location: 'Tertre Rouge',
-    sector: 'Sector 1',
-    corner: 'Tertre Rouge',
-    timestamp: '14:36:44'
-  },
-  {
-    id: 'alert-2',
-    driverName: 'L. Vanthoor',
-    carName: 'Porsche 963',
-    carNumber: '6',
-    speedKph: 84,
-    location: 'Dunlop Chicane',
-    sector: 'Sector 1',
-    corner: 'Dunlop Chicane',
-    timestamp: '14:36:51'
-  },
-  {
-    id: 'alert-3',
-    driverName: 'S. Baud',
-    carName: 'Ferrari 296 GT3',
-    carNumber: '87',
-    speedKph: 79,
-    location: 'Mulsanne Exit',
-    sector: 'Sector 2',
-    corner: 'Mulsanne Exit',
-    timestamp: '14:37:09'
-  }
-] as const
-
-const INITIAL_HISTORY: FlagHistoryItem[] = [
-  {
-    id: crypto.randomUUID(),
-    kind: 'warning',
-    source: 'system',
-    title: 'FCY speed infringement',
-    detail: 'Car 38 exceeded the monitored FCY limit at Tertre Rouge.',
-    timestamp: '14:36:44',
-    lap: 27,
-    flagType: 'FCY',
-    driverName: 'N. Jamin',
-    carName: 'Oreca 07',
-    carNumber: '38',
-    sector: 'Sector 1',
-    corner: 'Tertre Rouge'
-  },
-  {
-    id: crypto.randomUUID(),
-    kind: 'manual-change',
-    source: 'race-control',
-    title: 'FCY deployed',
-    detail: 'Race control requested neutralisation while a stopped GT was recovered.',
-    timestamp: '14:36:20',
-    lap: 27,
-    flagType: 'FCY',
-    carNumber: '87',
-    carName: 'Ferrari 296 GT3',
-    sector: 'Sector 2',
-    corner: 'Mulsanne Exit'
-  },
-  {
-    id: crypto.randomUUID(),
-    kind: 'detection',
-    source: 'game',
-    title: 'Game flag detected',
-    detail: 'Game telemetry escalated the local yellow to full course yellow.',
-    timestamp: '14:36:12',
-    lap: 27,
-    flagType: 'FCY',
-    sector: 'Sector 2',
-    corner: 'Indianapolis'
-  },
-  {
-    id: crypto.randomUUID(),
-    kind: 'detection',
-    source: 'game',
-    title: 'Local yellow cleared',
-    detail: 'Track feed returned to green in sector 2 after recovery.',
-    timestamp: '14:34:03',
-    lap: 26,
-    flagType: 'GREEN',
-    sector: 'Sector 2',
-    corner: 'Arnage'
-  }
-]
+const INITIAL_HISTORY: FlagHistoryItem[] = []
 
 const prependHistory = (
   items: FlagHistoryItem[],
   entry: Omit<FlagHistoryItem, 'id'>
-): FlagHistoryItem[] => [{ ...entry, id: crypto.randomUUID() }, ...items].slice(0, 18)
+): FlagHistoryItem[] => [{ ...entry, id: crypto.randomUUID() }, ...items].slice(0, 80)
+
+const prependHistoryEntries = (
+  items: FlagHistoryItem[],
+  entries: readonly ActivityHistoryEntry[]
+): FlagHistoryItem[] =>
+  [...entries.map((entry) => ({ ...entry, id: crypto.randomUUID() })), ...items].slice(0, 80)
 
 const getSyncState = (
   manualFlag: ActiveFlagState | null,
@@ -128,6 +56,26 @@ const getSyncState = (
   if (manualFlag!.type === detectedFlag!.type) return 'synced'
   return 'conflict'
 }
+
+const MANUAL_FLAG_TITLES: Record<FlagType, string> = {
+  GREEN: 'Green flag',
+  YELLOW: 'Yellow flag',
+  CHEQUERED: 'Chequered flag',
+  RED: 'Red flag',
+  FCY: 'FCY',
+  SC: 'Safety car',
+  SC_THIS_LAP: 'SC ending'
+}
+
+const getManualFlagTitle = (type: FlagType): string => MANUAL_FLAG_TITLES[type]
+
+const getManualFlagDetail = (type: FlagType): string =>
+  `${getManualFlagTitle(type)} is engaged by the user.`
+
+const ACTIVITY_FILTER_KEYS: ActivityFilter[] = ['flags', 'warnings', 'alerts']
+const ACTIVITY_DESIGN_REVISION = 'sector-flags-v1'
+
+const getDismissKey = (id: string): string => `${ACTIVITY_DESIGN_REVISION}:${id}`
 
 export interface FlagSystemDemoState {
   flagOptions: readonly CustomSelectOption[]
@@ -142,35 +90,29 @@ export interface FlagSystemDemoState {
   toleranceKph: number
   previewSettings: PreviewSettings
   speedAlerts: SpeedAlert[]
-  activityFilter: ActivityFilter
+  activityFilters: readonly ActivityFilter[]
   activityQuery: string
   filteredHistory: FlagHistoryItem[]
   filteredAlerts: SpeedAlert[]
   setSpeedLimitKph: (value: number) => void
   setToleranceKph: (value: number) => void
   setPreviewSettings: (settings: PreviewSettings) => void
-  setActivityFilter: (filter: ActivityFilter) => void
+  toggleActivityFilter: (filter: ActivityFilterToggle) => void
   setActivityQuery: (query: string) => void
   applyManualFlag: (type: FlagType) => void
   clearManualFlag: () => void
-  acknowledgeAlert: (id: string) => void
+  dismissAlert: (id: string) => void
+  dismissHistoryItem: (id: string) => void
+  clearActivities: () => void
 }
 
 export function useFlagSystemDemo(): FlagSystemDemoState {
-  const [manualFlag, setManualFlag] = useState<ActiveFlagState | null>({
-    type: 'FCY',
-    source: 'race-control',
-    lap: 27,
-    timestamp: '14:36:20',
-    note: FLAG_NOTE_PRESETS.FCY
-  })
-  const [detectedFlag] = useState<ActiveFlagState | null>({
-    type: 'FCY',
-    source: 'game',
-    lap: 27,
-    timestamp: '14:36:12',
-    note: 'Game feed reports session neutralised.'
-  })
+  const session = useRaceStore((state) => state.session)
+  const standings = useRaceStore((state) => state.standings)
+  const connection = useRaceStore((state) => state.connection)
+  const [manualFlag, setManualFlag] = useState<ActiveFlagState | null>(null)
+  const [telemetry, setTelemetry] = useState<TelemetrySnapshot | null>(null)
+  const [eventAlerts, setEventAlerts] = useState<SpeedAlert[]>([])
   const [speedLimitKph, setSpeedLimitKph] = useState(80)
   const [toleranceKph, setToleranceKph] = useState(5)
   const [previewSettings, setPreviewSettings] = useState<PreviewSettings>({
@@ -180,13 +122,98 @@ export function useFlagSystemDemo(): FlagSystemDemoState {
     compactMeta: false
   })
   const [history, setHistory] = useState<FlagHistoryItem[]>(INITIAL_HISTORY)
-  const [acknowledgedAlertIds, setAcknowledgedAlertIds] = useState<string[]>([])
-  const [activityFilter, setActivityFilter] = useState<ActivityFilter>('all')
+  const [dismissedAlertIds, setDismissedAlertIds] = useState<string[]>([])
+  const [dismissedHistoryIds, setDismissedHistoryIds] = useState<string[]>([])
+  const [activityFilters, setActivityFilters] = useState<ActivityFilter[]>(ACTIVITY_FILTER_KEYS)
   const [activityQuery, setActivityQuery] = useState('')
+  const previousConnectionRef = useRef<ConnectionStatus>(connection)
+  const previousSessionRef = useRef<SessionInfo | null>(session)
+  const previousStandingsRef = useRef<DriverStanding[] | null>(null)
+  const speedAlertEpisodeIdsRef = useRef<Record<string, string>>({})
+
+  useEffect(() => {
+    let cancelled = false
+
+    void globalThis.api
+      .getTelemetry()
+      .then((snapshot) => {
+        if (!cancelled) setTelemetry(snapshot)
+      })
+      .catch(() => {
+        if (!cancelled) setTelemetry(null)
+      })
+
+    const unsubscribe = globalThis.api.onTelemetryUpdate((snapshot) => {
+      setTelemetry(snapshot)
+    })
+
+    return () => {
+      cancelled = true
+      unsubscribe()
+    }
+  }, [])
+
+  useEffect(() => {
+    const event = createConnectionActivity(previousConnectionRef.current, connection, session)
+    previousConnectionRef.current = connection
+    if (!event) return
+
+    const timeout = globalThis.setTimeout(() => {
+      setHistory((items) => prependHistoryEntries(items, [event]))
+    }, 0)
+
+    return () => globalThis.clearTimeout(timeout)
+  }, [connection, session])
+
+  useEffect(() => {
+    const previousSession = previousSessionRef.current
+    const entries = [
+      createSessionActivity(previousSession, session),
+      createFlagActivity(previousSession, session, standings),
+      ...createSectorFlagActivities(previousSession, session)
+    ].filter((entry): entry is ActivityHistoryEntry => entry !== null)
+
+    previousSessionRef.current = session
+    if (entries.length === 0) return
+
+    const timeout = globalThis.setTimeout(() => {
+      setHistory((items) => prependHistoryEntries(items, entries))
+    }, 0)
+
+    return () => globalThis.clearTimeout(timeout)
+  }, [session, standings])
+
+  useEffect(() => {
+    const previousStandings = previousStandingsRef.current
+    previousStandingsRef.current = standings
+    if (
+      connection !== 'CONNECTED' ||
+      previousStandings === null ||
+      previousStandings.length === 0
+    ) {
+      return
+    }
+
+    const historyEntries = createDriverActivities(previousStandings, standings, session)
+    const penaltyAlerts = createPenaltyAlerts(previousStandings, standings, session)
+    if (historyEntries.length === 0 && penaltyAlerts.length === 0) return
+
+    const timeout = globalThis.setTimeout(() => {
+      if (historyEntries.length > 0) {
+        setHistory((items) => prependHistoryEntries(items, historyEntries))
+      }
+      if (penaltyAlerts.length > 0) {
+        setEventAlerts((alerts) => [...penaltyAlerts, ...alerts].slice(0, 80))
+      }
+    }, 0)
+
+    return () => globalThis.clearTimeout(timeout)
+  }, [connection, session, standings])
 
   const commitManualFlag = (
     type: FlagType,
     timestamp: string,
+    sessionElapsedSeconds: number,
     title: string,
     detail: string
   ): void => {
@@ -195,6 +222,7 @@ export function useFlagSystemDemo(): FlagSystemDemoState {
       source: 'race-control',
       lap: 27,
       timestamp,
+      sessionElapsedSeconds,
       note: detail
     }
 
@@ -206,6 +234,7 @@ export function useFlagSystemDemo(): FlagSystemDemoState {
         title,
         detail,
         timestamp,
+        sessionElapsedSeconds,
         lap: nextFlag.lap,
         flagType: nextFlag.type,
         sector: type === 'SC_THIS_LAP' ? 'Sector 3' : 'Sector 2',
@@ -214,12 +243,21 @@ export function useFlagSystemDemo(): FlagSystemDemoState {
     )
   }
 
+  const getEventElapsed = (fallbackSeconds: number): number =>
+    session?.sessionTime ?? fallbackSeconds
+
   const applyManualFlag = (type: FlagType): void => {
     const activeType = manualFlag?.type
 
     if (type === 'SC') {
       if (activeType === 'SC') {
-        commitManualFlag('SC_THIS_LAP', '14:37:26', 'SC ending', FLAG_NOTE_PRESETS.SC_THIS_LAP)
+        commitManualFlag(
+          'SC_THIS_LAP',
+          '14:37:26',
+          getEventElapsed(5246),
+          getManualFlagTitle('SC_THIS_LAP'),
+          getManualFlagDetail('SC_THIS_LAP')
+        )
         return
       }
 
@@ -227,13 +265,20 @@ export function useFlagSystemDemo(): FlagSystemDemoState {
         commitManualFlag(
           'GREEN',
           '14:37:34',
-          'Green Flag restored',
-          'Safety car procedure completed. Return to green conditions.'
+          getEventElapsed(5254),
+          getManualFlagTitle('GREEN'),
+          getManualFlagDetail('GREEN')
         )
         return
       }
 
-      commitManualFlag('SC', '14:37:18', 'SC deployed', FLAG_NOTE_PRESETS.SC)
+      commitManualFlag(
+        'SC',
+        '14:37:18',
+        getEventElapsed(5238),
+        getManualFlagTitle('SC'),
+        getManualFlagDetail('SC')
+      )
       return
     }
 
@@ -241,51 +286,108 @@ export function useFlagSystemDemo(): FlagSystemDemoState {
       commitManualFlag(
         'GREEN',
         '14:37:30',
-        'Green Flag restored',
-        `${FLAG_LABELS[type]} cleared. Return to green conditions.`
+        getEventElapsed(5250),
+        getManualFlagTitle('GREEN'),
+        getManualFlagDetail('GREEN')
       )
       return
     }
 
-    commitManualFlag(type, '14:37:18', `${FLAG_LABELS[type]} applied`, FLAG_NOTE_PRESETS[type])
-  }
-
-  const clearManualFlag = (): void => {
-    if (manualFlag?.type === 'GREEN') return
     commitManualFlag(
-      'GREEN',
-      '14:37:42',
-      'Green Flag restored',
-      manualFlag
-        ? `Operator cleared ${FLAG_LABELS[manualFlag.type]} and restored green conditions.`
-        : FLAG_NOTE_PRESETS.GREEN
+      type,
+      '14:37:18',
+      getEventElapsed(5238),
+      getManualFlagTitle(type),
+      getManualFlagDetail(type)
     )
   }
 
-  const acknowledgeAlert = (id: string): void => {
-    setAcknowledgedAlertIds((current) => (current.includes(id) ? current : [...current, id]))
+  const clearManualFlag = (): void => {
+    if (!manualFlag || manualFlag.type === 'GREEN') return
+    commitManualFlag(
+      'GREEN',
+      '14:37:42',
+      getEventElapsed(5262),
+      getManualFlagTitle('GREEN'),
+      getManualFlagDetail('GREEN')
+    )
   }
 
-  const speedAlerts = useMemo<SpeedAlert[]>(() => {
-    const monitoredLimit = speedLimitKph + toleranceKph
-    return ALERT_SEEDS.filter((seed) => seed.speedKph > monitoredLimit).map((seed) => ({
-      id: seed.id,
-      driverName: seed.driverName,
-      carNumber: seed.carNumber,
-      speedKph: seed.speedKph,
-      zoneLimitKph: speedLimitKph,
-      location: seed.location,
-      carName: seed.carName,
-      sector: seed.sector,
-      corner: seed.corner,
-      timestamp: seed.timestamp,
-      lap: 27,
-      status: acknowledgedAlertIds.includes(seed.id) ? 'acknowledged' : 'new'
-    }))
-  }, [acknowledgedAlertIds, speedLimitKph, toleranceKph])
+  const dismissAlert = (id: string): void => {
+    const dismissKey = getDismissKey(id)
+    setDismissedAlertIds((current) =>
+      current.includes(dismissKey) ? current : [...current, dismissKey]
+    )
+  }
 
+  const dismissHistoryItem = (id: string): void => {
+    const dismissKey = getDismissKey(id)
+    setDismissedHistoryIds((current) =>
+      current.includes(dismissKey) ? current : [...current, dismissKey]
+    )
+  }
+
+  const activeSpeedAlerts = useMemo<SpeedAlert[]>(() => {
+    const activeKeys = new Set<string>()
+    const alerts = createSpeedAlerts({
+      standings,
+      telemetry,
+      session,
+      isFcyActive: manualFlag?.type === 'FCY' || session?.flagState === 'FULL_COURSE_YELLOW',
+      speedLimitKph,
+      toleranceKph,
+      getEpisodeId: (key) => {
+        activeKeys.add(key)
+        speedAlertEpisodeIdsRef.current[key] ??= `speed:${key}:${crypto.randomUUID()}`
+        return speedAlertEpisodeIdsRef.current[key]
+      }
+    })
+
+    Object.keys(speedAlertEpisodeIdsRef.current).forEach((key) => {
+      if (!activeKeys.has(key)) {
+        delete speedAlertEpisodeIdsRef.current[key]
+      }
+    })
+
+    return alerts
+  }, [manualFlag?.type, session, speedLimitKph, standings, telemetry, toleranceKph])
+  const stickySpeedAlerts = useStickySpeedAlerts(activeSpeedAlerts)
+  const speedAlerts = useMemo(
+    () =>
+      [...eventAlerts, ...stickySpeedAlerts].sort(
+        (a, b) => b.sessionElapsedSeconds - a.sessionElapsedSeconds
+      ),
+    [eventAlerts, stickySpeedAlerts]
+  )
+
+  const clearActivities = (): void => {
+    setDismissedAlertIds((current) => [
+      ...new Set([...current, ...speedAlerts.map((alert) => getDismissKey(alert.id))])
+    ])
+    setDismissedHistoryIds((current) => [
+      ...new Set([...current, ...history.map((item) => getDismissKey(item.id))])
+    ])
+  }
+
+  const toggleActivityFilter = (filter: ActivityFilterToggle): void => {
+    setActivityFilters((current) => {
+      if (filter === 'all') return ACTIVITY_FILTER_KEYS
+      if (current.includes(filter)) return current.filter((item) => item !== filter)
+      return [...current, filter]
+    })
+  }
+
+  const detectedFlag = useMemo(() => createDetectedFlagState(session), [session])
   const effectiveFlag = manualFlag ?? detectedFlag
   const sectorFlags = useMemo<[FlagType | null, FlagType | null, FlagType | null]>(() => {
+    if (!manualFlag && session?.sectorFlags) {
+      return session.sectorFlags.map(mapFlagStateToFlagType) as [
+        FlagType | null,
+        FlagType | null,
+        FlagType | null
+      ]
+    }
+
     if (!effectiveFlag) return [null, null, null]
     if (
       effectiveFlag.type === 'FCY' ||
@@ -298,76 +400,89 @@ export function useFlagSystemDemo(): FlagSystemDemoState {
     if (effectiveFlag.type === 'YELLOW') return ['YELLOW', null, null]
     if (effectiveFlag.type === 'GREEN') return ['GREEN', 'GREEN', 'GREEN']
     return [null, null, null]
-  }, [effectiveFlag])
+  }, [effectiveFlag, manualFlag, session?.sectorFlags])
   const syncState = getSyncState(manualFlag, detectedFlag)
 
   const filteredHistory = useMemo(() => {
     const query = activityQuery.trim().toLowerCase()
     return history.filter((item) => {
+      const isVisible = !dismissedHistoryIds.includes(getDismissKey(item.id))
       const matchesFilter =
-        activityFilter === 'all' ||
-        (activityFilter === 'warnings' && item.kind === 'warning') ||
-        (activityFilter === 'flags' && item.kind !== 'warning')
+        (activityFilters.includes('warnings') && item.kind === 'warning') ||
+        (activityFilters.includes('flags') && item.kind !== 'warning')
 
       const haystack = [
+        item.title,
+        item.detail,
         item.driverName,
         item.carName,
         item.carNumber,
         item.sector,
         item.corner,
         item.timestamp,
+        formatSessionElapsed(item.sessionElapsedSeconds),
         String(item.lap)
       ]
         .filter(Boolean)
         .join(' ')
         .toLowerCase()
-      return matchesFilter && (!query || haystack.includes(query))
+      return isVisible && matchesFilter && (!query || haystack.includes(query))
     })
-  }, [activityFilter, activityQuery, history])
+  }, [activityFilters, activityQuery, dismissedHistoryIds, history])
 
   const filteredAlerts = useMemo(() => {
     const query = activityQuery.trim().toLowerCase()
     return speedAlerts.filter((alert) => {
-      const matchesFilter = activityFilter === 'all' || activityFilter === 'alerts'
+      const matchesFilter = activityFilters.includes('alerts')
+      const isVisible = !dismissedAlertIds.includes(getDismissKey(alert.id))
       const haystack = [
+        alert.title,
+        alert.detail,
         alert.driverName,
         alert.carName,
         alert.carNumber,
+        alert.primaryMetric,
+        alert.threshold,
+        alert.evidence,
+        alert.method,
         alert.sector,
         alert.corner,
         alert.timestamp,
+        formatSessionElapsed(alert.sessionElapsedSeconds),
         String(alert.lap)
       ]
         .join(' ')
         .toLowerCase()
-      return matchesFilter && (!query || haystack.includes(query))
+      return isVisible && matchesFilter && (!query || haystack.includes(query))
     })
-  }, [activityFilter, activityQuery, speedAlerts])
+  }, [activityFilters, activityQuery, dismissedAlertIds, speedAlerts])
 
   return {
     flagOptions: FLAG_OPTIONS as readonly CustomSelectOption[],
     manualFlag,
     detectedFlag,
     effectiveFlag,
-    currentLap: 27,
-    timeRemaining: '01:12:44',
+    currentLap: session?.currentLap ?? 27,
+    timeRemaining: formatSessionElapsed(session?.timeRemaining ?? 4364),
     sectorFlags,
     syncState,
     speedLimitKph,
     toleranceKph,
     previewSettings,
     speedAlerts,
-    activityFilter,
+    activityFilters,
     activityQuery,
     filteredHistory,
     filteredAlerts,
     setSpeedLimitKph,
     setToleranceKph,
     setPreviewSettings,
-    setActivityFilter,
+    toggleActivityFilter,
     setActivityQuery,
     applyManualFlag,
     clearManualFlag,
-    acknowledgeAlert
+    dismissAlert,
+    dismissHistoryItem,
+    clearActivities
   }
 }

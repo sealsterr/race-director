@@ -1,29 +1,56 @@
 import type { ReactElement } from 'react'
-import { AlertTriangle, Search, Waves } from 'lucide-react'
-import type { ActivityFilter, FlagHistoryItem, SpeedAlert } from './types'
-import { FLAG_LABELS, FLAG_TONES } from './types'
+import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
+import { Search, Trash2, Waves } from 'lucide-react'
+import type { ActivityFilter, ActivityFilterToggle, FlagHistoryItem, SpeedAlert } from './types'
+import { HistoryCard, SpeedAlertCard } from './FlagActivityCard'
 
 interface FlagActivityPanelProps {
-  readonly activityFilter: ActivityFilter
+  readonly activityFilters: readonly ActivityFilter[]
   readonly activityQuery: string
   readonly filteredHistory: FlagHistoryItem[]
   readonly filteredAlerts: SpeedAlert[]
-  readonly onActivityFilterChange: (filter: ActivityFilter) => void
+  readonly onActivityFilterToggle: (filter: ActivityFilterToggle) => void
   readonly onActivityQueryChange: (query: string) => void
-  readonly onAcknowledgeAlert: (id: string) => void
+  readonly onDismissAlert: (id: string) => void
+  readonly onDismissHistoryItem: (id: string) => void
+  readonly onClearActivities: () => void
 }
 
-const ACTIVITY_FILTERS: ActivityFilter[] = ['all', 'flags', 'warnings', 'alerts']
+const ACTIVITY_FILTERS: ActivityFilterToggle[] = ['all', 'flags', 'warnings', 'alerts']
 
-const activityFilterLabel: Record<ActivityFilter, string> = {
+const ACTIVITY_FILTER_KEYS: ActivityFilter[] = ['flags', 'warnings', 'alerts']
+
+const activityFilterLabel: Record<ActivityFilterToggle, string> = {
   all: 'All',
   flags: 'Flags',
   warnings: 'Warnings',
   alerts: 'Alerts'
 }
 
+const activityFilterClass: Record<ActivityFilterToggle, { active: string; inactive: string }> = {
+  all: {
+    active: 'bg-rd-elevated text-rd-text',
+    inactive: 'text-rd-subtle hover:text-rd-text'
+  },
+  flags: {
+    active: 'bg-cyan-400/12 text-cyan-200 ring-1 ring-cyan-400/25',
+    inactive: 'text-cyan-300/45 hover:text-cyan-200'
+  },
+  warnings: {
+    active: 'bg-rd-warning/12 text-rd-warning ring-1 ring-rd-warning/25',
+    inactive: 'text-rd-warning/45 hover:text-rd-warning'
+  },
+  alerts: {
+    active: 'bg-rd-error/12 text-rd-error ring-1 ring-rd-error/25',
+    inactive: 'text-rd-error/45 hover:text-rd-error'
+  }
+}
+
 export function FlagActivityPanel(props: FlagActivityPanelProps): ReactElement {
   const itemCount = props.filteredHistory.length + props.filteredAlerts.length
+  const allFiltersSelected = ACTIVITY_FILTER_KEYS.every((filter) =>
+    props.activityFilters.includes(filter)
+  )
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden rounded border border-rd-border bg-rd-surface">
@@ -32,7 +59,17 @@ export function FlagActivityPanel(props: FlagActivityPanelProps): ReactElement {
         <span className="text-xs font-semibold uppercase tracking-wider text-rd-text">
           Activity
         </span>
-        <span className="ml-auto font-mono text-xs text-rd-subtle">{itemCount} items</span>
+        <span className="ml-auto" />
+        <button
+          type="button"
+          aria-label="Clear activity list"
+          title="Clear activity list"
+          disabled={itemCount === 0}
+          onClick={props.onClearActivities}
+          className="flex h-8 w-8 items-center justify-center rounded border-none bg-transparent p-0 text-rd-subtle outline-none ring-0 transition-colors hover:text-rd-text focus-visible:text-rd-text disabled:cursor-default disabled:opacity-35 disabled:hover:text-rd-subtle"
+        >
+          <Trash2 size={14} strokeWidth={2.1} />
+        </button>
       </div>
 
       <div className="flex items-center gap-2 border-b border-rd-border px-4 py-3">
@@ -49,90 +86,48 @@ export function FlagActivityPanel(props: FlagActivityPanelProps): ReactElement {
       </div>
 
       <div className="flex flex-wrap gap-2 border-b border-rd-border px-4 py-3">
-        {ACTIVITY_FILTERS.map((filter) => (
-          <button
-            key={filter}
-            type="button"
-            onClick={() => props.onActivityFilterChange(filter)}
-            className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] transition-colors ${
-              props.activityFilter === filter
-                ? 'bg-rd-elevated text-rd-text'
-                : 'text-rd-subtle hover:text-rd-text'
-            }`}
-          >
-            {activityFilterLabel[filter]}
-          </button>
-        ))}
+        {ACTIVITY_FILTERS.map((filter) => {
+          const isActive =
+            filter === 'all' ? allFiltersSelected : props.activityFilters.includes(filter)
+
+          return (
+            <button
+              key={filter}
+              type="button"
+              aria-pressed={isActive}
+              onClick={() => props.onActivityFilterToggle(filter)}
+              className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] transition-colors ${
+                isActive ? activityFilterClass[filter].active : activityFilterClass[filter].inactive
+              }`}
+            >
+              {activityFilterLabel[filter]}
+            </button>
+          )
+        })}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-3">
-        <div className="flex flex-col gap-2">
-          {props.filteredAlerts.map((alert) => (
-            <div key={alert.id} className="rounded border border-rd-border bg-rd-bg/60 p-3">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-xs text-rd-subtle">{alert.timestamp}</span>
-                <span className="text-xs text-rd-muted">Car {alert.carNumber}</span>
-                <span className="ml-auto text-[10px] uppercase tracking-[0.16em] text-rd-subtle">
-                  {alert.status === 'acknowledged' ? 'Acknowledged' : 'Speed Alert'}
-                </span>
-              </div>
-              <div className="mt-2 flex items-center gap-3">
-                <AlertTriangle size={14} className="text-rd-gold" />
-                <p className="text-base font-semibold text-rd-text">{alert.driverName}</p>
-              </div>
-              <p className="mt-2 text-sm text-rd-muted">
-                {alert.location} | {alert.speedKph} km/h in a {alert.zoneLimitKph} km/h FCY zone
-              </p>
-              <p className="mt-1 text-xs text-rd-subtle">
-                {alert.carName} | {alert.sector} | Lap {alert.lap}
-              </p>
-              <button
-                type="button"
-                onClick={() => props.onAcknowledgeAlert(alert.id)}
-                disabled={alert.status === 'acknowledged'}
-                className="mt-3 rounded border border-rd-border px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-rd-text transition-colors hover:border-rd-muted disabled:cursor-default disabled:opacity-45"
-              >
-                {alert.status === 'acknowledged' ? 'Done' : 'Acknowledge'}
-              </button>
-            </div>
-          ))}
+        <LayoutGroup>
+          <motion.div layout className="grid grid-cols-4 gap-3">
+            <AnimatePresence mode="popLayout">
+              {props.filteredAlerts.map((alert) => (
+                <SpeedAlertCard
+                  key={alert.id}
+                  alert={alert}
+                  onDismissAlert={props.onDismissAlert}
+                />
+              ))}
 
-          {props.filteredHistory.map((item) => {
-            const tone = item.flagType ? FLAG_TONES[item.flagType] : null
-            return (
-              <div key={item.id} className="rounded border border-rd-border bg-rd-bg/60 p-3">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs text-rd-subtle">{item.timestamp}</span>
-                  <span className="text-xs text-rd-muted">Lap {item.lap}</span>
-                  <span className="ml-auto text-[10px] uppercase tracking-[0.16em] text-rd-subtle">
-                    {item.source === 'race-control'
-                      ? 'External RC'
-                      : item.source === 'game'
-                        ? 'Game Detected'
-                        : item.source === 'system'
-                          ? 'System Alert'
-                          : 'Manual'}
-                  </span>
-                </div>
-                <div className="mt-2 flex items-center gap-2">
-                  {tone ? (
-                    <span
-                      className={`rounded px-2 py-1 text-[10px] font-semibold uppercase ${tone.badgeClass}`}
-                    >
-                      {FLAG_LABELS[item.flagType!]}
-                    </span>
-                  ) : (
-                    <span className="rounded bg-rd-elevated px-2 py-1 text-[10px] font-semibold uppercase text-rd-text">
-                      Clear
-                    </span>
-                  )}
-                  <p className="text-base font-semibold text-rd-text">{item.title}</p>
-                </div>
-                <p className="mt-2 text-sm text-rd-muted">{item.detail}</p>
-              </div>
-            )
-          })}
-        </div>
+              {props.filteredHistory.map((item) => (
+                <HistoryCard
+                  key={item.id}
+                  item={item}
+                  onDismissHistoryItem={props.onDismissHistoryItem}
+                />
+              ))}
+            </AnimatePresence>
+          </motion.div>
+        </LayoutGroup>
       </div>
     </div>
   )

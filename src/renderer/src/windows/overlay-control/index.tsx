@@ -1300,7 +1300,7 @@ const OverlayControl = (): React.ReactElement => {
                 : 'text-rd-subtle hover:text-rd-text'
             }`}
           >
-            Manual
+            Overlays
           </button>
           <button
             type="button"

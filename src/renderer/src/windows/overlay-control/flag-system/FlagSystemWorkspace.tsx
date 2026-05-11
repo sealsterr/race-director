@@ -40,13 +40,15 @@ export function FlagSystemWorkspace(): ReactElement {
       <div className="min-h-0 flex-1 py-4 pr-4">
         <DashboardPaneFrame baseWidth={1180} baseHeight={760} className="h-full">
           <FlagActivityPanel
-            activityFilter={demo.activityFilter}
+            activityFilters={demo.activityFilters}
             activityQuery={demo.activityQuery}
             filteredHistory={demo.filteredHistory}
             filteredAlerts={demo.filteredAlerts}
-            onActivityFilterChange={demo.setActivityFilter}
+            onActivityFilterToggle={demo.toggleActivityFilter}
             onActivityQueryChange={demo.setActivityQuery}
-            onAcknowledgeAlert={demo.acknowledgeAlert}
+            onDismissAlert={demo.dismissAlert}
+            onDismissHistoryItem={demo.dismissHistoryItem}
+            onClearActivities={demo.clearActivities}
           />
         </DashboardPaneFrame>
       </div>

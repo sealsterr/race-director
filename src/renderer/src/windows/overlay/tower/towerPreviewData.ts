@@ -41,6 +41,7 @@ export const TOWER_PREVIEW_SESSION: SessionInfo = {
   totalSessionTime: 8640,
   sessionTime: 7200,
   flagState: 'GREEN',
+  sectorFlags: ['NONE', 'NONE', 'NONE'],
   numCars: 8,
   numCarsOnTrack: 8,
   isActive: true

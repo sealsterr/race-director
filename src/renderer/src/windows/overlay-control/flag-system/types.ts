@@ -4,13 +4,17 @@ export type FlagSource = 'manual' | 'race-control' | 'game' | 'system'
 
 export type SyncState = 'idle' | 'detected-only' | 'manual-override' | 'synced' | 'conflict'
 
-export type ActivityFilter = 'all' | 'flags' | 'warnings' | 'alerts'
+export type ActivityFilter = 'flags' | 'warnings' | 'alerts'
+export type ActivityFilterToggle = 'all' | ActivityFilter
+
+export type AlertKind = 'fcy-speed' | 'pit-speed' | 'penalty'
 
 export interface ActiveFlagState {
   type: FlagType
   source: FlagSource
   lap: number
   timestamp: string
+  sessionElapsedSeconds: number
   note: string
 }
 
@@ -21,6 +25,7 @@ export interface FlagHistoryItem {
   title: string
   detail: string
   timestamp: string
+  sessionElapsedSeconds: number
   lap: number
   flagType: FlagType | null
   driverName?: string
@@ -32,17 +37,25 @@ export interface FlagHistoryItem {
 
 export interface SpeedAlert {
   id: string
+  kind: AlertKind
+  title: string
+  detail: string
   driverName: string
   carName: string
   carNumber: string
-  speedKph: number
-  zoneLimitKph: number
+  primaryMetric: string
+  threshold: string
+  evidence: string
+  method: string
   location: string
   sector: string
   corner: string
   timestamp: string
+  sessionElapsedSeconds: number
   lap: number
   status: 'new' | 'acknowledged'
+  triggerActive: boolean
+  pulseActive: boolean
 }
 
 export interface PreviewSettings {
