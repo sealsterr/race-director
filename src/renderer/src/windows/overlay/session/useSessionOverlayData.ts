@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { RaceControlManualFlag } from '../../../../../shared/raceControl'
+import { applyRaceControlManualFlagToSession } from '../../../../../shared/raceControl'
 import { useOverlayStore } from '../../../store/overlayStore'
 import type { OverlayConfig, SessionSettings } from '../../../store/overlayStore'
 import type { FlagState, SessionInfo } from '../../../types/lmu'
@@ -67,6 +69,9 @@ export function useSessionOverlayData(): SessionOverlayData {
   const [displayRemaining, setDisplayRemaining] = useState(
     SESSION_PREVIEW_SEQUENCE[0].timeRemaining
   )
+  const [manualRaceControlFlag, setManualRaceControlFlag] = useState<RaceControlManualFlag | null>(
+    null
+  )
   const [flagBarState, setFlagBarState] = useState<SessionFlagBarState>('default')
   const remainingClockRef = useRef<RemainingClock>({
     baseSeconds: SESSION_PREVIEW_SEQUENCE[0].timeRemaining,
@@ -75,6 +80,30 @@ export function useSessionOverlayData(): SessionOverlayData {
   const previousFlagStateRef = useRef<FlagState | null>(null)
   const previousSessionRef = useRef<SessionSnapshot | null>(null)
   const chequeredLatchedRef = useRef(false)
+
+  useEffect(() => {
+    let cancelled = false
+
+    void globalThis.api.raceControl
+      .getState()
+      .then((state) => {
+        if (!cancelled) {
+          setManualRaceControlFlag(state.manualFlag)
+        }
+      })
+      .catch((error) => {
+        console.warn('Failed to load race control state for session overlay:', error)
+      })
+
+    const unsubscribe = globalThis.api.raceControl.onStateChange((state) => {
+      setManualRaceControlFlag(state.manualFlag)
+    })
+
+    return () => {
+      cancelled = true
+      unsubscribe()
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -128,7 +157,11 @@ export function useSessionOverlayData(): SessionOverlayData {
   const isPreview = appState.connection !== 'CONNECTED' || appState.session === null
   const liveSession = appState.session
   const previewSession = SESSION_PREVIEW_SEQUENCE[previewIndex]
-  const session = (isPreview ? previewSession : liveSession) as SessionInfo
+  const baseSession = (isPreview ? previewSession : liveSession) as SessionInfo
+  const session = useMemo(
+    () => applyRaceControlManualFlagToSession(baseSession, manualRaceControlFlag),
+    [baseSession, manualRaceControlFlag]
+  )
   const settings = { ...SESSION_OVERLAY_DEFAULT_SETTINGS, ...overlayConfig.settings }
   const remainingAnchorKey = isPreview
     ? previewIndex

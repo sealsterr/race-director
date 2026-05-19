@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { ConnectionStatus, AppState, TelemetrySnapshot } from '../shared/types'
 import type { AppUpdaterState } from '../shared/updater'
 import type { GlobalUiSettingsPayload } from '../shared/globalUi'
+import type { RaceControlManualFlag, RaceControlState } from '../shared/raceControl'
 import type {
   DisplayInfo,
   OverlayBounds,
@@ -141,6 +142,23 @@ const api = {
       }
       ipcRenderer.on('updater:state', handler)
       return () => ipcRenderer.removeListener('updater:state', handler)
+    }
+  },
+
+  raceControl: {
+    getState: (): Promise<RaceControlState> => ipcRenderer.invoke('raceControl:getState'),
+
+    setManualFlag: (flag: RaceControlManualFlag): Promise<RaceControlState> =>
+      ipcRenderer.invoke('raceControl:setManualFlag', flag),
+
+    clearManualFlag: (): Promise<RaceControlState> => ipcRenderer.invoke('raceControl:clearManualFlag'),
+
+    onStateChange: (callback: (state: RaceControlState) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, state: RaceControlState): void => {
+        callback(state)
+      }
+      ipcRenderer.on('raceControl:state', handler)
+      return () => ipcRenderer.removeListener('raceControl:state', handler)
     }
   },
 

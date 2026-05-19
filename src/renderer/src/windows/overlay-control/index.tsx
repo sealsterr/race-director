@@ -1095,37 +1095,37 @@ const OverlayControl = (): React.ReactElement => {
   const [toasts, setToasts] = useState<Toast[]>([])
   const [isSaving, setIsSaving] = useState(false)
 
-  // Overlay control polls snapshots instead of subscribing to the full live push stream.
   useEffect(() => {
     let cancelled = false
-    let hasLoggedSyncError = false
-
-    const syncState = async (): Promise<void> => {
-      try {
-        const state = await globalThis.api.getState()
+    void globalThis.api
+      .getState()
+      .then((state) => {
         if (cancelled) return
         useRaceStore.getState().setSession(state.session)
         useRaceStore.getState().setStandings(state.standings)
         useRaceStore.getState().setConnection(state.connection)
-      } catch (error) {
-        if (cancelled) return
-        if (!hasLoggedSyncError) {
+      })
+      .catch((error) => {
+        if (!cancelled) {
           console.warn('Failed to sync overlay control race state:', error)
-          hasLoggedSyncError = true
         }
-      }
-    }
+      })
 
-    void syncState()
-    const timer = globalThis.setInterval(() => {
-      void syncState()
-    }, 1000)
+    const unsubState = globalThis.api.onStateUpdate((state) => {
+      useRaceStore.getState().setSession(state.session)
+      useRaceStore.getState().setStandings(state.standings)
+    })
+
+    const unsubConn = globalThis.api.onConnectionChange((status) => {
+      useRaceStore.getState().setConnection(status)
+    })
 
     return () => {
       cancelled = true
-      globalThis.clearInterval(timer)
+      unsubState()
+      unsubConn()
     }
-  }, [savePath, setSavePath])
+  }, [])
 
   useEffect(() => {
     ;(async () => {

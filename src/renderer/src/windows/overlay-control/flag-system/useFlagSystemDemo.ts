@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CustomSelectOption } from '../../../components/ui/CustomSelect'
 import { useRaceStore } from '../../../store/raceStore'
+import type { RaceControlManualFlag } from '../../../../../shared/raceControl'
 import type {
   ConnectionStatus,
   DriverStanding,
@@ -72,6 +73,14 @@ const getManualFlagTitle = (type: FlagType): string => MANUAL_FLAG_TITLES[type]
 const getManualFlagDetail = (type: FlagType): string =>
   `${getManualFlagTitle(type)} is engaged by the user.`
 
+const getRaceControlTimestamp = (): string =>
+  new Date().toLocaleTimeString('en-GB', {
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  })
+
 const ACTIVITY_FILTER_KEYS: ActivityFilter[] = ['flags', 'warnings', 'alerts']
 const ACTIVITY_DESIGN_REVISION = 'sector-flags-v1'
 
@@ -130,6 +139,30 @@ export function useFlagSystemDemo(): FlagSystemDemoState {
   const previousSessionRef = useRef<SessionInfo | null>(session)
   const previousStandingsRef = useRef<DriverStanding[] | null>(null)
   const speedAlertEpisodeIdsRef = useRef<Record<string, string>>({})
+
+  useEffect(() => {
+    let cancelled = false
+
+    void globalThis.api.raceControl
+      .getState()
+      .then((state) => {
+        if (!cancelled) {
+          setManualFlag(state.manualFlag)
+        }
+      })
+      .catch((error) => {
+        console.warn('Failed to load race control state:', error)
+      })
+
+    const unsubscribe = globalThis.api.raceControl.onStateChange((state) => {
+      setManualFlag(state.manualFlag)
+    })
+
+    return () => {
+      cancelled = true
+      unsubscribe()
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -212,21 +245,24 @@ export function useFlagSystemDemo(): FlagSystemDemoState {
 
   const commitManualFlag = (
     type: FlagType,
-    timestamp: string,
-    sessionElapsedSeconds: number,
     title: string,
     detail: string
   ): void => {
-    const nextFlag: ActiveFlagState = {
+    const timestamp = getRaceControlTimestamp()
+    const sessionElapsedSeconds = session?.sessionTime ?? 0
+    const nextFlag: RaceControlManualFlag = {
       type,
       source: 'race-control',
-      lap: 27,
+      lap: session?.currentLap ?? 0,
       timestamp,
       sessionElapsedSeconds,
       note: detail
     }
 
     setManualFlag(nextFlag)
+    void globalThis.api.raceControl.setManualFlag(nextFlag).catch((error) => {
+      console.warn('Failed to update race control manual flag:', error)
+    })
     setHistory((items) =>
       prependHistory(items, {
         kind: 'manual-change',
@@ -243,73 +279,50 @@ export function useFlagSystemDemo(): FlagSystemDemoState {
     )
   }
 
-  const getEventElapsed = (fallbackSeconds: number): number =>
-    session?.sessionTime ?? fallbackSeconds
-
   const applyManualFlag = (type: FlagType): void => {
     const activeType = manualFlag?.type
 
     if (type === 'SC') {
       if (activeType === 'SC') {
-        commitManualFlag(
-          'SC_THIS_LAP',
-          '14:37:26',
-          getEventElapsed(5246),
-          getManualFlagTitle('SC_THIS_LAP'),
-          getManualFlagDetail('SC_THIS_LAP')
-        )
+        commitManualFlag('SC_THIS_LAP', getManualFlagTitle('SC_THIS_LAP'), getManualFlagDetail('SC_THIS_LAP'))
         return
       }
 
       if (activeType === 'SC_THIS_LAP') {
-        commitManualFlag(
-          'GREEN',
-          '14:37:34',
-          getEventElapsed(5254),
-          getManualFlagTitle('GREEN'),
-          getManualFlagDetail('GREEN')
-        )
+        commitManualFlag('GREEN', getManualFlagTitle('GREEN'), getManualFlagDetail('GREEN'))
         return
       }
 
-      commitManualFlag(
-        'SC',
-        '14:37:18',
-        getEventElapsed(5238),
-        getManualFlagTitle('SC'),
-        getManualFlagDetail('SC')
-      )
+      commitManualFlag('SC', getManualFlagTitle('SC'), getManualFlagDetail('SC'))
       return
     }
 
     if (activeType === type) {
-      commitManualFlag(
-        'GREEN',
-        '14:37:30',
-        getEventElapsed(5250),
-        getManualFlagTitle('GREEN'),
-        getManualFlagDetail('GREEN')
-      )
+      commitManualFlag('GREEN', getManualFlagTitle('GREEN'), getManualFlagDetail('GREEN'))
       return
     }
 
-    commitManualFlag(
-      type,
-      '14:37:18',
-      getEventElapsed(5238),
-      getManualFlagTitle(type),
-      getManualFlagDetail(type)
-    )
+    commitManualFlag(type, getManualFlagTitle(type), getManualFlagDetail(type))
   }
 
   const clearManualFlag = (): void => {
-    if (!manualFlag || manualFlag.type === 'GREEN') return
-    commitManualFlag(
-      'GREEN',
-      '14:37:42',
-      getEventElapsed(5262),
-      getManualFlagTitle('GREEN'),
-      getManualFlagDetail('GREEN')
+    if (!manualFlag) return
+
+    setManualFlag(null)
+    void globalThis.api.raceControl.clearManualFlag().catch((error) => {
+      console.warn('Failed to clear race control manual flag:', error)
+    })
+    setHistory((items) =>
+      prependHistory(items, {
+        kind: 'clear',
+        source: 'race-control',
+        title: 'Manual override cleared',
+        detail: 'Race Control returned the session flag state to automatic game detection.',
+        timestamp: getRaceControlTimestamp(),
+        sessionElapsedSeconds: session?.sessionTime ?? 0,
+        lap: manualFlag.lap,
+        flagType: null
+      })
     )
   }
 

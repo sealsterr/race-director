@@ -8,6 +8,7 @@ import type { OverlayId } from '../shared/overlay'
 import { getOverlayWindowScale } from '../shared/overlayWindowSizing'
 import { registerIpcHandlers } from './ipc/handlers'
 import { registerOverlayHandlers } from './ipc/overlayHandlers'
+import { registerRaceControlHandlers } from './ipc/raceControlHandlers'
 import { registerUpdaterHandlers } from './ipc/updaterHandlers'
 import { registerIpcHandle } from './ipc/registerIpcHandle'
 import { initializeAutoUpdater } from './updater'
@@ -791,6 +792,7 @@ const bootstrap = async (): Promise<void> => {
 
     registerIpcHandlers(mainWindow, handleConnectionLost)
     registerOverlayHandlers()
+    registerRaceControlHandlers()
     registerWindowIpc(mainWindow)
     registerUpdaterHandlers()
     initializeAutoUpdater({

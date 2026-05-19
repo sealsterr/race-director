@@ -1,4 +1,6 @@
-export type FlagType = 'GREEN' | 'YELLOW' | 'CHEQUERED' | 'RED' | 'FCY' | 'SC' | 'SC_THIS_LAP'
+import type { RaceControlFlagType } from '../../../../../shared/raceControl'
+
+export type FlagType = RaceControlFlagType
 
 export type FlagSource = 'manual' | 'race-control' | 'game' | 'system'
 
