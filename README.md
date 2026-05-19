@@ -4,8 +4,7 @@
 
 ### Professional streamer and commentator broadcast overlay for Le Mans Ultimate
 
-![Version](https://img.shields.io/badge/version-0.2.0-blue)
-![Status](https://img.shields.io/badge/status-Early%20Development-orange)
+![Version](https://img.shields.io/github/v/release/sealsterr/race-director?display_name=tag&label=version)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-ffdd00?logo=buymeacoffee&logoColor=000)](https://buymeacoffee.com/azathoth_)
 
 </div>

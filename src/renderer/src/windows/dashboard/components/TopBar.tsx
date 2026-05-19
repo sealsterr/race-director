@@ -114,6 +114,7 @@ const TopBar = ({ connection }: TopBarProps): React.ReactElement => {
   })
   const barHeight = Math.max(56, overlayInsets.height || 56)
   const safeRightInset = Math.max(overlayInsets.right, MIN_WINDOW_CONTROLS_WIDTH)
+  const versionLabel = useMemo(() => `v${__APP_VERSION__}`, [])
 
   const containerStyle = useMemo(() => {
     return {
@@ -160,7 +161,7 @@ const TopBar = ({ connection }: TopBarProps): React.ReactElement => {
           </span>
         </div>
         <div className="h-4 w-px bg-rd-border" />
-        <span className="font-mono text-xs text-rd-subtle">v0.2.0-pre</span>
+        <span className="font-mono text-xs text-rd-subtle">{versionLabel}</span>
       </div>
 
       <div className="relative z-20 flex items-center gap-4">

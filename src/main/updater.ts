@@ -177,7 +177,8 @@ export const installDownloadedUpdate = async (): Promise<AppUpdaterActionResult>
   try {
     onBeforeInstall?.()
     clearUpdateTimers()
-    autoUpdater.quitAndInstall(false, true)
+    // Silent NSIS install avoids reopening the interactive setup wizard on Windows.
+    autoUpdater.quitAndInstall(true, true)
     return { accepted: true, completed: true, state: updaterState }
   } catch (error) {
     setUpdaterState(reduceUpdaterStateOnInstallFailure(updaterState, normalizeError(error)))
